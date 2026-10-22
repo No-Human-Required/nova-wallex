@@ -15,6 +15,7 @@
     idle: 'آماده و غیرفعال', disabled: 'غیرفعال', stopped_by_operator: 'متوقف توسط اپراتور',
     policy_reviewed_stopped: 'سیاست جدید ثبت شد · منتظر ادامهٔ اپراتور',
     wallet_reviewed_stopped: 'حساب تطبیق داده شد · منتظر ادامهٔ اپراتور',
+    native_reviewed_stopped: 'محافظ تطبیق داده شد · منتظر ادامهٔ اپراتور',
     cash_tmn: 'تومان نقد', equity_tmn: 'ارزش حساب · تومان', realized_pnl_tmn: 'سود و زیان محقق‌شده · تومان',
     fees_tmn: 'کارمزد · تومان', net_return_pct: 'بازده خالص · درصد', drawdown_pct: 'افت سرمایه · درصد',
     max_drawdown_pct: 'سقف افت سرمایه · درصد', max_position_pct: 'سقف هر موقعیت · درصد',
@@ -139,6 +140,7 @@
     const ready = signedIn && Boolean(live.data?.vault_ready) && !live.busy;
     const credentials = live.data?.credentials;
     const native=live.data?.last_snapshot?.native_protection;
+    el('native-stop-reconcile').disabled=!ready || live.data?.state?.desired!=='stopped' || !native?.client_id;
     el('native-stop-preview').disabled=!ready || !['running','reduce_only'].includes(live.data?.state?.desired) || (native && !['not_enabled','approval_expired'].includes(native.status));
     el('native-stop-approve').disabled=!ready || !live.nativePreview || live.nativePreview.expires_at*1000<=Date.now() || el('native-stop-phrase').value.trim()!=='فعال‌سازی محافظ TRX در والکس';
     el('live-save-keys').disabled = !ready;
@@ -366,6 +368,10 @@
   }
   el('live-refresh').addEventListener('click', () => refresh({ notify: true }));
   el('native-stop-phrase').addEventListener('input',syncButtons);
+  el('native-stop-reconcile').addEventListener('click',()=>action(async()=>{
+    await post('/api/live/native-stop/reconcile',{});
+    toast('همان سفارش با والکس تطبیق داده شد؛ سفارش جدیدی ارسال نشد و موتور متوقف است.');await refresh();
+  }));
   el('native-stop-preview').addEventListener('click',()=>action(async()=>{
     live.nativePreview=null;el('native-stop-phrase').value='';
     const p=await post('/api/live/native-stop/preview',{});live.nativePreview=p;

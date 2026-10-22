@@ -83,3 +83,10 @@ def approve_native(body:Approval,request:Request):
 def pending(store,run_id):
     with store.connect() as db:row=db.execute('SELECT body FROM live_native_requests WHERE run_id=?',(run_id,)).fetchone()
     return json.loads(row[0]) if row else None
+
+@router.post('/reconcile')
+def reconcile_native(request:Request):
+    from .live_native_recovery import recover
+    from .live_api import problem
+    try:return recover(request.app)
+    except (ValueError,RuntimeError,KeyError) as exc:raise HTTPException(409,problem(exc)) from None

@@ -135,7 +135,14 @@ class ExecutionJournal:
             for encoded,count in delta.items():
                 for _ in range(count):ledger.apply(old['intent'],json.loads(encoded))
         except (ContractError,KeyError,TypeError) as exc:
-            self.halt('order_contract_or_accounting_error')
+            s=deepcopy(self.s);s['halt']='order_contract_or_accounting_error'
+            fields=response.get('result',{}) if isinstance(response,dict) else {}
+            diagnostic={'client_id':cid,'error_type':type(exc).__name__,
+                        'reason':str(exc) if isinstance(exc,ContractError) else 'Invalid order structure',
+                        'response_sha256':digest(response),
+                        'field_types':{k:type(fields.get(k)).__name__ for k in
+                            ('active','executedQty','executedSum','fills','stopPrice')} if isinstance(fields,dict) else {}}
+            self.checkpoint('order_reconciliation_rejected',diagnostic,s)
             raise ContractError('Order cannot be safely reconciled') from None
         s=deepcopy(self.s)
         s['ledger']=ledger.state

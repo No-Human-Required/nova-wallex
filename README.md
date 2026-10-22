@@ -1,4 +1,6 @@
-# Nova — Wallex Control 3.3.2
+# Nova — Wallex Control 3.3.3
+
+3.3.3 fixes the observed Wallex `STOP_LIMIT / NEW / active` detail response with explicit null execution aggregates and an empty fill list. Other missing or contradictory execution data still blocks trading. The authenticated native-stop reconciliation control performs GET-only recovery of the existing 3.3.2 order, preserves its client ID, exact ledger and risk limits, records a source revision in the original audit chain and keeps execution stopped. New fills, a changed trigger, foreign orders or wallet disagreement require separate investigation. No replacement order is submitted by recovery.
 
 پنل فارسی پرتفوی اسپات با تم Graphite، PostgreSQL در رانفلر و SQLite برای پژوهش آفلاین، بک‌تست و بازپخش AI، و موتور مستقل اجرای الگوریتمی روی حساب اختصاصی چالش. نسخهٔ قبلی در پوشهٔ والد تغییر نکرده است.
 
