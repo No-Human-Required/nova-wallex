@@ -14,17 +14,24 @@ def source_manifest():
            for p in sorted([*ROOT.glob('*.py'),*ROOT.glob('tests/*.py')])}
     return {'files':files,'sha256':digest(files)}
 
-def open_journal(directory,markets,*,capital='5000000',max_order_tmn='500000',fee_buffer='0.003',max_age=10,session_binding=None):
+def open_journal(directory,markets,*,capital='5000000',max_order_tmn='500000',fee_buffer='0.003',max_age=10,session_binding=None,revision=None):
     source=source_manifest()
     limits={'capital':number(capital),'max_order_tmn':number(max_order_tmn),'fee_buffer':number(fee_buffer),'max_age':max_age}
     cfg={'runtime_source':source,'runtime_limits':limits,
          'session_binding_sha256':digest(session_binding) if session_binding is not None else None,
          'market_contract':{s:{k:str(v) for k,v in vars(m).items()} for s,m in sorted(markets.items())}}
     label='wallex-account-runtime' if session_binding and session_binding.get('enabled') is True else 'unactivated-execution-contract-lab'
-    audit=Audit(directory,cfg,label=label)
+    archive_root=Path(directory)
+    if revision is not None:
+        from .revision import checked_identity
+        identity=checked_identity(directory,revision,cfg,session_binding)
+        audit=Audit(directory,identity['config'],label=identity['label'])
+        archive_root=archive_root/'revisions'/revision['new_source_sha256']
+    else:
+        audit=Audit(directory,cfg,label=label)
     try:
         for name,h in source['files'].items():
-            dest=Path(directory)/'runtime_source'/name
+            dest=archive_root/'runtime_source'/name
             dest.parent.mkdir(exist_ok=True,parents=True)
             if file_exists(dest) and hashlib.sha256(read_bytes(dest)).hexdigest()!=h:raise ValueError('Runtime source snapshot changed')
             if not file_exists(dest):write_bytes(dest,(ROOT/name).read_bytes())

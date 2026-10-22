@@ -2,7 +2,8 @@
 from concurrent.futures import ThreadPoolExecutor,as_completed
 from pathlib import Path
 from starwallex.data import WallexPublic
-from starwallex.portfolio_data import History,Instrument
+from starwallex.portfolio_data import Instrument
+from .history import TradingHistory as History
 from starwallex.util import read_json,write_json,digest
 from starwallex.persistence import file_exists
 

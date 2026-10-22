@@ -154,6 +154,7 @@
     live.data = data;
     renderOverview(data);
     const engine = data.state || {};
+    root.querySelector('.live-activation-panel').hidden = Boolean(engine.run_id);
     if(engine.run_id && state.page==='live') api('/api/live/evidence').then(ev=>{
       el('live-events-json').textContent=json(ev.events);
       const box=el('live-equity-chart'), pts=ev.equity;
@@ -194,6 +195,8 @@
       max_daily_loss_pct:cfg.max_daily_loss_fraction==null?null:Number(cfg.max_daily_loss_fraction)*100,
       max_drawdown_pct:cfg.max_drawdown_fraction==null?null:Number(cfg.max_drawdown_fraction)*100,
       max_positions:cfg.max_positions, model:cfg.ai_model_documented_backend,
+      'تاریخچهٔ لازم برای سیگنال':data.history_policy ? data.history_policy.required_closed_hours+' کندل بستهٔ ساعتی' : '—',
+      'کندل با حجم صفر':data.history_policy ? 'پذیرفته؛ کنترل نقدشوندگی برقرار است' : '—',
       'تنظیمات کامل برای بررسی':cfg
     }, 'تنظیمات ریسک هنوز دریافت نشده است.');
     const globalStatus=el('global-live-status'), globalDetail=el('global-live-detail');

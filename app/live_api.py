@@ -88,15 +88,28 @@ class Activation(Body):
     confirmation:str
 class Control(Body):
     action:str
+class HistoryRevision(Body):
+    confirmation:str
+    approval_reference:str
+    resume:StrictBool=False
+
+@router.post('/history-revision')
+def history_revision(body:HistoryRevision,request:Request):
+    from .live_revision import apply_history_revision
+    try:return apply_history_revision(request.app,body.confirmation,body.approval_reference,resume=body.resume)
+    except (ValueError,RuntimeError) as exc:raise HTTPException(409,problem(exc)) from None
 
 @router.get('/status')
 def status(request:Request):
+    from execution.history import POLICY
     app=request.app;state=app.state.live.state();run=app.state.live.run(state['run_id']) if state['run_id'] else None
     creds=app.state.vault.status();account=selection(app.state.store)
     creds['subaccount_client_id']=account['client_id'] if account else None
     return {'state':{k:v for k,v in state.items() if k!='preflight'},'credentials':creds,
             'vault_ready':bool(app.state.vault.cipher),'release_ready':release_ready(),'preflight':state['preflight'],
-            'last_snapshot':run['last_snapshot'] if run else None,'risk_config':risk_config()}
+            'last_snapshot':run['last_snapshot'] if run else None,'risk_config':risk_config(),
+            'history_policy':POLICY,'history_revision_applied':bool(run and run.get('revision') and
+                run['binding']['source_sha256']==run['revision']['new_source_sha256'])}
 
 @router.post('/credentials')
 def credentials(body:Credentials,request:Request):

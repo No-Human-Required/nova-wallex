@@ -1,0 +1,236 @@
+{
+  "protocol": {
+    "policy": {
+      "version": "closed49-volume-aware-v1",
+      "required_closed_hours": 49,
+      "missing_bar_fill": false,
+      "explicit_zero_volume_is_missing": false,
+      "isolated_zero_volume_veto": false,
+      "turnover_and_prior_capacity_checks": true,
+      "portfolio_regime_risk_rules": "unchanged"
+    },
+    "runtime_source": {
+      "files": {
+        "__init__.py": "ea7dd803c82152c2ec431e9d8d957490eb8d20f24fae5a58aa3ddbb958f33d7a",
+        "activation.py": "4ebc9cd3609d4c33cde48fde7b47ca20db6a32feecc1425c6cf34ac43f318bcd",
+        "cli.py": "95bc100d67699093368772902df1dc66c4851d37c27b9f7a6f888b098e28d564",
+        "contracts.py": "fb8b0bc61f6e3407858184fe6aeaf79666504de3e4d9d692392c7a95379e3d4b",
+        "controller.py": "00e6982f239fae32517770b2bea12ebb8b7cc499e217eb96d478b131b5f8b708",
+        "feed.py": "003e6e20cd65c6d04cf62a4eacde6b08c42c94d9fc2802f52f894a181f5022cf",
+        "gateway.py": "964d0e12c00a662fa921fb2918c9c083f17cdced91614b69b7e1745886782f65",
+        "history.py": "1e6937dc964cbe1c1ef202f60cb9da69608e46b2a15efba5d7918cf3e9c0f171",
+        "inspect_contract.py": "04c3b5f1fedaf75933552b2f1482731250a2c01ee08e4faba390b4d5209de394",
+        "journal.py": "b358a43ee2364960d754571ebccd54c8ea5007372a3436c885956d5823e44224",
+        "ledger.py": "093d7e6a972f72f9bffdf58279e2a0a803bd478b330e717d546925ebb76d7057",
+        "planner.py": "ceb278773823d22864649f5744c2a031039abc5e89bc879d6c4e14d26dfcae9e",
+        "rehearse.py": "8cedfd716c9a6870774830bf345369af1eaa56ba470a1653c7347141893d9ead",
+        "revision.py": "f4f7776d6fe771602771a9e84ee1a8ff0523e12dbd8e94bc683fd9e59d17dbfe",
+        "session.py": "e9f8742511393811ba3afcf992c14c8119400e683af812f730e3462107150d5d",
+        "tests/test_activation.py": "f1fdcef4c53a6da4a150507407a68f447decd00db1c8b7ed09b03238087b45ca",
+        "tests/test_controller.py": "be04b3782abe11e9de59c7053934cdd30e085e490cc6b102b13312a2ab66981f",
+        "tests/test_execution.py": "0a4bd5bf972a1cd17dcb77fe8a16e1a3062b7ce39af17a8dc199832535692c66",
+        "tests/test_feed.py": "748b8b2c63a54d7d3da1f291ddf5c816404174626e33ec15069595e1f0e97131",
+        "tests/test_history.py": "5b89fa3e1e4b210bff07e94194dd4c6171db434f84c4c11441a98d8daa0683b3"
+      },
+      "sha256": "1440307ef685d621424c75f27a85a7e7bf943a26de7d6f123372ad475d789161"
+    },
+    "dataset_identity": "d622f6cc39ce558ad9d3cd381486038f645ff0ed60e340d3d06f573cc69f76eb",
+    "windows": [
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39
+    ],
+    "scenarios": [
+      "base",
+      "cost_delay_stress"
+    ],
+    "independent_holdout": false,
+    "new_ai_calls": 0,
+    "real_orders": 0,
+    "scope": "History-policy ablation without AI; preserves research end-window and all risk rules"
+  },
+  "rows": [
+    {
+      "window": 31,
+      "scenario": "base",
+      "old_return_percent": 0.0630528831008264,
+      "new_return_percent": 0.08981707,
+      "fills": 4,
+      "fees_tmn": "1404.34650",
+      "max_drawdown_percent": "0.120879333500"
+    },
+    {
+      "window": 32,
+      "scenario": "base",
+      "old_return_percent": -0.6344729229496895,
+      "new_return_percent": -0.6214079875446237,
+      "fills": 15,
+      "fees_tmn": "9709.37782904062080",
+      "max_drawdown_percent": "0.7601385861218137911378047200"
+    },
+    {
+      "window": 33,
+      "scenario": "base",
+      "old_return_percent": -0.104823463184,
+      "new_return_percent": -0.241045185026045,
+      "fills": 4,
+      "fees_tmn": "2956.23456531",
+      "max_drawdown_percent": "0.6768489830855442176733087700"
+    },
+    {
+      "window": 34,
+      "scenario": "base",
+      "old_return_percent": 0.0564891504,
+      "new_return_percent": 0.0127461168,
+      "fills": 4,
+      "fees_tmn": "2299.442160",
+      "max_drawdown_percent": "0.1395887784200"
+    },
+    {
+      "window": 35,
+      "scenario": "base",
+      "old_return_percent": -0.081256982058,
+      "new_return_percent": -0.081256982058,
+      "fills": 2,
+      "fees_tmn": "1209.6898029",
+      "max_drawdown_percent": "0.1142806721479877758399548300"
+    },
+    {
+      "window": 36,
+      "scenario": "base",
+      "old_return_percent": 0.0,
+      "new_return_percent": 0.0,
+      "fills": 0,
+      "fees_tmn": "0",
+      "max_drawdown_percent": "0"
+    },
+    {
+      "window": 37,
+      "scenario": "base",
+      "old_return_percent": 0.0,
+      "new_return_percent": 0.0,
+      "fills": 0,
+      "fees_tmn": "0",
+      "max_drawdown_percent": "0"
+    },
+    {
+      "window": 38,
+      "scenario": "base",
+      "old_return_percent": 0.0,
+      "new_return_percent": 0.0,
+      "fills": 0,
+      "fees_tmn": "0",
+      "max_drawdown_percent": "0"
+    },
+    {
+      "window": 39,
+      "scenario": "base",
+      "old_return_percent": 0.4236108722574572,
+      "new_return_percent": 0.4236108722574572,
+      "fills": 4,
+      "fees_tmn": "2419.17911850",
+      "max_drawdown_percent": "0.1147833422828435863256013900"
+    },
+    {
+      "window": 31,
+      "scenario": "cost_delay_stress",
+      "old_return_percent": -0.0018029023555248,
+      "new_return_percent": 0.08613601507,
+      "fills": 3,
+      "fees_tmn": "2712.82500",
+      "max_drawdown_percent": "0.1147592029977974884871111400"
+    },
+    {
+      "window": 32,
+      "scenario": "cost_delay_stress",
+      "old_return_percent": -1.6121354975305537,
+      "new_return_percent": -1.6121354975305537,
+      "fills": 15,
+      "fees_tmn": "23307.82645482111052",
+      "max_drawdown_percent": "1.555039461155825319051623350"
+    },
+    {
+      "window": 33,
+      "scenario": "cost_delay_stress",
+      "old_return_percent": -0.4543315926927102,
+      "new_return_percent": -0.2463361330647102,
+      "fills": 4,
+      "fees_tmn": "6588.84178800",
+      "max_drawdown_percent": "0.2802017992600"
+    },
+    {
+      "window": 34,
+      "scenario": "cost_delay_stress",
+      "old_return_percent": -0.07211723876,
+      "new_return_percent": -0.07211723876,
+      "fills": 2,
+      "fees_tmn": "2100.238938",
+      "max_drawdown_percent": "0.1086641829005471448911158500"
+    },
+    {
+      "window": 35,
+      "scenario": "cost_delay_stress",
+      "old_return_percent": -0.166072191888,
+      "new_return_percent": -0.166072191888,
+      "fills": 2,
+      "fees_tmn": "2429.4295944",
+      "max_drawdown_percent": "0.16607219188800"
+    },
+    {
+      "window": 36,
+      "scenario": "cost_delay_stress",
+      "old_return_percent": -0.3337553202855546,
+      "new_return_percent": 0.0,
+      "fills": 0,
+      "fees_tmn": "0",
+      "max_drawdown_percent": "0"
+    },
+    {
+      "window": 37,
+      "scenario": "cost_delay_stress",
+      "old_return_percent": 0.0,
+      "new_return_percent": 0.0,
+      "fills": 0,
+      "fees_tmn": "0",
+      "max_drawdown_percent": "0"
+    },
+    {
+      "window": 38,
+      "scenario": "cost_delay_stress",
+      "old_return_percent": 0.0,
+      "new_return_percent": -0.335233848,
+      "fills": 2,
+      "fees_tmn": "2122.77240",
+      "max_drawdown_percent": "0.338236568100"
+    },
+    {
+      "window": 39,
+      "scenario": "cost_delay_stress",
+      "old_return_percent": 0.21824863717569137,
+      "new_return_percent": 0.25802474496554134,
+      "fills": 4,
+      "fees_tmn": "5434.41918000",
+      "max_drawdown_percent": "0.2375264901645571302478710100"
+    }
+  ],
+  "summary": {
+    "base": {
+      "old_mean_return_percent": -0.030822273603711765,
+      "new_mean_return_percent": -0.04639289950791239,
+      "cash_return_percent": 0,
+      "fills": 33
+    },
+    "cost_delay_stress": {
+      "old_mean_return_percent": -0.26910734514851686,
+      "new_mean_return_percent": -0.23197046102308028,
+      "cash_return_percent": 0,
+      "fills": 32
+    }
+  }
+}

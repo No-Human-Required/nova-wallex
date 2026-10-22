@@ -51,10 +51,11 @@ class Engine:
         if not any(x['client_id']==binding['subaccount_client_id'] and x['eligible'] for x in accounts(self.gateway.accounts())):
             raise ContractError('Credit account is no longer eligible')
         self.feed.verify_markets();check_fees(self.gateway.fees(),self.feed.markets,cfg)
-        self.j=open_journal(directory,self.feed.markets,capital=cfg['capital_tmn'],max_order_tmn=cfg['max_order_tmn'],session_binding=binding)
+        self.j=open_journal(directory,self.feed.markets,capital=cfg['capital_tmn'],max_order_tmn=cfg['max_order_tmn'],session_binding=binding,revision=run.get('revision'))
         self.current=run
+        archive_root=directory/'revisions'/binding['source_sha256'] if run.get('revision') else directory
         for name,sha in orchestrator_manifest().items():
-            p=directory/'orchestrator_source'/name;p.parent.mkdir(parents=True,exist_ok=True)
+            p=archive_root/'orchestrator_source'/name;p.parent.mkdir(parents=True,exist_ok=True)
             if file_exists(p) and hashlib.sha256(read_bytes(p)).hexdigest()!=sha:raise ContractError('Orchestrator source snapshot mismatch')
             if not file_exists(p):write_bytes(p,(ROOT/name).read_bytes())
         os.environ['AVALAI_API_KEY']=self.vault.get('avalai')
