@@ -18,9 +18,13 @@ function toast(s){$('toast').textContent=s;$('toast').hidden=false;clearTimeout(
 function showError(s){$('error').textContent=s;$('error').hidden=!s;}
 async function api(path,opts={}){
   const headers = {...(opts.body?{'Content-Type':'application/json','X-CSRF-Token':state.csrf}:{}),...(opts.headers||{})};
-  const r = await fetch(path,{...opts,headers,credentials:'same-origin'});
+  let r;
+  try { r = await fetch(path,{...opts,headers,credentials:'same-origin'}); }
+  catch { throw new Error('ارتباط مرورگر با سرور قطع شد. پس از اتصال، وضعیت را به‌روزرسانی کنید؛ درخواست قبلی ممکن است ثبت شده باشد.'); }
   if(r.status===401){$('login').hidden=false;throw new Error('برای ادامه وارد شوید.');}
-  const payload = await r.json();
+  let payload;
+  try { payload = await r.json(); }
+  catch { throw new Error(`پاسخ معتبر از سرور دریافت نشد (${r.status}). پس از برقراری سرویس، وضعیت را به‌روزرسانی کنید.`); }
   if(!r.ok) throw new Error(typeof payload.detail==='string'?payload.detail:`درخواست نامعتبر (${r.status})`);
   return payload;
 }

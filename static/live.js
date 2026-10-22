@@ -177,7 +177,7 @@
       el(`live-${name}-state`).textContent = credential?.present ? 'کلید ثبت‌شده' + (fingerprint ? ` · اثرانگشت: ${fingerprint}` : '') : 'کلیدی ثبت نشده است.';
     }
     const preflight = data.preflight;
-    el('live-preflight-status').textContent = !preflight ? 'هنوز بررسی نشده' : (reasonsOf(preflight).length || preflight.ok === false || preflight.ready === false) ? 'نیازمند بررسی' : 'بررسی ثبت شده';
+    el('live-preflight-status').textContent = !preflight ? 'هنوز بررسی نشده' : (reasonsOf(preflight).length || preflight.ok === false || preflight.ready === false) ? 'نیازمند بررسی' : preflight.ok === true ? 'بررسی حساب موفق' : 'بررسی ثبت شده';
     renderReasons('live-preflight-reasons', reasonsOf(preflight));
     el('live-preflight-json').textContent = preflight ? json(preflight) : 'هنوز شاهدی دریافت نشده است.';
     const cfg=data.risk_config||{};
@@ -338,7 +338,10 @@
     el('overview-live-updated').textContent = !authorized ? 'جزئیات حساب · دسترسی اپراتور' : at !== null ? 'آخرین مشاهده · ' + tehranTime(snapshot.at) : 'هنوز دادهٔ معاملاتی ثبت نشده';
     el('overview-live-note').textContent = !authorized
       ? 'وضعیت موتور عمومی است؛ اعداد حساب واقعی پس از ورود اپراتور نمایش داده می‌شوند.'
-      : !engine?.run_id ? 'اجرای واقعی هنوز شروع نشده است؛ در انتظار کلید حساب مسابقه و فعال‌سازی.'
+      : !engine?.run_id ? data?.credentials?.subaccount_client_id
+        ? 'حساب اختصاصی انتخاب شده است؛ اجرای واقعی هنوز فعال نشده است.'
+        : data?.credentials?.wallex?.present ? 'کلید ثبت شده است؛ حساب اختصاصی را انتخاب و بررسی کنید.'
+        : 'اجرای واقعی هنوز شروع نشده است؛ در انتظار کلید حساب مسابقه و فعال‌سازی.'
       : !snapshot ? 'اجرا ثبت شده؛ در انتظار نخستین تصویر معتبر حساب.'
       : stale ? 'این اعداد آخرین تصویر ثبت‌شده‌اند؛ اتصال یا تازگی داده را بررسی کنید.'
       : 'منبع: دفتر اجرای واقعی؛ بازده محقق‌شده از ارزش روز دارایی‌های باز جداست.';
