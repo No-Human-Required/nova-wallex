@@ -17,6 +17,11 @@ from .wallet_precision import check_wallet,POLICY
 
 TERMINAL={'FILLED','CLOSED','LOCAL_REJECTED'}
 
+def protective(order):return order['intent']['type']=='STOP_LIMIT'
+
+def resting(order):
+    return protective(order) and order['phase'] in {'OPEN','PARTIAL'} and not order['cancel_requested']
+
 class ExecutionJournal:
     def __init__(self,audit,markets,*,capital='5000000',max_order_tmn='500000',fee_buffer='0.003',max_age=10):
         self.audit,self.markets=audit,markets
@@ -41,7 +46,11 @@ class ExecutionJournal:
         self.checkpoint('execution_halt',{'reason':reason},s)
 
     def unresolved(self):
-        return [cid for cid,o in self.s['orders'].items() if o['phase'] not in TERMINAL or not o['settled']]
+        return [cid for cid,o in self.s['orders'].items() if not o['settled'] or (o['phase'] not in TERMINAL and not resting(o))]
+
+    def protection_orders(self,base=None):
+        return {cid:o for cid,o in self.s['orders'].items() if protective(o) and o['phase'] not in TERMINAL
+                and (base is None or o['intent']['base']==base)}
 
     def submit(self,intent,gateway,*,now,risk_authorizer=None,quote_to_tmn='1',fx_observed_at=None):
         m=self.markets.get(intent.get('symbol'))
@@ -52,6 +61,13 @@ class ExecutionJournal:
             if self.s['orders'][cid]['phase']=='LOCAL_REJECTED':return 'LOCAL_REJECTED'
             return self.reconcile(cid,gateway,now=now)
         if self.s['halt'] or self.unresolved():raise ContractError('Unresolved order or halt blocks new intent')
+        if intent['type']=='STOP_LIMIT':
+            approval=self.s.get('native_protection',{})
+            if not approval.get('operator_approved') or approval.get('client_id')!=cid or approval.get('intent')!=intent:
+                raise ContractError('Separate operator approval required for native protection')
+            if self.protection_orders():raise ContractError('Existing protection must not be duplicated')
+        elif intent['side']=='SELL' and self.protection_orders(m.base):
+            raise ContractError('Protective sell must be conclusively cancelled before algorithmic sell')
         confirmed=self.s['balance_confirmed_at']
         if confirmed is None or not 0<=now-confirmed<=self.max_age:raise ContractError('Fresh reconciled balances required')
         if not intent['observed_at']<=now<intent['expires_at'] or now-intent['observed_at']>self.max_age:
@@ -168,11 +184,21 @@ class ExecutionJournal:
         if not isinstance(open_ids,set):raise ContractError('Complete open-order set required')
         if open_ids-set(self.s['orders']):
             self.halt('foreign_open_orders');raise ContractError('Unowned order in dedicated account')
-        if open_ids or any(o['phase'] not in TERMINAL for o in self.s['orders'].values()):
+        expected_open={cid for cid,o in self.s['orders'].items() if resting(o)}
+        if open_ids!=expected_open or any(o['phase'] not in TERMINAL and not resting(o) for o in self.s['orders'].values()):
             raise ContractError('Account still has unresolved/open orders')
         latest=max((o['observed_at'] or o['submitted_at'] for o in self.s['orders'].values()),default=0)
         if observed_at<latest:raise ContractError('Balance snapshot predates order observation')
-        if any(dec(v)!=0 for v in locked.values()):raise ContractError('Unexpected locked balance')
+        reserved={}
+        for cid in expected_open:
+            o=self.s['orders'][cid];a=o['intent']['base']
+            if o['observed_at'] is None or not 0<=now-o['observed_at']<=self.max_age:
+                raise ContractError('Fresh protective order observation required')
+            reserved[a]=reserved.get(a,Decimal(0))+(dec(o['intent']['quantity'])-dec(o['executed_qty']))*(1+self.fee_buffer)
+        # Conditional orders may reserve on creation or on triggering. Never
+        # allow an unrelated lock, and account for the full remaining sell size.
+        for a,v in locked.items():
+            if dec(v)<0 or dec(v)>reserved.get(a,Decimal(0)):raise ContractError('Unexpected locked balance')
         expected=Ledger(self.s['ledger']).totals()
         try:
             precision=check_wallet(totals,expected,allow_integer_tmn=self.s.get('wallet_observation_policy')==POLICY)
@@ -184,5 +210,6 @@ class ExecutionJournal:
         s=deepcopy(self.s);s['balance_confirmed_at']=observed_at
         s['reported_cash_tmn']=number(totals.get('TMN','0'));s['balance_precision']=precision
         for order in s['orders'].values():order['settled']=True
-        self.checkpoint('balance_reconciliation',{'observed_at':observed_at,'totals':totals,'open_count':0,'precision':precision},s)
+        self.checkpoint('balance_reconciliation',{'observed_at':observed_at,'totals':totals,'open_count':len(open_ids),
+                        'protective_order_ids':sorted(expected_open),'locked':{a:v for a,v in locked.items() if dec(v)},'precision':precision},s)
         return True

@@ -138,6 +138,9 @@
     const signedIn = Boolean(state.csrf);
     const ready = signedIn && Boolean(live.data?.vault_ready) && !live.busy;
     const credentials = live.data?.credentials;
+    const native=live.data?.last_snapshot?.native_protection;
+    el('native-stop-preview').disabled=!ready || !['running','reduce_only'].includes(live.data?.state?.desired) || (native && !['not_enabled','approval_expired'].includes(native.status));
+    el('native-stop-approve').disabled=!ready || !live.nativePreview || live.nativePreview.expires_at*1000<=Date.now() || el('native-stop-phrase').value.trim()!=='فعال‌سازی محافظ TRX در والکس';
     el('live-save-keys').disabled = !ready;
     const selectedAccount = Boolean(credentials?.subaccount_client_id);
     el('live-check-account').disabled = !ready || !credentials?.wallex?.present || !selectedAccount || Boolean(live.data?.state?.run_id);
@@ -160,6 +163,10 @@
     live.data = data;
     renderOverview(data);
     const engine = data.state || {};
+    const native=data.last_snapshot?.native_protection;
+    const freshNative=native?.exchange_confirmed && Date.now()/1000-native.observed_at<=90;
+    el('native-stop-status').textContent=freshNative ? 'محافظ در والکس تأیید شده است' : native?.exchange_confirmed ? 'محافظ قبلاً تأیید شده؛ مشاهدهٔ تازه در دسترس نیست' : native?.status==='not_enabled' || !native ? 'محافظ صرافی هنوز فعال نشده است.' : 'وضعیت محافظ: '+native.status;
+    rows('native-stop-values',native ? {'قیمت تحریک · تومان':native.stop_price,'حداقل قیمت فروش · تومان':native.price,'مقدار سفارش · TRX':native.quantity,'باقی‌ماندهٔ محافظ · TRX':native.remaining_protected_qty,'موجودی خرد خارج از پوشش · TRX':native.residual_qty,'شناسهٔ سفارش':native.client_id,'آخرین مشاهده':tehranTime(native.observed_at)} : {},'هنوز سفارشی برای محافظ ثبت نشده است.');
     const walletReview=data.wallet_review;
     el('live-wallet-review').hidden=!(walletReview?.available || walletReview?.applied);
     el('live-wallet-status').textContent=walletReview?.applied ? 'بازیابی ثبت شده است؛ شروع دوباره فقط با «درخواست ادامه» انجام می‌شود.' : 'ابتدا سفارش‌های ثبت‌شده و موجودی از صرافی دوباره خوانده و بررسی می‌شوند.';
@@ -358,6 +365,20 @@
     }));
   }
   el('live-refresh').addEventListener('click', () => refresh({ notify: true }));
+  el('native-stop-phrase').addEventListener('input',syncButtons);
+  el('native-stop-preview').addEventListener('click',()=>action(async()=>{
+    live.nativePreview=null;el('native-stop-phrase').value='';
+    const p=await post('/api/live/native-stop/preview',{});live.nativePreview=p;
+    el('native-stop-confirm-box').hidden=false;
+    el('native-stop-preview-text').textContent='فروش محافظ '+p.preview.quantity+' TRX؛ تحریک '+num(p.preview.stop_price)+' تومان، حد سفارش '+num(p.preview.price)+' تومان. موجودی خرد خارج از پوشش: '+p.preview.residual_qty+' TRX. اعتبار تا '+tehranTime(p.expires_at)+'.';
+    syncButtons();
+  }));
+  el('native-stop-approve').addEventListener('click',()=>action(async()=>{
+    if(!live.nativePreview || el('native-stop-phrase').value.trim()!=='فعال‌سازی محافظ TRX در والکس')return;
+    await post('/api/live/native-stop/approve',{preview_id:live.nativePreview.preview_id,confirmation:el('native-stop-phrase').value.trim()});
+    live.nativePreview=null;el('native-stop-phrase').value='';el('native-stop-confirm-box').hidden=true;
+    toast('تأیید ثبت شد؛ تا تأیید صرافی در وضعیت محافظ، پوشش فعال محسوب نمی‌شود.');await refresh();
+  }));
   el('live-wallet-accept').addEventListener('change',syncButtons);
   el('live-wallet-apply').addEventListener('click',()=>action(async()=>{
     if(!el('live-wallet-accept').checked)throw new Error('ابتدا فرض دقت موجودی را بررسی کنید.');

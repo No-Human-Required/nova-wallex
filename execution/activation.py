@@ -7,6 +7,7 @@ from starwallex.util import digest,source_manifest as core_manifest
 from .session import source_manifest as runtime_manifest
 from .contracts import ContractError,dec
 from .journal import TERMINAL
+from .gateway import order_body
 
 def orchestrator_manifest():
     root=Path(__file__).resolve().parents[1]
@@ -60,7 +61,10 @@ class WriteGuard:
             cid=body.get('client_id');order=self.j.s['orders'].get(cid)
             if not order or order['phase']!='SUBMITTING' or self.j.s['halt']:return False
             intent=order['intent']
-            if body!={k:intent[k] for k in ('symbol','type','side','price','quantity','client_id')}:return False
+            if body!=order_body(intent):return False
+            if intent['type']=='STOP_LIMIT':
+                protection=self.j.s.get('native_protection',{})
+                if protection.get('client_id')!=cid or not protection.get('operator_approved'):return False
             if not self.start<=now<self.end or not intent['observed_at']<=now<intent['expires_at']:return False
             if not 0<=now-order['balance_confirmed_at']<=self.j.max_age:return False
             if (self.directory/'STOP_ALL').exists():return False

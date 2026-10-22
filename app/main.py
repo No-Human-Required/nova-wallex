@@ -97,6 +97,8 @@ def create_app(*, directory=None, history=None, development=None, start_worker=T
 
     app = FastAPI(title='StarWallex Control', docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.include_router(live_router)
+    from .live_protection import router as protection_router
+    app.include_router(protection_router)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):

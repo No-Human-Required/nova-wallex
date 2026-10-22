@@ -9,7 +9,7 @@ from math import ceil
 from .contracts import ContractError,dec,number,normalize_detail_balances
 from .ledger import Ledger
 from .planner import plan,compile_intent,bound_risk_authorizer,select,QuoteView
-from .journal import TERMINAL
+from .journal import TERMINAL,protective,resting
 
 class PortfolioController:
     def __init__(self,journal,gateway,cfg,*,start,end,ai,order_ttl=15,settlement_rule=None):
@@ -60,6 +60,13 @@ class PortfolioController:
         return strategy
 
     def reconcile_account(self,*,now):
+        # Market/AI work can outlast the previous observation. Refresh a resting
+        # protective order before comparing its fills with current balances.
+        for cid,order in list(self.j.protection_orders().items()):
+            if order['observed_at'] is None or now-order['observed_at']>2:
+                phase=self.j.reconcile(cid,self.gateway,now=now)
+                if phase not in {'OPEN','PARTIAL','FILLED','CLOSED'}:
+                    raise ContractError('Protective state must be confirmed before balances')
         totals,locked=normalize_detail_balances(self.gateway.detailed_balances())
         ids=self.gateway.open_order_ids()
         self.j.confirm_balances(totals,locked,ids,observed_at=now,now=now)
@@ -70,11 +77,20 @@ class PortfolioController:
             if order['phase'] not in TERMINAL:
                 self.j.reconcile(cid,self.gateway,now=now)
                 order=self.j.s['orders'][cid]
-                if order['phase'] in {'OPEN','PARTIAL'} and (now-order['submitted_at']>=self.ttl or now>=self.end):
+                if not protective(order) and order['phase'] in {'OPEN','PARTIAL'} and (now-order['submitted_at']>=self.ttl or now>=self.end):
                     self.j.cancel(cid,self.gateway,now=now)
-        if all(o['phase'] in TERMINAL for o in self.j.s['orders'].values()):
+        if all(o['phase'] in TERMINAL or resting(o) for o in self.j.s['orders'].values()):
             self.reconcile_account(now=now)
             self.sync_strategy()
+        return self.j.unresolved()
+
+    def service_protection(self,*,now):
+        for cid in list(self.j.protection_orders()):
+            phase=self.j.reconcile(cid,self.gateway,now=now)
+            if self.j.s.get('native_protection',{}).get('exit_requested') and phase in {'OPEN','PARTIAL'}:
+                self.j.cancel(cid,self.gateway,now=now)
+        if all(o['phase'] in TERMINAL or resting(o) for o in self.j.s['orders'].values()):
+            self.reconcile_account(now=now);self.sync_strategy()
         return self.j.unresolved()
 
     def prepare_selection(self,history,*,now):
@@ -190,6 +206,16 @@ class PortfolioController:
                                     committed_capacity=self.committed_capacity(order['symbol'],t))
             except ContractError as exc:
                 rejected.append({'stage':order['stage'],'symbol':order['symbol'],'reason':str(exc)});continue
+            protected=self.j.protection_orders(order['base']) if order['side']=='SELL' else {}
+            if protected:
+                s=deepcopy(self.j.s);s['native_protection']['exit_requested']=True
+                self.j.checkpoint('native_protection_exit_requested',{'reason':order['reason'],'time':now},s)
+                for cid in protected:
+                    phase=self.j.reconcile(cid,self.gateway,now=now)
+                    if phase in {'OPEN','PARTIAL'}:self.j.cancel(cid,self.gateway,now=now)
+                # Never reuse this plan after a cancel/trigger race. The next
+                # cycle reconciles all fills and balances, then sizes a new exit.
+                return {'status':'protective_cancel_pending'}
             context={k:order[k] for k in ('stage','symbol','base','reason')}
             if order['stage']=='FUND' or (order['stage']=='BUY' and history.markets[order['symbol']].quote=='TMN'):
                 context['entry_commitment_tmn']=number(order['budget'])

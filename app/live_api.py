@@ -128,7 +128,7 @@ def status(request:Request):
             'vault_ready':bool(app.state.vault.cipher),'release_ready':release_ready(),'preflight':state['preflight'],
             'last_snapshot':run['last_snapshot'] if run else None,'risk_config':run['config'] if run else risk_config(),
             'wallet_review':{'available':bool(run and run['binding']['source_sha256']==WALLET_PREVIOUS),
-                'applied':bool(run and run.get('revision') and run['revision'].get('version')==3),
+                'applied':bool(run and run.get('revision') and run['revision'].get('version') in {3,4}),
                 'execution_resumed':False,'maximum_tmn_uncertainty_exclusive':'1','ledger_modified':False},
             'entry_policy_review':{'protocol':PROTOCOL_V1,'proposed_config':entry_config(risk_config()),
                 'available':bool(run and run['binding']['source_sha256']==PREVIOUS_SOURCE),

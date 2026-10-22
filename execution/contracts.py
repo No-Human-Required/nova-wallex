@@ -36,16 +36,22 @@ def validate_intent(intent,market):
     """Do not round a previously approved intent silently."""
     required={'client_id','symbol','side','type','price','quantity','base','quote',
               'observed_at','expires_at','decision_sha256','portfolio_sha256'}
+    protective=intent.get('type')=='STOP_LIMIT'
+    if protective:required.add('stop_price')
     if set(intent)!=required:raise ContractError('Unexpected intent fields')
     client_id(intent['client_id'])
     if intent['symbol']!=market.symbol or intent['base']!=market.base or intent['quote']!=market.quote:
         raise ContractError('Market identity mismatch')
-    if intent['side'] not in {'BUY','SELL'} or intent['type']!='LIMIT':
+    if intent['side'] not in {'BUY','SELL'} or intent['type'] not in {'LIMIT','STOP_LIMIT'}:
         raise ContractError('Only spot limit intents are supported')
     p,q=dec(intent['price']),dec(intent['quantity'])
     if p<=0 or q<=0 or p%market.price_step or q%market.qty_step:
         raise ContractError('Nonpositive or unquantized intent')
     if q<market.min_qty or p*q<market.min_notional:raise ContractError('Order below exchange minimum')
+    if protective:
+        trigger=dec(intent['stop_price'])
+        if intent['side']!='SELL' or intent['symbol']!='TRXTMN' or trigger<=p or trigger%market.price_step:
+            raise ContractError('Only bounded TRX sell protection is supported')
     for key in ('decision_sha256','portfolio_sha256'):
         if not re.fullmatch('[0-9a-f]{64}',intent[key]):raise ContractError('Missing decision/account binding')
     if type(intent['observed_at']) is not int or type(intent['expires_at']) is not int or intent['expires_at']<=intent['observed_at']:
@@ -57,11 +63,13 @@ def normalize_order(envelope,intent):
         raise ContractError('Order response is not an explicit success')
     r=envelope.get('result')
     if not isinstance(r,dict):raise ContractError('Missing order result')
-    expected={'clientOrderId':intent['client_id'],'symbol':intent['symbol'],'type':'LIMIT'}
+    expected={'clientOrderId':intent['client_id'],'symbol':intent['symbol'],'type':intent['type']}
     if any(r.get(k)!=v for k,v in expected.items()) or str(r.get('side')).upper()!=intent['side']:
         raise ContractError('Order response identity mismatch')
     if dec(r.get('origQty'))!=dec(intent['quantity']) or dec(r.get('price'))!=dec(intent['price']):
         raise ContractError('Exchange changed original quantity/limit')
+    if intent['type']=='STOP_LIMIT' and dec(r.get('stopPrice'))!=dec(intent['stop_price']):
+        raise ContractError('Exchange did not confirm the protective trigger')
     if type(r.get('active')) is not bool:raise ContractError('active must be a boolean')
     qty=dec(r.get('executedQty'))
     if qty<0 or qty>dec(intent['quantity']):raise ContractError('Executed quantity outside original order')

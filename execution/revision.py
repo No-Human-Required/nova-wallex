@@ -15,6 +15,19 @@ def read_identity(directory):
 
 
 def receipt_origin(identity,receipt):
+    if receipt.get('version')==4 and receipt.get('policy')=='native-protection-runtime-v1':
+        prior=receipt.get('previous_revision',{})
+        if prior.get('version')!=3 or digest(prior)!=receipt.get('previous_revision_sha256'):
+            raise ContractError('Native runtime previous receipt differs')
+        original=receipt_origin(identity,prior)
+        if prior.get('new_binding_sha256')!=receipt.get('old_binding_sha256') or prior.get('new_source_sha256')!=receipt.get('old_source_sha256'):
+            raise ContractError('Native runtime source chain does not connect')
+        if receipt.get('config_changes')!={} or receipt.get('new_config_sha256')!=receipt.get('old_config_sha256') or receipt.get('old_config_sha256')!=prior.get('new_config_sha256'):
+            raise ContractError('Native runtime cannot change trading configuration')
+        if receipt.get('native_protection_enabled') is not False or receipt.get('exchange_orders_sent')!=0:
+            raise ContractError('Software migration cannot activate protection')
+        if receipt.get('prior_identity_sha256')!=digest(identity):raise ContractError('Native runtime identity differs')
+        return original
     if receipt.get('version')==3 and receipt.get('policy')=='wallet-observation-v1':
         prior=receipt.get('previous_revision',{})
         if prior.get('version')!=2 or digest(prior)!=receipt.get('previous_revision_sha256'):
@@ -46,7 +59,7 @@ def checked_identity(directory,receipt,current_cfg,binding):
     identity,state=read_identity(directory)
     if not state:raise ContractError('Explicit history revision receipt missing')
     original_binding=receipt_origin(identity,receipt)
-    if receipt.get('version') in {2,3} and binding and binding.get('risk_config_sha256')!=receipt.get('new_config_sha256'):
+    if receipt.get('version') in {2,3,4} and binding and binding.get('risk_config_sha256')!=receipt.get('new_config_sha256'):
         raise ContractError('Policy risk configuration differs')
     if digest(identity)!=receipt.get('prior_identity_sha256'):
         raise ContractError('Revision does not match original journal identity')

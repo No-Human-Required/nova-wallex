@@ -5,6 +5,7 @@ import signal
 import threading
 import time
 from copy import deepcopy
+from types import SimpleNamespace
 from pathlib import Path
 
 from .store import Store, ProcessLock
@@ -21,7 +22,8 @@ from execution.feed import PublicFeed
 from execution.session import open_journal
 from execution.controller import PortfolioController
 from execution.contracts import ContractError, dec, number
-from execution.journal import TERMINAL
+from execution.journal import TERMINAL,protective,resting
+from execution import protection
 from execution.cli import check_fees
 
 
@@ -41,6 +43,9 @@ class Engine:
 
     def attach(self,run):
         if not release_ready():raise ContractError('This execution source has not passed release verification')
+        from .live_native_revision import upgrade,PREVIOUS_SOURCE
+        if run['binding']['source_sha256']==PREVIOUS_SOURCE:
+            run=upgrade(SimpleNamespace(state=SimpleNamespace(store=self.store,live=self.live,vault=self.vault)))
         directory=self.store.directory/'live'/'runs'/run['id']
         self.feed=self.feed_factory(read_json(ROOT/'data/portfolio/universe.json'),directory/'observations')
         key=self.vault.get('wallex');self.binding_valid(run,key)
@@ -67,7 +72,8 @@ class Engine:
         self.live.heartbeat('reconciling')
         # Resolve old SUBMITTING/UNKNOWN first, with GET only. No new client ID
         # is ever invented to retry an ambiguous submission.
-        for cid in self.j.unresolved():self.j.reconcile(cid,self.gateway,now=int(time.time()))
+        for cid in set(self.j.unresolved())|set(self.j.protection_orders()):self.j.reconcile(cid,self.gateway,now=int(time.time()))
+        if self.j.protection_orders():self.controller.service_protection(now=int(time.time()))
         if not self.j.unresolved():self.controller.reconcile_account(now=int(time.time()))
         guard=WriteGuard(binding,key,self.j,cfg,directory)
         def authorize(method,path,body):
@@ -102,6 +108,7 @@ class Engine:
             holdings.append({'asset':asset,**h,'value_tmn':number(value) if value is not None else None})
         row=self.j.audit.db.execute('SELECT hash FROM events ORDER BY seq DESC LIMIT 1').fetchone()
         orders=[{'client_id':cid,'symbol':o['intent']['symbol'],'side':o['intent']['side'],
+                 'type':o['intent']['type'],'stop_price':o['intent'].get('stop_price'),
                  'phase':o['phase'],'settled':o['settled'],'executed_qty':o['executed_qty'],
                  'quantity':o['intent']['quantity'],'price':o['intent']['price'],'fills':o['fills']}
                 for cid,o in self.j.s['orders'].items()]
@@ -116,6 +123,7 @@ class Engine:
               'unresolved':self.j.unresolved(),'halt':self.j.s['halt'],'chain_hash':row[0] if row else '0'*64,
               'balance_confirmed_at':self.j.s['balance_confirmed_at'],'source_sha256':self.current['binding']['source_sha256'],
               'reported_cash_tmn':self.j.s.get('reported_cash_tmn'),'balance_precision':self.j.s.get('balance_precision'),
+              'native_protection':protection.status(self.j.s),
               'fully_realized_tmn':not holdings and not self.j.unresolved(),'settlement_complete':phase=='window_ended' and not holdings and not self.j.unresolved()})
 
     def detach(self):
@@ -141,12 +149,15 @@ class Engine:
         if state['desired']=='stopping':
             for cid in j.unresolved():
                 phase=j.reconcile(cid,self.gateway,now=int(time.time()))
-                if phase in {'OPEN','PARTIAL'}:j.cancel(cid,self.gateway,now=int(time.time()))
-            if all(o['phase'] in TERMINAL for o in j.s['orders'].values()):
+                if phase in {'OPEN','PARTIAL'} and not protective(j.s['orders'][cid]):j.cancel(cid,self.gateway,now=int(time.time()))
+            if j.protection_orders():self.controller.service_protection(now=int(time.time()))
+            if all(o['phase'] in TERMINAL or resting(o) for o in j.s['orders'].values()):
                 self.controller.reconcile_account(now=int(time.time()));self.controller.sync_strategy()
             self.publish('stopping' if j.unresolved() else 'operator_stopped')
             if not j.unresolved():self.live.stopped('operator_stopped');self.detach()
             return
+        if j.protection_orders() and (now>=self.next_decision or j.unresolved()):
+            self.controller.service_protection(now=now)
         if j.unresolved():
             self.controller.service_orders(now=now);self.publish('reconciling' if j.unresolved() else 'reconciled');return
         if now>=self.controller.end:
@@ -163,6 +174,16 @@ class Engine:
         if int(time.time())//3600*3600!=t:return
         self.controller.reconcile_account(now=int(time.time()))
         strategy=self.controller.sync_strategy();selected=j.s.get('runtime_selections',{}).get(str(t),{}).get('ranked',[])
+        from .live_protection import pending
+        approval=pending(self.store,self.current['id'])
+        if approval and approval['request_id']!=j.s.get('native_protection',{}).get('request_id') and approval['request_id'] not in j.s.get('native_rejected_requests',[]):
+            try:
+                if approval['source_sha256']!=bundle_hash() or approval['binding_sha256']!=digest(self.current['binding']):
+                    raise ContractError('Native approval binding changed')
+                protection.approve(j,approval,now=int(time.time()))
+            except ContractError as exc:
+                saved=deepcopy(j.s);saved.setdefault('native_rejected_requests',[]).append(approval['request_id'])
+                j.checkpoint('native_approval_rejected',{'request_id':approval['request_id'],'reason':str(exc)},saved)
         symbols={'USDTTMN'}|{x['symbol'] for x in selected}|{x['symbol'] for x in strategy['positions'].values()}
         if strategy['route']:symbols.add(strategy['route']['symbol'])
         self.last_quotes=self.feed.quotes(symbols);current=int(time.time())
@@ -172,8 +193,19 @@ class Engine:
         try:
             result=self.controller.step(history,self.last_quotes,now=current,can_submit=True,entries_enabled=state['desired']=='running')
         except ContractError as exc:
+            if j.s['halt']:raise
             j.checkpoint('runtime_observation_rejected',{'reason':str(exc),'time':current},deepcopy(j.s))
             result={'status':'observation_rejected'}
+        p=j.s.get('native_protection',{})
+        if result['status']=='no_executable_order' and p.get('operator_approved') and p.get('client_id') not in j.s['orders'] and p.get('status')!='approval_expired':
+            try:
+                ref=protection.reference(self.feed.api_factory(),now=int(time.time()))
+                self.controller.reconcile_account(now=int(time.time()))
+                phase=protection.submit(j,self.gateway,ref,now=int(time.time()))
+                if phase:result={'status':'native_protection_pending'}
+            except ContractError as exc:
+                if j.s['halt']:raise
+                j.checkpoint('native_protection_wait',{'reason':str(exc),'time':int(time.time())},deepcopy(j.s))
         self.publish(result['status']);self.next_decision=current+(5 if j.unresolved() else 30)
         self.live.heartbeat('running')
 

@@ -21,6 +21,8 @@ class LiveStore:
                 CREATE TABLE IF NOT EXISTS live_runs(id TEXT PRIMARY KEY,binding TEXT NOT NULL,config TEXT NOT NULL,created REAL NOT NULL,last_snapshot TEXT);
                 CREATE TABLE IF NOT EXISTS live_equity(seq INTEGER PRIMARY KEY,run_id TEXT NOT NULL,at REAL NOT NULL,equity TEXT,cash TEXT,realized TEXT,chain TEXT);
                 CREATE TABLE IF NOT EXISTS live_revisions(id TEXT PRIMARY KEY,body TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS live_native_previews(id TEXT PRIMARY KEY,body TEXT NOT NULL,expires REAL NOT NULL,used INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE IF NOT EXISTS live_native_requests(run_id TEXT PRIMARY KEY,body TEXT NOT NULL);
             ''')
 
     def state(self):

@@ -16,6 +16,15 @@ from .contracts import client_id,normalize_open_orders,ContractError
 class NotDispatched(PermissionError):
     """Local gate denied the request before opening a network connection."""
 
+def order_body(intent):
+    body={k:intent[k] for k in ('symbol','type','side','price','quantity','client_id')}
+    if body['type']=='STOP_LIMIT':
+        if body['side']!='SELL' or body['symbol']!='TRXTMN':raise ContractError('Unsupported conditional order')
+        body['stop_Price']=intent['stop_price']  # Official request spelling; response is stopPrice.
+    elif body['type']!='LIMIT':raise ContractError('Unsupported order type')
+    if body['side'] not in {'BUY','SELL'}:raise ContractError('Invalid order side')
+    return body
+
 class WallexGateway:
     def __init__(self,key,*,subaccount_id=None,write_authorizer=None,opener=None):
         self._key=key
@@ -55,9 +64,7 @@ class WallexGateway:
 
     def submit(self,intent):
         client_id(intent['client_id'])
-        body={k:intent[k] for k in ('symbol','type','side','price','quantity','client_id')}
-        if body['type']!='LIMIT' or body['side'] not in {'BUY','SELL'}:
-            raise ContractError('Only limit spot orders supported')
+        body=order_body(intent)
         return self._call('POST','/v1/account/orders',body)
 
     def lookup(self,cid):return self._call('GET','/v1/account/orders/'+client_id(cid))
