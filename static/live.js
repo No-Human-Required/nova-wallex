@@ -52,7 +52,10 @@
   }
   function reasonsOf(value) {
     const reasons = value?.blocking_reasons ?? value?.blockers;
-    return Array.isArray(reasons) ? reasons.map(item => typeof item === 'string' ? item : json(item)) : [];
+    const translated = {
+      'A successful read-only preflight less than five minutes old is required': 'بررسی حساب معتبر نیست یا بیش از پنج دقیقه گذشته است؛ «بررسی نهایی پیکربندی» را دوباره بزنید تا اتصال تازه بررسی شود.'
+    };
+    return Array.isArray(reasons) ? reasons.map(item => typeof item === 'string' ? translated[item] || item : json(item)) : [];
   }
   function renderReasons(id, reasons) {
     el(id).replaceChildren(...reasons.map(reason => {
@@ -288,6 +291,12 @@
       if (!payload.start_utc || !payload.end_utc || Date.parse(payload.end_utc) <= Date.parse(payload.start_utc)) throw new Error('زمان شروع و پایان را به‌ترتیب و به وقت تهران وارد کنید.');
       if (Date.parse(payload.end_utc) <= Date.now()) throw new Error('پایان پنجرهٔ معامله باید در آینده باشد.');
       if (![payload.challenge_account_confirmed, payload.permitted_markets_confirmed, payload.risk_limits_approved, payload.settlement_confirmed].every(Boolean)) throw new Error('تأیید حساب، بازارها، حدود ریسک و تسویه برای بررسی نهایی لازم است.');
+      toast('در حال بررسی تازهٔ اتصال و حساب؛ هیچ سفارشی ارسال نمی‌شود.');
+      const preflight = await post('/api/live/preflight', {});
+      await refresh();
+      if (preflight.ok !== true || reasonsOf(preflight).length) {
+        throw new Error(reasonsOf(preflight).join('؛ ') || 'بررسی تازهٔ حساب موفق نبود؛ فعال‌سازی بسته می‌ماند.');
+      }
       const preview = await post('/api/live/preview', payload);
       live.preview = preview; live.previewInput = JSON.stringify(payload);
       el('live-preview-empty').hidden = true;
