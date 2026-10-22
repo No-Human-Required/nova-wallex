@@ -1,0 +1,76 @@
+<section id="page-live" class="page" hidden>
+  <div class="live-status-strip" aria-live="polite">
+    <div><span class="eyebrow">LIVE OPERATIONS / SPOT</span><h2 id="live-engine-status">در انتظار دریافت وضعیت موتور</h2><p id="live-engine-detail">این بخش فقط وضعیت حساب و اجرای واقعی همین سرور را نمایش می‌دهد.</p></div>
+    <span id="live-vault-badge" class="database-badge">بررسی خزانهٔ کلیدها…</span>
+  </div>
+  <div id="live-error" class="error" role="alert" hidden></div>
+  <div class="live-facts" aria-label="وضعیت اجرای واقعی">
+    <div><span>حالت درخواستی</span><b id="live-desired">—</b></div>
+    <div><span>آخرین ضربان موتور · تهران</span><b id="live-heartbeat">—</b></div>
+    <div><span>شناسهٔ اجرای واقعی</span><code id="live-run-id">هنوز دریافت نشده</code></div>
+    <div><span>آخرین همگام‌سازی پنل</span><b id="live-synced">—</b></div>
+  </div>
+
+  <div class="live-grid">
+    <article class="panel">
+      <div class="panel-head"><div><h2>اتصال حساب و هوش مصنوعی</h2><p>کلیدها فقط برای ثبت امن به همین سرور ارسال می‌شوند.</p></div><span class="small-badge">۰۱ / اتصال</span></div>
+      <form id="live-key-form" class="form key-form" autocomplete="off">
+        <label for="live-wallex-key">کلید API حساب اختصاصی والکس</label>
+        <input id="live-wallex-key" type="password" dir="ltr" autocomplete="new-password" spellcheck="false" maxlength="512" placeholder="کلید جدید را وارد کنید" aria-describedby="live-wallex-state">
+        <p id="live-wallex-state" class="live-field-note">وضعیت کلید دریافت نشده است.</p>
+        <label for="live-avalai-key">کلید API آوال‌آی</label>
+        <input id="live-avalai-key" type="password" dir="ltr" autocomplete="new-password" spellcheck="false" maxlength="512" placeholder="کلید جدید را وارد کنید" aria-describedby="live-avalai-state">
+        <p id="live-avalai-state" class="live-field-note">وضعیت کلید دریافت نشده است.</p>
+        <p class="muted">خالی گذاشتن هر کادر، کلید ثبت‌شدهٔ همان سرویس را نگه می‌دارد. ذخیرهٔ کلید، معامله را فعال نمی‌کند.</p>
+        <div class="live-toolbar"><button id="live-save-keys" type="submit" class="primary" disabled>ذخیرهٔ امن کلیدها</button><button id="live-check-account" type="button" class="secondary" disabled>بررسی اتصال و حساب</button></div>
+      </form>
+      <div class="live-account-picker">
+        <div class="live-section-label"><span>حساب اعتباری اختصاصی چالش</span><b id="live-account-current">انتخاب حساب دریافت نشده</b></div>
+        <p class="muted">کلید API به‌تنهایی حساب اعتباری را مشخص نمی‌کند. پس از ثبت کلید والکس، حساب اختصاصی را از فهرست رسمی انتخاب کنید.</p>
+        <label for="live-account-select">حساب دریافت‌شده از والکس</label><select id="live-account-select" disabled><option value="">ابتدا فهرست حساب‌ها را دریافت کنید</option></select>
+        <div class="live-toolbar"><button id="live-load-accounts" type="button" class="secondary" disabled>دریافت فهرست حساب‌ها</button><button id="live-save-account" type="button" class="secondary" disabled>ثبت حساب انتخاب‌شده</button></div>
+      </div>
+      <div class="live-preflight"><div class="live-section-label"><span>نتیجهٔ بررسی پیش از اجرا</span><b id="live-preflight-status">هنوز بررسی نشده</b></div><ul id="live-preflight-reasons" class="checklist"></ul><details><summary>جزئیات آخرین بررسی حساب</summary><pre id="live-preflight-json" dir="ltr">هنوز شاهدی دریافت نشده است.</pre></details></div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head"><div><h2>حدود ریسک و وضعیت ماندگار</h2><p>مقادیر از تنظیمات موتور روی سرور خوانده می‌شوند.</p></div><span class="small-badge">SERVER STATE</span></div>
+      <div id="live-risk-config" class="ledger"><p class="muted">تنظیمات ریسک هنوز دریافت نشده است.</p></div>
+      <p class="panel-note">موتور روی سرور اجرا می‌شود. پس از راه‌اندازی مجدد، وضعیت ذخیره‌شده و سفارش‌های صرافی باید تطبیق داده شوند تا ادامهٔ اجرا ممکن شود.</p>
+      <div class="live-control-box"><h3>کنترل موتور</h3><p class="muted">این فرمان‌ها سیاست اجرای الگوریتم را تغییر می‌دهند. توقف موتور به‌معنای فروش یا بسته‌شدن دارایی‌های باز نیست.</p><div class="live-toolbar"><button id="live-reduce-only" type="button" class="secondary" disabled>فقط کاهش موقعیت</button><button id="live-stop" type="button" class="secondary danger" disabled>توقف موتور</button><button id="live-resume" type="button" class="secondary" disabled>درخواست ادامه</button></div></div>
+    </article>
+  </div>
+
+  <article class="panel live-activation-panel">
+    <div class="panel-head"><div><h2>آماده‌سازی اجرای واقعی</h2><p>ابتدا پیکربندی و حدود را بررسی کنید؛ فعال‌سازی مرحلهٔ جداگانه دارد.</p></div><span class="small-badge">۰۲ / مجوز اجرا</span></div>
+    <form id="live-config-form" class="form live-config-form" novalidate>
+      <div class="live-config-grid">
+        <div class="live-config-fields">
+          <label for="live-account-label">نام حساب اختصاصی چالش</label><input id="live-account-label" name="account_label" type="text" autocomplete="off" maxlength="120" placeholder="نام یا برچسب قابل شناسایی حساب" required>
+          <div class="form-row"><div><label for="live-start">شروع رسمی پنجرهٔ معامله</label><input id="live-start" name="start" type="datetime-local" dir="ltr" required></div><div><label for="live-end">پایان رسمی پنجرهٔ معامله</label><input id="live-end" name="end" type="datetime-local" dir="ltr" required></div></div>
+          <p class="live-field-note">هر دو زمان به وقت تهران هستند: <b dir="ltr">UTC+03:30</b>. زمان‌ها هنگام ارسال به UTC تبدیل می‌شوند. پایان رسمی را مطابق اعلام برگزارکننده وارد کنید.</p>
+          <div class="live-consents">
+            <label><input id="live-confirm-account" type="checkbox">این کلید متعلق به حساب اختصاصی چالش است و استفاده از آن را تأیید می‌کنم.</label>
+            <label><input id="live-confirm-markets" type="checkbox">فهرست بازارهای مجاز این حساب برای چالش را بررسی و تأیید کرده‌ام.</label>
+            <label><input id="live-confirm-risk" type="checkbox">حدود ریسک نمایش‌داده‌شده، سقف سفارش و تخصیص سرمایه را تأیید می‌کنم.</label>
+            <label><input id="live-confirm-settlement" type="checkbox">زمان پایان و الزام تحقق نتیجه به تومان را تأیید می‌کنم.</label>
+          </div>
+          <button id="live-preview" type="submit" class="secondary" disabled>بررسی نهایی پیکربندی</button>
+        </div>
+        <div class="live-approval-box">
+          <div id="live-preview-empty" class="live-empty"><span>◈</span><h3>مجوز اجرا هنوز آماده نیست</h3><p>پس از بررسی اتصال، حساب و حدود ریسک، پیش‌نمایش پیکربندی را بسازید.</p></div>
+          <div id="live-preview-result" hidden aria-live="polite"><h3 id="live-preview-title">نتیجهٔ بررسی نهایی</h3><p id="live-preview-expiry" class="muted"></p><ul id="live-preview-reasons" class="checklist"></ul><details><summary>حساب، نسخه و حدود متصل به این مجوز</summary><pre id="live-preview-binding" dir="ltr"></pre></details></div>
+          <label for="live-activation-phrase">برای فعال‌سازی، عبارت زیر را دقیق وارد کنید:</label><p class="live-confirm-phrase">فعال‌سازی معاملات واقعی</p><input id="live-activation-phrase" type="text" autocomplete="off" spellcheck="false" placeholder="عبارت فعال‌سازی" aria-describedby="live-activate-note" disabled>
+          <button id="live-activate" type="button" class="primary live-activate" disabled>فعال‌سازی الگوریتم روی حساب واقعی</button>
+          <p id="live-activate-note" class="live-field-note">این دکمه اجازهٔ ارسال خودکار سفارش واقعی را برای پیکربندی تأییدشده صادر می‌کند. تصمیم خرید و فروش را الگوریتم می‌گیرد.</p>
+        </div>
+      </div>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head"><div><h2>آخرین وضعیت حساب واقعی</h2><p>منبع: آخرین تصویر ثبت‌شدهٔ موتور و حساب متصل؛ مستقل از نتایج بک‌تست</p></div><button id="live-refresh" type="button" class="text-button">به‌روزرسانی ←</button></div>
+    <div id="live-snapshot-empty" class="live-empty"><h3>هنوز وضعیت واقعی حساب دریافت نشده است</h3><p>عدد، بازده یا موجودی تاریخی در این بخش جایگزین دادهٔ واقعی نمی‌شود.</p></div>
+    <div id="live-snapshot-content" hidden><div id="live-snapshot-summary" class="ledger"></div><div class="live-snapshot-tables"><div><h3>دارایی‌های ثبت‌شده</h3><div id="live-holdings"></div></div><div><h3>سفارش‌های ثبت‌شده</h3><div id="live-orders"></div></div></div><details class="live-snapshot-details"><summary>شاهد کامل وضعیت ثبت‌شده</summary><pre id="live-snapshot-json" dir="ltr"></pre></details></div>
+  </article>
+</section>

@@ -1,0 +1,71 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":6051963699.799999,\"prior_capacity_tmn\":10846540.052},\"r1_bps\":117.41817876683194,\"r24_bps\":642.791514045647,\"r6_bps\":216.330953554259,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":100.83939408755907,\"z24_logclose\":2.0772016293114817},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":2643023758.068,\"prior_capacity_tmn\":1209087.2730299998},\"r1_bps\":209.86965941921176,\"r24_bps\":421.63272136925235,\"r6_bps\":213.5517400707975,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":71.6337699886743,\"z24_logclose\":2.4143317329699387}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "76d5bda897f1316863dd7f3b5b85f8d3cf74ea4e6d83fa719ecace9a1b9d22e2",
+  "requested_at": 1792625763.5589077,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A2\",\"A1\"],\"confidence\":0.64,\"reason\":\"Both show positive momentum above the 90 bps roundtrip cost. A2 ranks first on stronger 1h/6h returns and lower volatility; A1 has stronger 24h trend, lower z-score, and deeper liquidity. Allow both with code-controlled sizing.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 1424,
+    "prompt_tokens": 613,
+    "total_tokens": 2037,
+    "completion_tokens_details": {
+      "reasoning_tokens": 1305
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 1305
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0018180240",
+    "irt": 484.59,
+    "exchange_rate": 266550
+  },
+  "meta": {
+    "latency_ms": 10766.0,
+    "request_id": "01a160d2-66ed-7311-9a3d-559f1dadee8e",
+    "http_status": 200,
+    "server_date": "Wed, 21 Oct 2026 23:36:14 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A2",
+      "A1"
+    ],
+    "confidence": 0.64,
+    "reason": "Both show positive momentum above the 90 bps roundtrip cost. A2 ranks first on stronger 1h/6h returns and lower volatility; A1 has stronger 24h trend, lower z-score, and deeper liquidity. Allow both with code-controlled sizing.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 11.077115774154663,
+  "record_sha256": "4c01e8509f3e16ea9c8b00911392ff7797710f81602856831679bb5cd825c493"
+}

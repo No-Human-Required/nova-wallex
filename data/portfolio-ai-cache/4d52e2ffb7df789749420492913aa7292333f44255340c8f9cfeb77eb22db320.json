@@ -1,0 +1,72 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":65966144656.0,\"prior_capacity_tmn\":20738574.576},\"r1_bps\":191.29158161071635,\"r24_bps\":418.80051254660754,\"r6_bps\":258.1990653083355,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":68.67592852585697,\"z24_logclose\":2.5607212565914965},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":141210169168.97427,\"prior_capacity_tmn\":30926163.376},\"r1_bps\":45.06542011556506,\"r24_bps\":273.49015404100544,\"r6_bps\":133.9077625070799,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":38.954374974109236,\"z24_logclose\":2.3714201862773248},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":237558737420.19278,\"prior_capacity_tmn\":220377814.79676},\"r1_bps\":159.02475794058824,\"r24_bps\":461.9644339456808,\"r6_bps\":283.09582841112643,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":86.06356277259242,\"z24_logclose\":2.5999451960656335},{\"id\":\"A4\",\"liquidity\":{\"daily_turnover_tmn\":40148336346.8,\"prior_capacity_tmn\":7568061.76},\"r1_bps\":116.84249402240017,\"r24_bps\":273.85055026806936,\"r6_bps\":144.5343933818223,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":55.63053356904186,\"z24_logclose\":2.588234681452969}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "4d52e2ffb7df789749420492913aa7292333f44255340c8f9cfeb77eb22db320",
+  "requested_at": 1792626158.8912623,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A1\",\"A3\",\"A2\"],\"confidence\":0.7,\"reason\":\"A1 and A3 offer strongest net momentum after 90 bps cost; A2 adds lower-volatility liquidity. A4 is excluded for weaker risk-adjusted edge and thinner liquidity despite positive returns.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 2530,
+    "prompt_tokens": 839,
+    "total_tokens": 3369,
+    "completion_tokens_details": {
+      "reasoning_tokens": 2424
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 2424
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0032130240",
+    "irt": 856.43,
+    "exchange_rate": 266550
+  },
+  "meta": {
+    "latency_ms": 21828.0,
+    "request_id": "01a160d8-6f3a-7fb3-906e-d4959edd068c",
+    "http_status": 200,
+    "server_date": "Wed, 21 Oct 2026 23:43:01 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A1",
+      "A3",
+      "A2"
+    ],
+    "confidence": 0.7,
+    "reason": "A1 and A3 offer strongest net momentum after 90 bps cost; A2 adds lower-volatility liquidity. A4 is excluded for weaker risk-adjusted edge and thinner liquidity despite positive returns.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 22.14019775390625,
+  "record_sha256": "68cdb1b5460614b70d2286c76bf7795417380e0a88b7f1cd2424f9ca1ef44118"
+}

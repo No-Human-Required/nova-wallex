@@ -1,0 +1,4548 @@
+{
+  "summary": {
+    "policy": "breakout48",
+    "capital_tmn": "5000000",
+    "cash_tmn": "4797394.29463529",
+    "final_nav_tmn": "5003751.06463529",
+    "net_return_percent": "0.075021292705800",
+    "estimated_liquidation_nav_tmn": "5002926.25662560000000",
+    "liquidation_return_percent": "0.05852513251200",
+    "realized_pnl_tmn": "1093.41157749",
+    "unrealized_pnl_tmn": "2657.65305780",
+    "fees_tmn": "2998.30317471",
+    "turnover_tmn": "999434.39157",
+    "fill_count": 5,
+    "max_drawdown_percent": "0.3843901728062827791577404800",
+    "peak_gross_fraction": "0.08605518735572134719740496512",
+    "peak_positions": 2,
+    "positions": {
+      "COPXON": {
+        "symbol": "COPXONTMN",
+        "qty": "0.0093",
+        "cost": "203699.1169422",
+        "opened_at": 1791021600,
+        "stop": "0.07251137439953959",
+        "peak_unit": "22488750.0000",
+        "exit_reason": null
+      }
+    },
+    "fx_lots": {},
+    "pending_orders": [],
+    "halted": false,
+    "stale_terminal_marks": [],
+    "stale_held_hours": 0,
+    "ai_decisions": 6,
+    "ai_changed_candidate_sets": 1,
+    "ai_failures": 0,
+    "audit": {
+      "events": 392,
+      "chain_head": "0d71a2bd90a4ad3575f344bb7592d011fbf9c5821f6046069ebbadf7359f7baa"
+    },
+    "case": "w33-guarded_breakout_ai-base",
+    "variant": "guarded_breakout_ai",
+    "window": 33,
+    "scenario": "base",
+    "start": 1790802000,
+    "end": 1791061200,
+    "split": "observed_test",
+    "source_sha256": "02ca82728fecffe3c27cb2942e819d1d7c52f7170bdbc31ba9a1b62bdabd57f6",
+    "dataset_identity": "ab7234859377359d885ded0ef52a4b4107615026020aa1d03a8d472c8303b613",
+    "mode": "historical_replay",
+    "dust_deferrals": 0,
+    "entry_committed_tmn": "788353.9459351997235856972478",
+    "estimated_ai_cost_tmn": 1375.41,
+    "economic_return_percent": 0.031016932512,
+    "order_count": 6,
+    "cancel_count": 1
+  },
+  "identity": {
+    "config": {
+      "dataset_identity": "ab7234859377359d885ded0ef52a4b4107615026020aa1d03a8d472c8303b613",
+      "end": 1791061200,
+      "execution": {
+        "ai_max_calls": 12,
+        "ai_max_output_tokens": 4096,
+        "ai_min_confidence": 0.6,
+        "ai_model": "deepseek-v4.1-flash",
+        "ai_model_documented_backend": "DeepSeek-V4.1-Flash-1017",
+        "ai_timeout_seconds": 90,
+        "ai_top_candidates": 8,
+        "capital_tmn": "5000000",
+        "contest_end_utc": null,
+        "contest_start_utc": null,
+        "cooldown_hours": 24,
+        "entry_every_hours": 12,
+        "fee_multiplier": "1",
+        "fee_rate": "0.003",
+        "fee_rates": {
+          "TMN": "0.003",
+          "USDT": "0.0013"
+        },
+        "fee_status": "current read-only fee response covers all 120 pairs on the supplied non-main account; constant historical rates and challenge account rates are assumptions",
+        "final_settlement_rule": null,
+        "half_spread_bps": "5",
+        "latency_bars": 1,
+        "max_asset_fraction": "0.10",
+        "max_daily_loss_fraction": "0.02",
+        "max_drawdown_fraction": "0.05",
+        "max_gross_fraction": "0.40",
+        "max_holding_hours": 48,
+        "max_open_risk_fraction": "0.012",
+        "max_order_tmn": "500000",
+        "max_positions": 4,
+        "max_positive_correlation": 0.8,
+        "max_stale_hours": 2,
+        "max_stop_fraction": 0.08,
+        "min_daily_turnover_tmn": "25000000",
+        "min_holding_hours": 6,
+        "min_stop_fraction": 0.025,
+        "mode": "historical_simulation_only",
+        "order_limit_bps": "200",
+        "participation": "0.005",
+        "risk_limits_status": "research assumptions only; not approved live limits",
+        "risk_per_asset_fraction": "0.003",
+        "slippage_bps": "10",
+        "volume_status": "v magnitude supports base units, but about 2x metadata volume observed on non-synchronous samples; cap fills at 0.5% of reported prior-bar v; no exact conversion factor asserted"
+      },
+      "mode": "historical_replay",
+      "scenario": "base",
+      "start": 1790802000,
+      "strategy": {
+        "ai_max_calls": 12,
+        "ai_max_output_tokens": 4096,
+        "ai_min_confidence": 0.6,
+        "ai_model": "deepseek-v4.1-flash",
+        "ai_model_documented_backend": "DeepSeek-V4.1-Flash-1017",
+        "ai_timeout_seconds": 90,
+        "ai_top_candidates": 8,
+        "capital_tmn": "5000000",
+        "contest_end_utc": null,
+        "contest_start_utc": null,
+        "cooldown_hours": 24,
+        "entry_every_hours": 12,
+        "fee_multiplier": "1",
+        "fee_rate": "0.003",
+        "fee_rates": {
+          "TMN": "0.003",
+          "USDT": "0.0013"
+        },
+        "fee_status": "current read-only fee response covers all 120 pairs on the supplied non-main account; constant historical rates and challenge account rates are assumptions",
+        "final_settlement_rule": null,
+        "half_spread_bps": "5",
+        "latency_bars": 1,
+        "max_asset_fraction": "0.10",
+        "max_daily_loss_fraction": "0.02",
+        "max_drawdown_fraction": "0.05",
+        "max_gross_fraction": "0.40",
+        "max_holding_hours": 48,
+        "max_open_risk_fraction": "0.012",
+        "max_order_tmn": "500000",
+        "max_positions": 4,
+        "max_positive_correlation": 0.8,
+        "max_stale_hours": 2,
+        "max_stop_fraction": 0.08,
+        "min_daily_turnover_tmn": "25000000",
+        "min_holding_hours": 6,
+        "min_stop_fraction": 0.025,
+        "mode": "historical_simulation_only",
+        "order_limit_bps": "200",
+        "participation": "0.005",
+        "risk_limits_status": "research assumptions only; not approved live limits",
+        "risk_per_asset_fraction": "0.003",
+        "slippage_bps": "10",
+        "volume_status": "v magnitude supports base units, but about 2x metadata volume observed on non-synchronous samples; cap fills at 0.5% of reported prior-bar v; no exact conversion factor asserted"
+      },
+      "variant": "guarded_breakout_ai",
+      "window": 33
+    },
+    "label": "platform-v3-research",
+    "source": {
+      "files": {
+        "app/research.py": "59b7dd083abba9676dd6aabeae53e57c76918cbad2f881a62c9cb45ef2ce9dfe",
+        "config/blocked-markets.txt": "4cf85c3e1ffa51bc9ab83d014b5ba07e19d426b25d6b4884a32f46adefa43775",
+        "config/portfolio-protocol.json": "5eb0d25cdf594bf94812ceb533b4378eaf053e0cb2f15d2d03b98b95874e2c0d",
+        "config/portfolio.json": "64e7b5576d56d762376ddd0c7ca867c4f632597d485de4cad384a719b312091d",
+        "config/research-v3.json": "9867a1bf9b4017994151f006c69dd0302cbc22ea38ebabca2beb89f3ae83d58e",
+        "config/shadow.json": "19f013980e93b2789e97080080cf3194b41275f309e4d39b7ff6b7bd5f2873e0",
+        "prompts/portfolio.txt": "1a254deb826f2084bf2f51672f96dfd5569f75e1d1c84c2592a96de7c5890b39",
+        "prompts/regime.txt": "61646b3ddf0b4368139169b107768fb4181e42c8a24e8c46794219c923c51aa8",
+        "scripts/evaluate.py": "b7505a31d01314a6ae521009cc75daccc083922e24c29329cab93920796347b0",
+        "starwallex/__init__.py": "d062d63aaac3ac471292ddd236ef4613a85b75e60804944ff8721b17def62b67",
+        "starwallex/__main__.py": "cf7390a2508a0fcad4777a4a629fc5212ab655cb45845975995f835676a834e3",
+        "starwallex/ai.py": "ecb78c2069fb458cedd5e9990efa1b06fbfa640d1ec934bb2c40a32098714859",
+        "starwallex/archive_compat.py": "55fd595701def1bde72462a2747199bb381ddb1dad73271ddad08212fa53beb7",
+        "starwallex/audit.py": "c89e5eda009aaf64b2469edf8a4ac2d82bd108b2577b06720cf00b75c88cdd59",
+        "starwallex/cli.py": "77fce631c54094c5c95d3fcdd8ffe7c907a2f1077ae21f4f390794c363f48296",
+        "starwallex/data.py": "43d4941fafe603e64dec6c5df493f188890ff929b1b2da2f5b910a645f57e2a5",
+        "starwallex/domain.py": "751265f495ae996d7cf339b47c9d7c7e3553fa76777256a608b616d02e2aea2e",
+        "starwallex/engine.py": "0aa4cf8f88fe0f3f9c3bce9f7bf982926ebb3a1e0cdab6d55dbdc786dd912fcc",
+        "starwallex/evaluate.py": "dc810422d6daf2156bbef4bef9d2a515cc711dc9554e0d974b9dcbf8cf38b629",
+        "starwallex/net.py": "af434d0e9987dfb3c5bf7ca8e163af220dfa5f570236f3e8a02ae42d4e3df43e",
+        "starwallex/orders.py": "8e5d8ce375154351eeb7cd83cd7562ddc7f4b324f5094e46474f9e5b8bbed3cc",
+        "starwallex/persistence.py": "b32706c1da2e6e994c6eb6147474e097bc83a2afeba96424d98dca9fd96fe96e",
+        "starwallex/portable_math.py": "748a75f160c0962e3304455bf601fda49fdab6d47a1af72f1dc414b631aa9367",
+        "starwallex/portfolio_ai.py": "1b3bd8a75bd23c1a05718722f575667c9bfc26f7b9b77ab3485ec61a1863f9d3",
+        "starwallex/portfolio_cost.py": "df64a43ab044d9c781fbe73597babf015a10ad4a170771ffc345583dc16a75f0",
+        "starwallex/portfolio_data.py": "6dec8045f49a4fc617802796eab948187001d62404bfc78c38ab0512fa17e3b0",
+        "starwallex/portfolio_engine.py": "891a65db5c47aa07aca778188c8883799530accf835ac2ffe5fa1b44414e6fb0",
+        "starwallex/portfolio_report.py": "300146fc4e8975fe5206b39ae9f79c98c4e79d05dc47720d6fbe3e23d559b017",
+        "starwallex/portfolio_run.py": "41e1627d69334bc26df41e86a5cc1080c2706230068fdbf871687abb893ca9b6",
+        "starwallex/portfolio_v3.py": "aa8a78fbccdc3a21f33d202e47ff2da8c12f546869576a8d63840fd94f10a984",
+        "starwallex/report.py": "1ba03cae862a5edcfac7865e06be564d44f0cbf504f55605706712f573dd282b",
+        "starwallex/rolling.py": "bd8c7a7fbfd2323785b21f10bb3ed6ceb67bf8d81b171d7fc34965aab2671089",
+        "starwallex/shadow.py": "649095b43d8d92e6f4efda316db9e03774672aa9677556fd5ff6698a7831eae1",
+        "starwallex/strategy.py": "9effc77aed6f096aa964401f01706f70baa29bb2d9aa2d58bf65781a904220da",
+        "starwallex/universe.py": "583f5de8a7a2268c6376a8bc93ae5088f8bfee64fc14ded9f7a2f553681df35c",
+        "starwallex/util.py": "9c9ce2633338e0544986d6daba3602f91836d9e21b51ff4be10438778163b28c"
+      },
+      "sha256": "02ca82728fecffe3c27cb2942e819d1d7c52f7170bdbc31ba9a1b62bdabd57f6"
+    }
+  },
+  "accounts": [
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790802000
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790805600
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790809200
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790812800
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790816400
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790820000
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790823600
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790827200
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790830800
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790834400
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790838000
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790841600
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790845200
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790848800
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790852400
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790856000
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790859600
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790863200
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790866800
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790870400
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790874000
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790877600
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790881200
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790884800
+    },
+    {
+      "cash": "5000000",
+      "equity": "5000000.0000",
+      "fees_tmn": "0",
+      "fx_lots": {},
+      "gross_fraction": "0",
+      "positions": {},
+      "realized_pnl_tmn": "0",
+      "time": 1790888400
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "4998945.139917895",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04214426510055584544504145882",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "17541982.542",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790892000
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5000104.197419235",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04236630244835947029626711147",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "17550615.3025",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790895600
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5000352.763354095",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04241390611285087206055787438",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "17571209.0005",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790899200
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5002391.525183235",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04280417743937621446911752861",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "17740120.5025",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790902800
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5001762.884031050",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04268387331886656179470525921",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "17740120.5025",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790906400
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5001130.346218170",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04256279296161021823916394654",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "17740120.5025",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790910000
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5001762.992606735",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04268389409979008207939570931",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "17740120.5025",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790913600
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5003715.135167175",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04305738009242544189779276409",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "17849781.6445",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790917200
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5006775.449424585",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04364229650675414892921429872",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18103328.8075",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790920800
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5004941.328633740",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04329182775351891938891574555",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18103328.8075",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790924400
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5005776.854721710",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04345151418375442584170025277",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18103328.8075",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790928000
+    },
+    {
+      "cash": "4788268.27071806",
+      "equity": "5007105.350611475",
+      "fees_tmn": "633.29530194",
+      "fx_lots": {},
+      "gross_fraction": "0.04370530767176494438875897241",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18130661.1345",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790931600
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "5005704.147864750",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.08057297806248366703971473225",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18130661.1345",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": null,
+          "opened_at": 1790935200,
+          "peak_unit": "1.5180405",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790935200
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "5005528.704990070",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.08054075231185988567224823630",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18130661.1345",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": null,
+          "opened_at": 1790935200,
+          "peak_unit": "1.5180405",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790938800
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "5007325.099903290",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.08087061144473143891392631516",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18134670.1290",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": null,
+          "opened_at": 1790935200,
+          "peak_unit": "1.51943990",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790942400
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "5009414.273124125",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.08125393380546216115801708805",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18134670.1290",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": null,
+          "opened_at": 1790935200,
+          "peak_unit": "1.539230",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790946000
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "5013556.773967560",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.08201305682444845962432200993",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": null,
+          "opened_at": 1790935200,
+          "peak_unit": "1.539230",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790949600
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "5007497.557601305",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.08090226616581813398639322131",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": null,
+          "opened_at": 1790935200,
+          "peak_unit": "1.539230",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790953200
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "5012069.281016095",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.08174061463920522067647412314",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": null,
+          "opened_at": 1790935200,
+          "peak_unit": "1.539230",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790956800
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "5010556.076037075",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.08146329718124778217869908906",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": null,
+          "opened_at": 1790935200,
+          "peak_unit": "1.539230",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790960400
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "5004821.608335260",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.08041084826948770218967843638",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": null,
+          "opened_at": 1790935200,
+          "peak_unit": "1.539230",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790964000
+    },
+    {
+      "cash": "4602379.65737156",
+      "equity": "4994868.993801925",
+      "fees_tmn": "1189.29314844",
+      "fx_lots": {},
+      "gross_fraction": "0.07857850464494673737734227850",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        },
+        "SHIB": {
+          "cost": "185888.6133465",
+          "exit_reason": "trend_reversed",
+          "opened_at": 1790935200,
+          "peak_unit": "1.539230",
+          "qty": "122453",
+          "stop": "0.08",
+          "symbol": "SHIBTMN"
+        }
+      },
+      "realized_pnl_tmn": "0",
+      "time": 1790967600
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "4994285.154420365",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04284699127163487239561395834",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1790971200
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "4996993.478370970",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04336575929267654815121929621",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1790974800
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "4999692.332109050",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04388215424760754079923220317",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1790978400
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "4997969.392819645",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04355255378944652949752380143",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1790982000
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "5000051.790010190",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04395089035845409521793120322",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1790985600
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "5003009.862164225",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04451616253001388411184956203",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1790989200
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "4999621.480442605",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04386860471331692418660109500",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1790992800
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "4996955.754352415",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04335853727798983450538217683",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1790996400
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "4995926.372410860",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04316142679779803131691483240",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791000000
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "4997214.417825980",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04340805450559193308664289302",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791003600
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "5001755.125356470",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04427647051990110502536264270",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791007200
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "5001506.040671115",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04422887363754385058560076411",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791010800
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "5001175.584541835",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04416572040055861931656653479",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791014400
+    },
+    {
+      "cash": "4780295.06200086",
+      "equity": "5003013.831208710",
+      "fees_tmn": "1724.64541914",
+      "fx_lots": {},
+      "gross_fraction": "0.04451692054467935639675027945",
+      "positions": {
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791018000
+    },
+    {
+      "cash": "4576595.94505866",
+      "equity": "5001999.105074660",
+      "fees_tmn": "2333.91496134",
+      "fx_lots": {},
+      "gross_fraction": "0.08504662857384705963690422902",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "21903130.854",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        },
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18490750.0000",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791021600
+    },
+    {
+      "cash": "4576595.94505866",
+      "equity": "5003084.970440375",
+      "fees_tmn": "2333.91496134",
+      "fx_lots": {},
+      "gross_fraction": "0.08524520928617671287733494761",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "21903130.854",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        },
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18544374.1745",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791025200
+    },
+    {
+      "cash": "4576595.94505866",
+      "equity": "5007045.942043835",
+      "fees_tmn": "2333.91496134",
+      "fx_lots": {},
+      "gross_fraction": "0.08596885308575156575325589056",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "21971509.7495",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        },
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18733633.4975",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791028800
+    },
+    {
+      "cash": "4576595.94505866",
+      "equity": "5005653.277134630",
+      "fees_tmn": "2333.91496134",
+      "fx_lots": {},
+      "gross_fraction": "0.08571455279091441749447385706",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "21977550.7275",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        },
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18733633.4975",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791032400
+    },
+    {
+      "cash": "4576595.94505866",
+      "equity": "5007518.924274415",
+      "fees_tmn": "2333.91496134",
+      "fx_lots": {},
+      "gross_fraction": "0.08605518735572134719740496512",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "22058648.1585",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        },
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18733633.4975",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791036000
+    },
+    {
+      "cash": "4576595.94505866",
+      "equity": "5006481.950170840",
+      "fees_tmn": "2333.91496134",
+      "fx_lots": {},
+      "gross_fraction": "0.08586588534440050705620992349",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "22080530.2120",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        },
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18733633.4975",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791039600
+    },
+    {
+      "cash": "4576595.94505866",
+      "equity": "5007472.122317100",
+      "fees_tmn": "2333.91496134",
+      "fx_lots": {},
+      "gross_fraction": "0.08604664524004605308002978765",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "22171428.7400",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        },
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18733633.4975",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791043200
+    },
+    {
+      "cash": "4576595.94505866",
+      "equity": "5007473.230132915",
+      "fees_tmn": "2333.91496134",
+      "fx_lots": {},
+      "gross_fraction": "0.08604684743623044456555455823",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "22342180.3215",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        },
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": null,
+          "opened_at": 1790892000,
+          "peak_unit": "18733633.4975",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791046800
+    },
+    {
+      "cash": "4576595.94505866",
+      "equity": "5005435.837848660",
+      "fees_tmn": "2333.91496134",
+      "fx_lots": {},
+      "gross_fraction": "0.08567483565513361988040489233",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "22375887.4595",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        },
+        "LTC": {
+          "cost": "211731.72928194",
+          "exit_reason": "trend_reversed",
+          "opened_at": 1790892000,
+          "peak_unit": "18733633.4975",
+          "qty": "0.01207",
+          "stop": "0.0701102123452791",
+          "symbol": "LTCTMN"
+        }
+      },
+      "realized_pnl_tmn": "-7973.2087172",
+      "time": 1791050400
+    },
+    {
+      "cash": "4797394.29463529",
+      "equity": "5006539.66963529",
+      "fees_tmn": "2998.30317471",
+      "fx_lots": {},
+      "gross_fraction": "0.04177443679682968632987417333",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "22488750.0000",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        }
+      },
+      "realized_pnl_tmn": "1093.41157749",
+      "time": 1791054000
+    },
+    {
+      "cash": "4797394.29463529",
+      "equity": "5000683.59913529",
+      "fees_tmn": "2998.30317471",
+      "fx_lots": {},
+      "gross_fraction": "0.04065230292417469740768304209",
+      "positions": {
+        "COPXON": {
+          "cost": "203699.1169422",
+          "exit_reason": null,
+          "opened_at": 1791021600,
+          "peak_unit": "22488750.0000",
+          "qty": "0.0093",
+          "stop": "0.07251137439953959",
+          "symbol": "COPXONTMN"
+        }
+      },
+      "realized_pnl_tmn": "1093.41157749",
+      "time": 1791057600
+    }
+  ],
+  "events": [
+    {
+      "seq": 1,
+      "time": 1790802000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790802000
+      },
+      "hash": "9677f189d88b0d2804fdba65b113c254560738b36edb32165906626615723457"
+    },
+    {
+      "seq": 2,
+      "time": 1790802000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790802000
+      },
+      "hash": "66f3100cacb84e2a0a7c0b3fe14f254564390d4d437087d82307d1a8f6a73aaa"
+    },
+    {
+      "seq": 4,
+      "time": 1790802000,
+      "kind": "ai",
+      "payload": {
+        "after": [],
+        "before": [],
+        "changed_candidate_order_or_set": false,
+        "record": {
+          "actual_api_call": false,
+          "selection": {
+            "allowed_ids": []
+          },
+          "status": "no_candidates"
+        },
+        "time": 1790802000
+      },
+      "hash": "0ef48cde7370dfc2797ccbd2fafd142d0a322cd5f48740c088458e92498a510e"
+    },
+    {
+      "seq": 5,
+      "time": 1790802000,
+      "kind": "regime",
+      "payload": {
+        "btc_r24_bps": -77.10891336350163,
+        "observations_end": 1790802000,
+        "positive_fraction": 0.2894736842105263,
+        "risk_on": false,
+        "underlyings": 38
+      },
+      "hash": "833a02c4e6010d7df94fa1a57056ca1466a1b8fe148501b1dbcdc9816ea5d8a3"
+    },
+    {
+      "seq": 6,
+      "time": 1790802000,
+      "kind": "entry_gate",
+      "payload": {
+        "approved": false,
+        "reason": "regime_or_window",
+        "time": 1790802000
+      },
+      "hash": "e8702a6b419117a160620df022c213e0fdff06b5f1fe64e754083180169ff8cf"
+    },
+    {
+      "seq": 9,
+      "time": 1790805600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790805600
+      },
+      "hash": "b38a3b88517e38f9e416604587febac32f0cc04df4b29f0b55024fefcee8cb51"
+    },
+    {
+      "seq": 10,
+      "time": 1790805600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790805600
+      },
+      "hash": "97863e1d7ee2f36064735ea5a451bdf158acd4c9cbd392b9a8a252e2b8a87633"
+    },
+    {
+      "seq": 14,
+      "time": 1790809200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790809200
+      },
+      "hash": "a0149f5129787c83fea63bcb17266276fe8f2671c2448193c18aa248234ef0ef"
+    },
+    {
+      "seq": 15,
+      "time": 1790809200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790809200
+      },
+      "hash": "199a26d1b094f30de049effa4649fc1f479ce5c3a87338caf97f98710d12b32a"
+    },
+    {
+      "seq": 19,
+      "time": 1790812800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790812800
+      },
+      "hash": "17fcf25e52ffaa0b13e62b52a066d71e0ad8414eda9dffb38bca06268c104355"
+    },
+    {
+      "seq": 20,
+      "time": 1790812800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790812800
+      },
+      "hash": "871eb73339f173f95e9c6c902cc72664a9bae45d0d9b71a5f8862a229c4ae23c"
+    },
+    {
+      "seq": 24,
+      "time": 1790816400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790816400
+      },
+      "hash": "7392be1f38218ebd60b2ae351f4b77f34efe9a7bb241e8509b20cc7ddd213841"
+    },
+    {
+      "seq": 25,
+      "time": 1790816400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790816400
+      },
+      "hash": "a1bffae10f4c7e88b7d9f3d76436987906ed937d5670e1b9356fb1981cf101e7"
+    },
+    {
+      "seq": 29,
+      "time": 1790820000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790820000
+      },
+      "hash": "c5bcd73842f0a1451998896d527ec484682b5d488331011f1b65ac25defcb892"
+    },
+    {
+      "seq": 30,
+      "time": 1790820000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790820000
+      },
+      "hash": "2e8326146d269c305beee8fd70fc615815e838d92b4b4eff5b3cf03b5a542606"
+    },
+    {
+      "seq": 34,
+      "time": 1790823600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790823600
+      },
+      "hash": "729da8036ea76338036ea83255d7629a44296e096590ae6e780555863db9d0ae"
+    },
+    {
+      "seq": 35,
+      "time": 1790823600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790823600
+      },
+      "hash": "52a07117238579b42c70f59a26d735dfb121b4a4398a167a694105bc8ba767fe"
+    },
+    {
+      "seq": 39,
+      "time": 1790827200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790827200
+      },
+      "hash": "5c487b92087c4c7cdb46152e25c90f522389389ff41944a41818c4d0a3cc185c"
+    },
+    {
+      "seq": 40,
+      "time": 1790827200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790827200
+      },
+      "hash": "dd540908355f691bb877d55c97b8e0dbd4c199c1db8438d2aad13e17ddf56daa"
+    },
+    {
+      "seq": 44,
+      "time": 1790830800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790830800
+      },
+      "hash": "eedcef5b378a4a7fdb2520153bd9f9d1dfccfaa2ce09d351f3bb4bbdc49cd927"
+    },
+    {
+      "seq": 45,
+      "time": 1790830800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790830800
+      },
+      "hash": "275f89dad04955e8a46b96d7687364c9e559afb186226d0e5e1d494592f909f8"
+    },
+    {
+      "seq": 49,
+      "time": 1790834400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790834400
+      },
+      "hash": "9f003311b2966c4da9c06652661fe386cfd8a22b4a5835c9ca52c6141c1dd481"
+    },
+    {
+      "seq": 50,
+      "time": 1790834400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790834400
+      },
+      "hash": "894a3f4a201afacebbfe541dbf4080ab502e5efc75d95e0ee2f7e762f4f76fee"
+    },
+    {
+      "seq": 54,
+      "time": 1790838000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790838000
+      },
+      "hash": "a3eb6af185cbd0a0cc05ce9af50a3fa581b33e5a17e94921facc57ca688d0074"
+    },
+    {
+      "seq": 55,
+      "time": 1790838000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790838000
+      },
+      "hash": "80c6ec10ffc8529d8e657efd6638314fc780f63f1273d1342a43f6ed4557fc69"
+    },
+    {
+      "seq": 59,
+      "time": 1790841600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790841600
+      },
+      "hash": "0f911a146e2e7d84746a559aeb0488f9325536e9b32dcf2975b2a6b677d7e0a5"
+    },
+    {
+      "seq": 60,
+      "time": 1790841600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790841600
+      },
+      "hash": "3b9447623081dd26016717ed69d97c219fc0d22d676b3b1efa8d30862bdf1727"
+    },
+    {
+      "seq": 64,
+      "time": 1790845200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790845200
+      },
+      "hash": "eb52d0d2f70e6cfacbd8926e43397e51f4ce946480d09219889aa10bcf7c8815"
+    },
+    {
+      "seq": 65,
+      "time": 1790845200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790845200
+      },
+      "hash": "86ece9d4bcdf12c9ec021531d78842a4493dbd7c54385d3a7e0fbaef37d0eb9e"
+    },
+    {
+      "seq": 67,
+      "time": 1790845200,
+      "kind": "ai",
+      "payload": {
+        "after": [],
+        "before": [],
+        "changed_candidate_order_or_set": false,
+        "record": {
+          "actual_api_call": false,
+          "selection": {
+            "allowed_ids": []
+          },
+          "status": "no_candidates"
+        },
+        "time": 1790845200
+      },
+      "hash": "574827bb67440bab5a6b2a3fab1ea2e60c59606728359f2b3a5df7502d791427"
+    },
+    {
+      "seq": 68,
+      "time": 1790845200,
+      "kind": "regime",
+      "payload": {
+        "btc_r24_bps": 95.10948380610813,
+        "observations_end": 1790845200,
+        "positive_fraction": 0.53125,
+        "risk_on": false,
+        "underlyings": 32
+      },
+      "hash": "4a99c871be37d4f5c0e8a1d006134cbb17600ee6c10c1af4814603d6b8782ff2"
+    },
+    {
+      "seq": 69,
+      "time": 1790845200,
+      "kind": "entry_gate",
+      "payload": {
+        "approved": false,
+        "reason": "regime_or_window",
+        "time": 1790845200
+      },
+      "hash": "5eb2d09d65c304207490db84dd908bbc83b04a0c3f4ccf1a660013d8086e9c7a"
+    },
+    {
+      "seq": 72,
+      "time": 1790848800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790848800
+      },
+      "hash": "cc4a8bbe84d984364205d52a786e8bab5f71fc1ecbda9124a1975ceaab6aaae9"
+    },
+    {
+      "seq": 73,
+      "time": 1790848800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790848800
+      },
+      "hash": "9fd7f1dc57ba00770f57fd50a96fb1569e8c68b6d8db7df1e0290807aea11cd5"
+    },
+    {
+      "seq": 77,
+      "time": 1790852400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790852400
+      },
+      "hash": "8081a24e4eeee0f61bb9a0ae1bac3e67a0e0421c58e81e86350be4302061e65c"
+    },
+    {
+      "seq": 78,
+      "time": 1790852400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790852400
+      },
+      "hash": "04a5dfd046abc0e28f46823ca962b1d34cbb5439816c01c4fd452f35a9f2a758"
+    },
+    {
+      "seq": 82,
+      "time": 1790856000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790856000
+      },
+      "hash": "f676e76fc6e8bc7f74e4b3d6cc4206f557e4930b352b1023e8019dcfb5b9bc41"
+    },
+    {
+      "seq": 83,
+      "time": 1790856000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790856000
+      },
+      "hash": "21f3b54476ee8fe8962a15abc22b0ccc417db95eeaecf4a1257bd556c469fdbd"
+    },
+    {
+      "seq": 87,
+      "time": 1790859600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790859600
+      },
+      "hash": "7fc017b8530a47dd00ec7e16560cb8cc8623d0bfba67026fb714e3c89c613c5e"
+    },
+    {
+      "seq": 88,
+      "time": 1790859600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790859600
+      },
+      "hash": "b32d0b68f80c13ea646834b2e2d1303bc8d9bffd468e44a915a35cba2753b803"
+    },
+    {
+      "seq": 92,
+      "time": 1790863200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790863200
+      },
+      "hash": "11e139c5449eab1d0444ac809330259588e8f37ccf791276529910c7545a3734"
+    },
+    {
+      "seq": 93,
+      "time": 1790863200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790863200
+      },
+      "hash": "a07044028b73e7050d8bf0d7511139d06f0a8708b6a48a816d819703689ce6b5"
+    },
+    {
+      "seq": 97,
+      "time": 1790866800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790866800
+      },
+      "hash": "9ea3565b6cad277df47d976a34999dee6cb134a6f7b9e5462be9c1a8c928a7be"
+    },
+    {
+      "seq": 98,
+      "time": 1790866800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790866800
+      },
+      "hash": "c2d694941ea85baf16349fa8b5ba079304c31e4fa9f2ca7bfa76e518ea4b38ea"
+    },
+    {
+      "seq": 102,
+      "time": 1790870400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790870400
+      },
+      "hash": "0d4efa50bc119e0887632512963aaa29a55180d1199af2d32e2963ba621f0f88"
+    },
+    {
+      "seq": 103,
+      "time": 1790870400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790870400
+      },
+      "hash": "b1e60b345a27981545111f8b80080521a6be1355ef9c46ca83f21a5ec70e9495"
+    },
+    {
+      "seq": 107,
+      "time": 1790874000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790874000
+      },
+      "hash": "fc74187ebe7a8fb498d98a1c6fd172714b946282b7618ff3b967c984a8e6e785"
+    },
+    {
+      "seq": 108,
+      "time": 1790874000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790874000
+      },
+      "hash": "715536b28b9524fedafd3d6c90ac2a8911b71250c517494a2090b2eeeacdb353"
+    },
+    {
+      "seq": 112,
+      "time": 1790877600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790877600
+      },
+      "hash": "2436c4e58c5dde299c9ee6491ac6d570daaa3e5014a295cb43d8aa5e9c0e5117"
+    },
+    {
+      "seq": 113,
+      "time": 1790877600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790877600
+      },
+      "hash": "853d798e74b5a1d286c0deef72578a7f3b349c9136644dbcd58c6b5f47987c30"
+    },
+    {
+      "seq": 117,
+      "time": 1790881200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790881200
+      },
+      "hash": "b744920e3718dc24c575a3311812d31e2360b10622fefb26236017faae7d39a5"
+    },
+    {
+      "seq": 118,
+      "time": 1790881200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790881200
+      },
+      "hash": "abc42c643c5ae2cb6776ad7022ba300609324e1bdfce73e21986e76e0a5974fe"
+    },
+    {
+      "seq": 122,
+      "time": 1790884800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790884800
+      },
+      "hash": "5ff75ae69b19184007c4be7c4474471417e73c603fa654fd90e36a72b2aa4000"
+    },
+    {
+      "seq": 123,
+      "time": 1790884800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790884800
+      },
+      "hash": "cb6675240dcb9a3bd0acd84cae4bdaab9ab6292265ca1f9945bcdd98eeb3e501"
+    },
+    {
+      "seq": 127,
+      "time": 1790888400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790888400
+      },
+      "hash": "ae2b611885da507516d77f1c56f849a9dc887367488389b80de145bd5bd70537"
+    },
+    {
+      "seq": 128,
+      "time": 1790888400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790888400
+      },
+      "hash": "7d7b2abb9c7ca373eef80989cd9a7e584bcb615071eb3662b1401e4c7b611a5c"
+    },
+    {
+      "seq": 130,
+      "time": 1790888400,
+      "kind": "ai",
+      "payload": {
+        "after": [
+          "LTCTMN"
+        ],
+        "before": [
+          "LTCTMN"
+        ],
+        "changed_candidate_order_or_set": false,
+        "record": {
+          "content": "{\"allowed_ids\":[\"A1\"],\"confidence\":0.63,\"reason\":\"A1 shows strong 6h/24h momentum (290/406 bps) versus 90 bps roundtrip cost, with deep liquidity; z24 2.4 signals extension, so entry is defensible but not early.\",\"evidence\":[\"r6_bps\",\"r24_bps\",\"roundtrip_cost_bps\",\"liquidity\",\"z24_logclose\"]}",
+          "documented_backend": "DeepSeek-V4.1-Flash-1017",
+          "estimated_cost": {
+            "exchange_rate": 266550,
+            "irt": 200.72,
+            "unit": "0.0007530240"
+          },
+          "finish_reason": "stop",
+          "latency_seconds": 6.147251129150391,
+          "meta": {
+            "http_status": 200,
+            "latency_ms": 5828.0,
+            "request_id": "01a160d4-2da6-73b2-af4e-bf8b9c67c49d",
+            "server_date": "Wed, 21 Oct 2026 23:38:06 GMT"
+          },
+          "record_sha256": "a957345cc933eb4a8010cb2543d5a9e73ce350fa4822ab2631d396a846e16f25",
+          "request": {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n",
+                "role": "system"
+              },
+              {
+                "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":9912022691.92272,\"prior_capacity_tmn\":2540609.155896},\"r1_bps\":60.186449689437,\"r24_bps\":405.83269000825504,\"r6_bps\":290.0091505484613,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":71.55593583504654,\"z24_logclose\":2.4053764566269704}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}",
+                "role": "user"
+              }
+            ],
+            "model": "deepseek-v4.1-flash",
+            "response_format": {
+              "type": "json_object"
+            },
+            "temperature": 0
+          },
+          "request_hash": "bbcdfe6b189c50e6cd9f8ae8bded2a3e80e20456bf1850831d9f3b10fb114373",
+          "requested_at": 1792625879.9783607,
+          "response_model": "deepseek-v4.1-flash",
+          "selection": {
+            "allowed_ids": [
+              "A1"
+            ],
+            "confidence": 0.63,
+            "evidence": [
+              "r6_bps",
+              "r24_bps",
+              "roundtrip_cost_bps",
+              "liquidity",
+              "z24_logclose"
+            ],
+            "reason": "A1 shows strong 6h/24h momentum (290/406 bps) versus 90 bps roundtrip cost, with deep liquidity; z24 2.4 signals extension, so entry is defensible but not early."
+          },
+          "status": "ok",
+          "usage": {
+            "completion_tokens": 565,
+            "completion_tokens_details": {
+              "reasoning_tokens": 465
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 465
+            },
+            "prompt_tokens": 499,
+            "prompt_tokens_details": {
+              "cached_tokens": 254
+            },
+            "total_tokens": 1064
+          }
+        },
+        "time": 1790888400
+      },
+      "hash": "ce29f7b19864a94c24e85d3618aa3f216caf954718b6a9b69773a70222fe7d51"
+    },
+    {
+      "seq": 131,
+      "time": 1790888400,
+      "kind": "regime",
+      "payload": {
+        "btc_r24_bps": 266.4919013541831,
+        "observations_end": 1790888400,
+        "positive_fraction": 0.7435897435897436,
+        "risk_on": true,
+        "underlyings": 39
+      },
+      "hash": "fe8f6de41d3abdbb931c87e85adfd53278f19ae807d6302ede9ec83aaf5e3224"
+    },
+    {
+      "seq": 132,
+      "time": 1790888400,
+      "kind": "allocation",
+      "payload": {
+        "approved": true,
+        "budget_tmn": "211809.3713204953780327114732",
+        "candidate": "LTCTMN",
+        "reason": null,
+        "score": 0.9009605860351436,
+        "stop_fraction": "0.0701102123452791"
+      },
+      "hash": "f0d5188ed95c1e30f20ce9b3996ee6c9ff5707c795f66f06e25ad388a05cda4a"
+    },
+    {
+      "seq": 133,
+      "time": 1790888400,
+      "kind": "order",
+      "payload": {
+        "base": "LTC",
+        "budget": "211809.3713204953780327114732",
+        "eligible_at": 1790892000,
+        "id": "645d27547df610b636ddb938a04075af",
+        "limit": "17987010.48",
+        "reason": "signal",
+        "sequence": 1,
+        "side": "BUY",
+        "stage": "BUY",
+        "stop": "0.0701102123452791",
+        "submitted_at": 1790888400,
+        "symbol": "LTCTMN"
+      },
+      "hash": "7c6a4f2467ba1b6a9b8d14cc262484be329390cc4fcd069b41ed710fdbc4d3f3"
+    },
+    {
+      "seq": 136,
+      "time": 1790892000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000000.0000",
+        "halt": false,
+        "stale": [],
+        "time": 1790892000
+      },
+      "hash": "587c42454b6ffb2885211eda97e1c93340ac4f5d96f4602f3e3b009fec0b39ce"
+    },
+    {
+      "seq": 137,
+      "time": 1790892000,
+      "kind": "fill",
+      "payload": {
+        "fee": "633.29530194",
+        "fee_asset": "TMN",
+        "fee_tmn": "633.29530194",
+        "order_id": "645d27547df610b636ddb938a04075af",
+        "partial": false,
+        "price": "17489514",
+        "qty": "0.01207",
+        "remainder": "cancel; exit inventory is retried on later ticks",
+        "side": "BUY",
+        "stage": "BUY",
+        "symbol": "LTCTMN",
+        "time": 1790892000
+      },
+      "hash": "2fa9f97a7c836792d279bd619d5e6d749a7d9c159037698452246e69e14df4a2"
+    },
+    {
+      "seq": 138,
+      "time": 1790892000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.000210972016421",
+        "drawdown": "0.000210972016421",
+        "equity": "4998945.139917895",
+        "halt": false,
+        "stale": [],
+        "time": 1790892000
+      },
+      "hash": "bcd6b81380de74c64664ff64a19254f6742ce99ce54601cacc53278d3ca6ed93"
+    },
+    {
+      "seq": 142,
+      "time": 1790895600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000020839483847",
+        "drawdown": "0",
+        "equity": "5000104.197419235",
+        "halt": false,
+        "stale": [],
+        "time": 1790895600
+      },
+      "hash": "72ae68813b75999e18d0095b4f27c2d317f26e9c93216be1a8775c08b21c5c86"
+    },
+    {
+      "seq": 143,
+      "time": 1790895600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000020839483847",
+        "drawdown": "0",
+        "equity": "5000104.197419235",
+        "halt": false,
+        "stale": [],
+        "time": 1790895600
+      },
+      "hash": "ec5f9e490da581c3895b5198fd31a6605d6dd8ae50d56313dc70390d51467f1d"
+    },
+    {
+      "seq": 147,
+      "time": 1790899200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000352.763354095",
+        "halt": false,
+        "stale": [],
+        "time": 1790899200
+      },
+      "hash": "5f12e33a75e09be7053c48a481409904c7daa4c22aefcdfdaff386328387903a"
+    },
+    {
+      "seq": 148,
+      "time": 1790899200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0",
+        "equity": "5000352.763354095",
+        "halt": false,
+        "stale": [],
+        "time": 1790899200
+      },
+      "hash": "fd1401e9d03280671600f0c88f4b1e934046f1fea4207dbd602f720ff5322bb1"
+    },
+    {
+      "seq": 152,
+      "time": 1790902800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000407723599839075416030799",
+        "drawdown": "0",
+        "equity": "5002391.525183235",
+        "halt": false,
+        "stale": [],
+        "time": 1790902800
+      },
+      "hash": "6f08afa57082cc3d58f91c4b71d94050da6ab9175463fdedd55864cc86631814"
+    },
+    {
+      "seq": 153,
+      "time": 1790902800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000407723599839075416030799",
+        "drawdown": "0",
+        "equity": "5002391.525183235",
+        "halt": false,
+        "stale": [],
+        "time": 1790902800
+      },
+      "hash": "2e9186f15c50f382a893d0613f77cb08f30a21da1da60a836e5825e9efac98b4"
+    },
+    {
+      "seq": 157,
+      "time": 1790906400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000282004239238739426694076",
+        "drawdown": "0.0001256681227409470316359459",
+        "equity": "5001762.884031050",
+        "halt": false,
+        "stale": [],
+        "time": 1790906400
+      },
+      "hash": "2e3193e453f11cf64cc3a7c106c128628b070579eb9bae4cb8b6adc19fd703e6"
+    },
+    {
+      "seq": 158,
+      "time": 1790906400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000282004239238739426694076",
+        "drawdown": "0.0001256681227409470316359459",
+        "equity": "5001762.884031050",
+        "halt": false,
+        "stale": [],
+        "time": 1790906400
+      },
+      "hash": "5e9b263b02b168b5e70db501f98b28704d5f5a913961c3691438bcf036a553a4"
+    },
+    {
+      "seq": 162,
+      "time": 1790910000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000155505601479488307062091",
+        "drawdown": "0.0002521152050406137833052528",
+        "equity": "5001130.346218170",
+        "halt": false,
+        "stale": [],
+        "time": 1790910000
+      },
+      "hash": "c0c8ee7d552df5e7ff677a58e0b98aa4d89f820c36959e95dfbb423775a326d1"
+    },
+    {
+      "seq": 163,
+      "time": 1790910000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000155505601479488307062091",
+        "drawdown": "0.0002521152050406137833052528",
+        "equity": "5001130.346218170",
+        "halt": false,
+        "stale": [],
+        "time": 1790910000
+      },
+      "hash": "3c005a577cd04855f2d084b176e111dc7cd1b215f6dbe2689097c12f839c0848"
+    },
+    {
+      "seq": 167,
+      "time": 1790913600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000282025952843786597507257",
+        "drawdown": "0.0001256464179854409094059142",
+        "equity": "5001762.992606735",
+        "halt": false,
+        "stale": [],
+        "time": 1790913600
+      },
+      "hash": "1279710779583ad27d4b6fcbec899a0ca38bf20599da37cf756008634033fa36"
+    },
+    {
+      "seq": 168,
+      "time": 1790913600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000282025952843786597507257",
+        "drawdown": "0.0001256464179854409094059142",
+        "equity": "5001762.992606735",
+        "halt": false,
+        "stale": [],
+        "time": 1790913600
+      },
+      "hash": "17d1a8f5891f9b002e84d219299f2dd75b54ab127c15dd10387d2037b30c4e27"
+    },
+    {
+      "seq": 172,
+      "time": 1790917200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000672426921100785742578382",
+        "drawdown": "0",
+        "equity": "5003715.135167175",
+        "halt": false,
+        "stale": [],
+        "time": 1790917200
+      },
+      "hash": "37186bc83a5fb5360d5ef5e9fd5dc6f75ae97afe01a0e15069ccf7dc37aed3a9"
+    },
+    {
+      "seq": 173,
+      "time": 1790917200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000672426921100785742578382",
+        "drawdown": "0",
+        "equity": "5003715.135167175",
+        "halt": false,
+        "stale": [],
+        "time": 1790917200
+      },
+      "hash": "ff39f86d2135c7a560fca63fcc3a912c1bc01b47479a543405dbbc2d038724a3"
+    },
+    {
+      "seq": 177,
+      "time": 1790920800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001284446592960342282888194",
+        "drawdown": "0",
+        "equity": "5006775.449424585",
+        "halt": false,
+        "stale": [],
+        "time": 1790920800
+      },
+      "hash": "bdb292d25f12eee2db5c5f002cfddf03bfb2c215cd093bd4a058d993122ff4d6"
+    },
+    {
+      "seq": 178,
+      "time": 1790920800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001284446592960342282888194",
+        "drawdown": "0",
+        "equity": "5006775.449424585",
+        "halt": false,
+        "stale": [],
+        "time": 1790920800
+      },
+      "hash": "9ec20c4d06415d1d74d7acb3d66c01f9ce5309e2b4965cc6f94cd499e1e6f49e"
+    },
+    {
+      "seq": 182,
+      "time": 1790924400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000917648313389617811744436",
+        "drawdown": "0.0003663277511388673288556553",
+        "equity": "5004941.328633740",
+        "halt": false,
+        "stale": [],
+        "time": 1790924400
+      },
+      "hash": "2a98f13749758c38382700ad271d93cd3a170dec234ce3736a6039d7474add20"
+    },
+    {
+      "seq": 183,
+      "time": 1790924400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000917648313389617811744436",
+        "drawdown": "0.0003663277511388673288556553",
+        "equity": "5004941.328633740",
+        "halt": false,
+        "stale": [],
+        "time": 1790924400
+      },
+      "hash": "db8de1fb06cebcd97973eb9914ff68e5e8af2c1dc005c8715abeca3e672ee3a7"
+    },
+    {
+      "seq": 187,
+      "time": 1790928000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001084741742095946276107267",
+        "drawdown": "0.0001994486697001292031731720",
+        "equity": "5005776.854721710",
+        "halt": false,
+        "stale": [],
+        "time": 1790928000
+      },
+      "hash": "45cd3ea7d1516d46b44c3bf51b7bc19859c92ca3146141512ac6b044efed1323"
+    },
+    {
+      "seq": 188,
+      "time": 1790928000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001084741742095946276107267",
+        "drawdown": "0.0001994486697001292031731720",
+        "equity": "5005776.854721710",
+        "halt": false,
+        "stale": [],
+        "time": 1790928000
+      },
+      "hash": "b1e0169148826a5cfc7f07acabc53ff4eff23b7b0a66409869acd53ad949d369"
+    },
+    {
+      "seq": 192,
+      "time": 1790931600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001350422175584779289247979",
+        "drawdown": "0",
+        "equity": "5007105.350611475",
+        "halt": false,
+        "stale": [],
+        "time": 1790931600
+      },
+      "hash": "bf82c5fe46459aa9d724fca72e99d51ba6e7a6f09bc9f64f09f0d87ef074a5da"
+    },
+    {
+      "seq": 193,
+      "time": 1790931600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001350422175584779289247979",
+        "drawdown": "0",
+        "equity": "5007105.350611475",
+        "halt": false,
+        "stale": [],
+        "time": 1790931600
+      },
+      "hash": "46b9125bc7ef3da64f210f92198af1729c7ce7804475b1564816a17918f364ea"
+    },
+    {
+      "seq": 195,
+      "time": 1790931600,
+      "kind": "ai",
+      "payload": {
+        "after": [
+          "GALAUSDT",
+          "SHIBTMN"
+        ],
+        "before": [
+          "GALAUSDT",
+          "ETHTMN",
+          "SHIBTMN"
+        ],
+        "changed_candidate_order_or_set": true,
+        "record": {
+          "content": "{\"allowed_ids\":[\"A1\",\"A3\"],\"confidence\":0.72,\"reason\":\"A1 has the strongest net momentum after 146bp cost, though vol24 and z24 are elevated. A3 has better net short-horizon return than A2 and lower z24; A2's r1 net is only about 19bp. Rank A1 then A3.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+          "documented_backend": "DeepSeek-V4.1-Flash-1017",
+          "estimated_cost": {
+            "exchange_rate": 266550,
+            "irt": 804.45,
+            "unit": "0.0030180240"
+          },
+          "finish_reason": "stop",
+          "latency_seconds": 17.983137845993042,
+          "meta": {
+            "http_status": 200,
+            "latency_ms": 17672.0,
+            "request_id": "01a160d4-46e9-7952-9456-6ad3dc7eb376",
+            "server_date": "Wed, 21 Oct 2026 23:38:24 GMT"
+          },
+          "record_sha256": "71ec53ddf14c3ff8dff3232434ad431d754fc58389689bfa31e4b4560740f43c",
+          "request": {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n",
+                "role": "system"
+              },
+              {
+                "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":4328451834.482496,\"prior_capacity_tmn\":943745.12322278},\"r1_bps\":558.1808163441514,\"r24_bps\":1280.597266715603,\"r6_bps\":1189.3313644763984,\"roundtrip_cost_bps\":146.0,\"vol24_bps\":143.54763415870713,\"z24_logclose\":3.673683372848007},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":151797858548.7143,\"prior_capacity_tmn\":50002401.66126393},\"r1_bps\":109.33915479505833,\"r24_bps\":285.1591792762612,\"r6_bps\":164.92840576669076,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":40.93762667121822,\"z24_logclose\":2.6878082492787385},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":5997583588.9644,\"prior_capacity_tmn\":3784309.2635810003},\"r1_bps\":176.42054593704773,\"r24_bps\":375.7851486652969,\"r6_bps\":236.8234141503499,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":92.3812661806422,\"z24_logclose\":2.4020579543360676}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}",
+                "role": "user"
+              }
+            ],
+            "model": "deepseek-v4.1-flash",
+            "response_format": {
+              "type": "json_object"
+            },
+            "temperature": 0
+          },
+          "request_hash": "76a027860430d2f52dbf5c0f83c1da4fe563a5235b2f9669817494d79670a036",
+          "requested_at": 1792625886.4088545,
+          "response_model": "deepseek-v4.1-flash",
+          "selection": {
+            "allowed_ids": [
+              "A1",
+              "A3"
+            ],
+            "confidence": 0.72,
+            "evidence": [
+              "r1_bps",
+              "r6_bps",
+              "r24_bps",
+              "vol24_bps",
+              "z24_logclose",
+              "roundtrip_cost_bps",
+              "liquidity"
+            ],
+            "reason": "A1 has the strongest net momentum after 146bp cost, though vol24 and z24 are elevated. A3 has better net short-horizon return than A2 and lower z24; A2's r1 net is only about 19bp. Rank A1 then A3."
+          },
+          "status": "ok",
+          "usage": {
+            "completion_tokens": 2394,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2271
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 2271
+            },
+            "prompt_tokens": 733,
+            "prompt_tokens_details": {
+              "cached_tokens": 254
+            },
+            "total_tokens": 3127
+          }
+        },
+        "time": 1790931600
+      },
+      "hash": "9a857bd8fe587b0874c92ad35d01f793e3dc0d63c0fbd5df4e1863b5607d7b80"
+    },
+    {
+      "seq": 196,
+      "time": 1790931600,
+      "kind": "regime",
+      "payload": {
+        "btc_r24_bps": 357.83561169976724,
+        "observations_end": 1790931600,
+        "positive_fraction": 0.8529411764705882,
+        "risk_on": true,
+        "underlyings": 34
+      },
+      "hash": "f065474844b8ad1c1676de3353fe4b5a1f2690a171b392ecbc3a075afa76b055"
+    },
+    {
+      "seq": 197,
+      "time": 1790931600,
+      "kind": "allocation",
+      "payload": {
+        "approved": false,
+        "budget_tmn": "185888.786141451009375",
+        "candidate": "GALAUSDT",
+        "reason": "route_minimum_including_fees",
+        "score": 1.6133926456408985,
+        "stop_fraction": "0.08"
+      },
+      "hash": "2fca44acb07ca9136b6441ca6e9dd3d4681205ab28c79e015d0bccfa4713d467"
+    },
+    {
+      "seq": 198,
+      "time": 1790931600,
+      "kind": "allocation",
+      "payload": {
+        "approved": true,
+        "budget_tmn": "185888.786141451009375",
+        "candidate": "SHIBTMN",
+        "reason": null,
+        "score": 0.6314662225695712,
+        "stop_fraction": "0.08"
+      },
+      "hash": "e73d4710533cfa298f6f9088a3f17433b13cf05a5649b97898678a9974d6eef2"
+    },
+    {
+      "seq": 199,
+      "time": 1790931600,
+      "kind": "order",
+      "payload": {
+        "base": "SHIB",
+        "budget": "185888.786141451009375",
+        "eligible_at": 1790935200,
+        "id": "1fe532b8db8963fb452c9e79af24f7d1",
+        "limit": "1.551828",
+        "reason": "signal",
+        "sequence": 2,
+        "side": "BUY",
+        "stage": "BUY",
+        "stop": "0.08",
+        "submitted_at": 1790931600,
+        "symbol": "SHIBTMN"
+      },
+      "hash": "5be4a978a580ad37fc42913000988c15940bfa0ddc1a4dfed676640518075a95"
+    },
+    {
+      "seq": 202,
+      "time": 1790935200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001256221319021803244732591",
+        "drawdown": "0.0000940738171940952296182945",
+        "equity": "5006634.313098050",
+        "halt": false,
+        "stale": [],
+        "time": 1790935200
+      },
+      "hash": "8c907182041f92bd623b72e50d227baa7f711f53b00783b631c3e7618706e9d3"
+    },
+    {
+      "seq": 203,
+      "time": 1790935200,
+      "kind": "fill",
+      "payload": {
+        "fee": "555.9978465",
+        "fee_asset": "TMN",
+        "fee_tmn": "555.9978465",
+        "order_id": "1fe532b8db8963fb452c9e79af24f7d1",
+        "partial": false,
+        "price": "1.5135",
+        "qty": "122453",
+        "remainder": "cancel; exit inventory is retried on later ticks",
+        "side": "BUY",
+        "stage": "BUY",
+        "symbol": "SHIBTMN",
+        "time": 1790935200
+      },
+      "hash": "a48a80b1a694efb22863adbd7a8d7b3db4270d589d73e71846b95e2973fe6694"
+    },
+    {
+      "seq": 204,
+      "time": 1790935200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001070201396564158174870675",
+        "drawdown": "0.0002798428729992435807712309",
+        "equity": "5005704.147864750",
+        "halt": false,
+        "stale": [],
+        "time": 1790935200
+      },
+      "hash": "8df96caa34acd3305bce5cf5ecda147ec23e110c758788897a4d3f3e2091af9c"
+    },
+    {
+      "seq": 208,
+      "time": 1790938800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001035115297046187788909890",
+        "drawdown": "0.0003148816553684970378711022",
+        "equity": "5005528.704990070",
+        "halt": false,
+        "stale": [],
+        "time": 1790938800
+      },
+      "hash": "130d6a2ed13c9e233c01884cda409879146678d2f2dd328cb941a20775368927"
+    },
+    {
+      "seq": 209,
+      "time": 1790938800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001035115297046187788909890",
+        "drawdown": "0.0003148816553684970378711022",
+        "equity": "5005528.704990070",
+        "halt": false,
+        "stale": [],
+        "time": 1790938800
+      },
+      "hash": "45b0d27e6076d8305d6cb2cdb1828c5d20c7376d2bf341fade270bb6b6ae230a"
+    },
+    {
+      "seq": 213,
+      "time": 1790942400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001394368933386642532070583",
+        "drawdown": "0",
+        "equity": "5007325.099903290",
+        "halt": false,
+        "stale": [],
+        "time": 1790942400
+      },
+      "hash": "9fa4ee3c21f0dafbb5af2ff512fe5fa1430a6d82ea9c6d22cd3380b488a4cb4a"
+    },
+    {
+      "seq": 214,
+      "time": 1790942400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001394368933386642532070583",
+        "drawdown": "0",
+        "equity": "5007325.099903290",
+        "halt": false,
+        "stale": [],
+        "time": 1790942400
+      },
+      "hash": "a98dee5934a25f307b75a42fa9962328cb1b7b0955a854c2b500b0b6fe78a650"
+    },
+    {
+      "seq": 218,
+      "time": 1790946000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001812174100283235999355873",
+        "drawdown": "0",
+        "equity": "5009414.273124125",
+        "halt": false,
+        "stale": [],
+        "time": 1790946000
+      },
+      "hash": "6531748cf208c3a82abafdb8c05314bca628d9864e788dccacb5ad43250c4307"
+    },
+    {
+      "seq": 219,
+      "time": 1790946000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001812174100283235999355873",
+        "drawdown": "0",
+        "equity": "5009414.273124125",
+        "halt": false,
+        "stale": [],
+        "time": 1790946000
+      },
+      "hash": "d6296271480e8a31b311a5ce029a861c75a642db937b9466855ef1ef2645cfc1"
+    },
+    {
+      "seq": 223,
+      "time": 1790949600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.002640615820194278389384167",
+        "drawdown": "0",
+        "equity": "5013556.773967560",
+        "halt": false,
+        "stale": [],
+        "time": 1790949600
+      },
+      "hash": "c6cc562dd1a985f609eec639afd7ea9b56d449deb24774bb5a437581f3096b29"
+    },
+    {
+      "seq": 224,
+      "time": 1790949600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.002640615820194278389384167",
+        "drawdown": "0",
+        "equity": "5013556.773967560",
+        "halt": false,
+        "stale": [],
+        "time": 1790949600
+      },
+      "hash": "3c54d0ed5d928357368bd14f0dcbd2945918fdac2c24508cb3ebea4f3bc42123"
+    },
+    {
+      "seq": 228,
+      "time": 1790953200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001428858039691078593695528",
+        "drawdown": "0.0012085664208924356532466287",
+        "equity": "5007497.557601305",
+        "halt": false,
+        "stale": [],
+        "time": 1790953200
+      },
+      "hash": "b2a313f0a70beca9980ad258cca4fdae455546fc6cac9e8d1bb9fcaabdbcb8f7"
+    },
+    {
+      "seq": 229,
+      "time": 1790953200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001428858039691078593695528",
+        "drawdown": "0.0012085664208924356532466287",
+        "equity": "5007497.557601305",
+        "halt": false,
+        "stale": [],
+        "time": 1790953200
+      },
+      "hash": "cf0a6bd0c428e1802c23e76c121bc1ba592278d03e9fa0a3caa1648662a3dc48"
+    },
+    {
+      "seq": 233,
+      "time": 1790956800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.002343138217740640326257143",
+        "drawdown": "0.0002966941471947964337812442",
+        "equity": "5012069.281016095",
+        "halt": false,
+        "stale": [],
+        "time": 1790956800
+      },
+      "hash": "cb41b6f65c76b0423783d3f39ad46a2df616a79f16e476803eec391c9b59c8ed"
+    },
+    {
+      "seq": 234,
+      "time": 1790956800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.002343138217740640326257143",
+        "drawdown": "0.0002966941471947964337812442",
+        "equity": "5012069.281016095",
+        "halt": false,
+        "stale": [],
+        "time": 1790956800
+      },
+      "hash": "24f03d9c86294911751422f0b8e85598c0821ff87ec9600121b39ac1acecce00"
+    },
+    {
+      "seq": 238,
+      "time": 1790960400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.002040518572560850058579970",
+        "drawdown": "0.0005985167947166475799084285",
+        "equity": "5010556.076037075",
+        "halt": false,
+        "stale": [],
+        "time": 1790960400
+      },
+      "hash": "e6a7b969612c52ba416680a83825297744c64487afaea51960f4613a54a528b8"
+    },
+    {
+      "seq": 239,
+      "time": 1790960400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.002040518572560850058579970",
+        "drawdown": "0.0005985167947166475799084285",
+        "equity": "5010556.076037075",
+        "halt": false,
+        "stale": [],
+        "time": 1790960400
+      },
+      "hash": "c0203b894bdc8c6a647af169d0aaea55ad0743d01b86a3d50608022b0c1fea02"
+    },
+    {
+      "seq": 243,
+      "time": 1790964000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000893705942891802170668519",
+        "drawdown": "0.0017423091083074110825803710",
+        "equity": "5004821.608335260",
+        "halt": false,
+        "stale": [],
+        "time": 1790964000
+      },
+      "hash": "618e62f7161850a0a805c74ed57a873428239d656c3e37cb41d662f6863477ab"
+    },
+    {
+      "seq": 244,
+      "time": 1790964000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000893705942891802170668519",
+        "drawdown": "0.0017423091083074110825803710",
+        "equity": "5004821.608335260",
+        "halt": false,
+        "stale": [],
+        "time": 1790964000
+      },
+      "hash": "8f257dbcab9ab4c8a08168f6cf2e85064e6a58b5d4d4a49cb5feb42d868be9ae"
+    },
+    {
+      "seq": 248,
+      "time": 1790967600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0010966765369752918613513696",
+        "drawdown": "0.0037274495948005631310829014",
+        "equity": "4994868.993801925",
+        "halt": false,
+        "stale": [],
+        "time": 1790967600
+      },
+      "hash": "f101e2d0675cab1d5d6b78e8f92caeb5f9989a875990830f8823d646a3071c52"
+    },
+    {
+      "seq": 249,
+      "time": 1790967600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0010966765369752918613513696",
+        "drawdown": "0.0037274495948005631310829014",
+        "equity": "4994868.993801925",
+        "halt": false,
+        "stale": [],
+        "time": 1790967600
+      },
+      "hash": "9b674f9423e234b64535d76d8f21f8b8fec5bbbefac2f29a194c737de406ca92"
+    },
+    {
+      "seq": 250,
+      "time": 1790967600,
+      "kind": "order",
+      "payload": {
+        "base": "SHIB",
+        "eligible_at": 1790971200,
+        "id": "fabc3a37cc7b666983c2d6bc8282825f",
+        "limit": "1.42688",
+        "qty": "122453",
+        "reason": "trend_reversed",
+        "sequence": 3,
+        "side": "SELL",
+        "stage": "SELL",
+        "submitted_at": 1790967600,
+        "symbol": "SHIBTMN"
+      },
+      "hash": "edb7faf8fc064d085ca41571ad728e8802a5a62fdadaaed7bf4fee1f5922f2c0"
+    },
+    {
+      "seq": 254,
+      "time": 1790971200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0010703685105988166983729088",
+        "drawdown": "0.0037012108548558878412197522",
+        "equity": "4995000.543214315",
+        "halt": false,
+        "stale": [],
+        "time": 1790971200
+      },
+      "hash": "7e3c4c9944e0a755c4f93aa53e0e2728e9ef06cfb1ae100dfb69ec6ef80df8a1"
+    },
+    {
+      "seq": 255,
+      "time": 1790971200,
+      "kind": "fill",
+      "payload": {
+        "fee": "535.3522707",
+        "fee_asset": "TMN",
+        "fee_tmn": "535.3522707",
+        "order_id": "fabc3a37cc7b666983c2d6bc8282825f",
+        "partial": false,
+        "price": "1.4573",
+        "qty": "122453",
+        "remainder": "cancel; exit inventory is retried on later ticks",
+        "side": "SELL",
+        "stage": "SELL",
+        "symbol": "SHIBTMN",
+        "time": 1790971200
+      },
+      "hash": "dee86d8f80f438c58cbe3a676e51b0afb2734386f55d875f039774f35d614120"
+    },
+    {
+      "seq": 256,
+      "time": 1790971200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0012134361755829442302502923",
+        "drawdown": "0.0038439017280628277915774048",
+        "equity": "4994285.154420365",
+        "halt": false,
+        "stale": [],
+        "time": 1790971200
+      },
+      "hash": "16c37f915bc19ecf61419315b4bdcad3adeab45a35ec99c13c0e25ba8fe4a3c9"
+    },
+    {
+      "seq": 260,
+      "time": 1790974800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0006718095986635324472929064",
+        "drawdown": "0.0033037016121156568915912374",
+        "equity": "4996993.478370970",
+        "halt": false,
+        "stale": [],
+        "time": 1790974800
+      },
+      "hash": "2e3da139065645296b87e03cc96df0f51c28425d429a82be504bf569c7a21e64"
+    },
+    {
+      "seq": 261,
+      "time": 1790974800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0006718095986635324472929064",
+        "drawdown": "0.0033037016121156568915912374",
+        "equity": "4996993.478370970",
+        "halt": false,
+        "stale": [],
+        "time": 1790974800
+      },
+      "hash": "d4d1543f081b419f60086e1efa6f7cb7f2d0c8f80f7d95a12aabf22e5a997d8d"
+    },
+    {
+      "seq": 263,
+      "time": 1790974800,
+      "kind": "ai",
+      "payload": {
+        "after": [],
+        "before": [],
+        "changed_candidate_order_or_set": false,
+        "record": {
+          "actual_api_call": false,
+          "selection": {
+            "allowed_ids": []
+          },
+          "status": "no_candidates"
+        },
+        "time": 1790974800
+      },
+      "hash": "1e2b61d3015ceb751b9183f1a96cc1489ded59c0948acf22716c068a97ee6881"
+    },
+    {
+      "seq": 264,
+      "time": 1790974800,
+      "kind": "regime",
+      "payload": {
+        "btc_r24_bps": 151.322431797887,
+        "observations_end": 1790974800,
+        "positive_fraction": 0.391304347826087,
+        "risk_on": false,
+        "underlyings": 46
+      },
+      "hash": "1ce8ca39946c31f0ce6b2310f766ed103d77a5699bc44a2100b3419af20fcbae"
+    },
+    {
+      "seq": 265,
+      "time": 1790974800,
+      "kind": "entry_gate",
+      "payload": {
+        "approved": false,
+        "reason": "regime_or_window",
+        "time": 1790974800
+      },
+      "hash": "65e12eecf9a3335007aaf5fb6e00d2ac452ddaece31b3856838166d3b4239b31"
+    },
+    {
+      "seq": 268,
+      "time": 1790978400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0001320769306287905630407217",
+        "drawdown": "0.0027653904171385592182249764",
+        "equity": "4999692.332109050",
+        "halt": false,
+        "stale": [],
+        "time": 1790978400
+      },
+      "hash": "ce865871d6a17ed03ec0a49b6455dcadf49bcf663e93e5aec967fd0a50f20de4"
+    },
+    {
+      "seq": 269,
+      "time": 1790978400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0001320769306287905630407217",
+        "drawdown": "0.0027653904171385592182249764",
+        "equity": "4999692.332109050",
+        "halt": false,
+        "stale": [],
+        "time": 1790978400
+      },
+      "hash": "b96ea12c06c720eb6b39315f23b8a9e24cbf9c1c5ed9007adca017ed73b2f774"
+    },
+    {
+      "seq": 273,
+      "time": 1790982000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0004766404786312121214874937",
+        "drawdown": "0.0031090465014480471241806216",
+        "equity": "4997969.392819645",
+        "halt": false,
+        "stale": [],
+        "time": 1790982000
+      },
+      "hash": "83a4b9ac796f76cccd90b42af969eccdf2480ff5568b6fcea19c2bb3ea421871"
+    },
+    {
+      "seq": 274,
+      "time": 1790982000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0004766404786312121214874937",
+        "drawdown": "0.0031090465014480471241806216",
+        "equity": "4997969.392819645",
+        "halt": false,
+        "stale": [],
+        "time": 1790982000
+      },
+      "hash": "ecb08567776adc8c096b2505cdac33608a7504c18e9e2af79d87689b0bfecb34"
+    },
+    {
+      "seq": 278,
+      "time": 1790985600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0.0026936932334133339183947433",
+        "equity": "5000051.790010190",
+        "halt": false,
+        "stale": [],
+        "time": 1790985600
+      },
+      "hash": "b6cbd5dc23ca563addfd00fe8e461157613a355b893402000b5ebff4b579ea33"
+    },
+    {
+      "seq": 279,
+      "time": 1790985600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0",
+        "drawdown": "0.0026936932334133339183947433",
+        "equity": "5000051.790010190",
+        "halt": false,
+        "stale": [],
+        "time": 1790985600
+      },
+      "hash": "4f1c516d266ffb68741fed54ae44ff25f5ceabcc510274f3d2b0d9c896171185"
+    },
+    {
+      "seq": 283,
+      "time": 1790989200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000591608302926992584489445",
+        "drawdown": "0.0021036785417687669197011827",
+        "equity": "5003009.862164225",
+        "halt": false,
+        "stale": [],
+        "time": 1790989200
+      },
+      "hash": "17c3d99821d416baa9288cca9fb3cc8df27365da62a0eeeb1cd4590585e1252b"
+    },
+    {
+      "seq": 284,
+      "time": 1790989200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000591608302926992584489445",
+        "drawdown": "0.0021036785417687669197011827",
+        "equity": "5003009.862164225",
+        "halt": false,
+        "stale": [],
+        "time": 1790989200
+      },
+      "hash": "d9dfafea9767abc2dd0e4a3db571a2870bb4e70f690d2b12710a429e3a784a87"
+    },
+    {
+      "seq": 288,
+      "time": 1790992800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0000860610220967577294204055",
+        "drawdown": "0.0027795224335172089761086843",
+        "equity": "4999621.480442605",
+        "halt": false,
+        "stale": [],
+        "time": 1790992800
+      },
+      "hash": "95b82ffc4482de2e01a9108ed2db3137ec19880b9e36151e81333a96ffc85271"
+    },
+    {
+      "seq": 289,
+      "time": 1790992800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0000860610220967577294204055",
+        "drawdown": "0.0027795224335172089761086843",
+        "equity": "4999621.480442605",
+        "halt": false,
+        "stale": [],
+        "time": 1790992800
+      },
+      "hash": "4ed706f5e869c66d952a76deb43bb960078a6acb1842ad8de654c3ac5bc68c60"
+    },
+    {
+      "seq": 293,
+      "time": 1790996400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0006192007178727023434861016",
+        "drawdown": "0.0033112260145021778847637820",
+        "equity": "4996955.754352415",
+        "halt": false,
+        "stale": [],
+        "time": 1790996400
+      },
+      "hash": "254592709be2a54ce290288b257ff422d9e60dbcfd821f925de5f1b2a7aca4ae"
+    },
+    {
+      "seq": 294,
+      "time": 1790996400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0006192007178727023434861016",
+        "drawdown": "0.0033112260145021778847637820",
+        "equity": "4996955.754352415",
+        "halt": false,
+        "stale": [],
+        "time": 1790996400
+      },
+      "hash": "de9797e01666ea5ee351e82e3baf50a00aca51b4b1a3b74ef663a665d5207811"
+    },
+    {
+      "seq": 298,
+      "time": 1791000000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0008250749737377405216871988",
+        "drawdown": "0.0035165457082772584042500990",
+        "equity": "4995926.372410860",
+        "halt": false,
+        "stale": [],
+        "time": 1791000000
+      },
+      "hash": "d72279284e46c36af1609ae12b405990598b91f645b2214f187f2de1989facac"
+    },
+    {
+      "seq": 299,
+      "time": 1791000000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0008250749737377405216871988",
+        "drawdown": "0.0035165457082772584042500990",
+        "equity": "4995926.372410860",
+        "halt": false,
+        "stale": [],
+        "time": 1791000000
+      },
+      "hash": "c351c93e8388c1f9848360929aafd4c4f0061413413997700dcbc63fcc55bcc9"
+    },
+    {
+      "seq": 303,
+      "time": 1791003600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0005674685590015093614427891",
+        "drawdown": "0.0032596332061972860988307699",
+        "equity": "4997214.417825980",
+        "halt": false,
+        "stale": [],
+        "time": 1791003600
+      },
+      "hash": "831b96877db436d2f78aec50f376b5244b1865428ef6ba9e9c430252159c28df"
+    },
+    {
+      "seq": 304,
+      "time": 1791003600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "0.0005674685590015093614427891",
+        "drawdown": "0.0032596332061972860988307699",
+        "equity": "4997214.417825980",
+        "halt": false,
+        "stale": [],
+        "time": 1791003600
+      },
+      "hash": "8ef800ca17b313f62a9164d882c6f9d673aa1ed1f37d91567ff2dbe36e15b5e4"
+    },
+    {
+      "seq": 308,
+      "time": 1791007200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000340663540662351547066806",
+        "drawdown": "0.0023539473358253351758242548",
+        "equity": "5001755.125356470",
+        "halt": false,
+        "stale": [],
+        "time": 1791007200
+      },
+      "hash": "e4da243952b0f3f4891a042b395d1308b4f23eaa821a9bc8aa533844c2c1473b"
+    },
+    {
+      "seq": 309,
+      "time": 1791007200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000340663540662351547066806",
+        "drawdown": "0.0023539473358253351758242548",
+        "equity": "5001755.125356470",
+        "halt": false,
+        "stale": [],
+        "time": 1791007200
+      },
+      "hash": "4ef060bcdaf2d14ac8bf53bcc1122ddd848eece72354c1a324de9c2fbb681013"
+    },
+    {
+      "seq": 313,
+      "time": 1791010800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000290847119589942540945437",
+        "drawdown": "0.0024036295667413885643863042",
+        "equity": "5001506.040671115",
+        "halt": false,
+        "stale": [],
+        "time": 1791010800
+      },
+      "hash": "4906f1abff091ee51920b498144c8a675c0a2e121e2a2b6202e77388aa5b8821"
+    },
+    {
+      "seq": 314,
+      "time": 1791010800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000290847119589942540945437",
+        "drawdown": "0.0024036295667413885643863042",
+        "equity": "5001506.040671115",
+        "halt": false,
+        "stale": [],
+        "time": 1791010800
+      },
+      "hash": "11ea89f5bc0d971d876f6d4786e02d89a87b1ef26b53440168cab113ebaf4111"
+    },
+    {
+      "seq": 318,
+      "time": 1791014400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000224756578299903915688666",
+        "drawdown": "0.0024695420803875615880455117",
+        "equity": "5001175.584541835",
+        "halt": false,
+        "stale": [],
+        "time": 1791014400
+      },
+      "hash": "8f7a7a415b6f8489b6bba0485980afbffb81ef7056ff41138f253dba3dea9e3d"
+    },
+    {
+      "seq": 319,
+      "time": 1791014400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000224756578299903915688666",
+        "drawdown": "0.0024695420803875615880455117",
+        "equity": "5001175.584541835",
+        "halt": false,
+        "stale": [],
+        "time": 1791014400
+      },
+      "hash": "e7b1bc04127c0d57ba66bef31c8601012632a70d9bdf4eae1fc9b9ae764e33ff"
+    },
+    {
+      "seq": 323,
+      "time": 1791018000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000592402103601803577031409",
+        "drawdown": "0.0021028868793494623444681264",
+        "equity": "5003013.831208710",
+        "halt": false,
+        "stale": [],
+        "time": 1791018000
+      },
+      "hash": "118d6988154fc64a2655778c2fa15a49cdb2b0a2f5a6aa9cece62a8749db1176"
+    },
+    {
+      "seq": 324,
+      "time": 1791018000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000592402103601803577031409",
+        "drawdown": "0.0021028868793494623444681264",
+        "equity": "5003013.831208710",
+        "halt": false,
+        "stale": [],
+        "time": 1791018000
+      },
+      "hash": "fe0fc9ecfaddb44b2b61cb428b592246fb29d69e7d43a6e38cf4c948ba6c6aa2"
+    },
+    {
+      "seq": 326,
+      "time": 1791018000,
+      "kind": "ai",
+      "payload": {
+        "after": [
+          "UNITMN",
+          "COPXONTMN"
+        ],
+        "before": [
+          "UNITMN",
+          "COPXONTMN"
+        ],
+        "changed_candidate_order_or_set": false,
+        "record": {
+          "archived_record_sha256": "fa9c7622300b60582871126e4a840419bb8355ae0705db9e272dc4b072032245",
+          "content": "{\"allowed_ids\":[\"A1\",\"A2\"],\"confidence\":0.62,\"reason\":\"Both have positive 1h/6h/24h momentum exceeding the 90 bps roundtrip cost. A1 ranks first on stronger recent return and much higher turnover; A2 offers lower volatility but a more extended z-score. Include both, with code controlling sizing and concentration.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+          "documented_backend": "DeepSeek-V4.1-Flash-1017",
+          "estimated_cost": {
+            "exchange_rate": 266550,
+            "irt": 370.24,
+            "unit": "0.0013890240"
+          },
+          "finish_reason": "stop",
+          "latency_seconds": 9.928593158721924,
+          "meta": {
+            "http_status": 200,
+            "latency_ms": 9625.0,
+            "request_id": "01a160d4-8f6c-7c91-b0cd-ea902ca5a8ed",
+            "server_date": "Wed, 21 Oct 2026 23:38:35 GMT"
+          },
+          "record_sha256": "b2e991c2c713c4064b889cbc9cf6dfb8daa0a05477344a59fcd3720e8057107b",
+          "replay_compatibility": {
+            "absolute_tolerance": 1e-09,
+            "archived_request_hash": "f031a775dd6aa47b7da86ed8577b6fc46ac7b68d26ed7880e69692423b1c328c",
+            "differences": [
+              {
+                "absolute_difference": 4.440892098500626e-16,
+                "feature": "z24_logclose",
+                "id": "A1",
+                "recomputed": 2.1478501173949267,
+                "recorded": 2.1478501173949263
+              }
+            ],
+            "method": "legacy_libm_numeric_v1",
+            "new_model_call": false,
+            "recomputed_request_hash": "6bd3b78b9510831cfd90967ded8dff996334da507c00c1a9eca38ead087665c0"
+          },
+          "request": {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n",
+                "role": "system"
+              },
+              {
+                "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":11317633383.74,\"prior_capacity_tmn\":293378.8335},\"r1_bps\":232.63949612750358,\"r24_bps\":556.7683158241762,\"r6_bps\":290.2637709093914,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":120.3697935394067,\"z24_logclose\":2.1478501173949263},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":2753453546.522,\"prior_capacity_tmn\":306189.32586800004},\"r1_bps\":107.14811913806747,\"r24_bps\":344.997409502712,\"r6_bps\":187.00682888916225,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":74.0066115944929,\"z24_logclose\":2.495827588208626}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}",
+                "role": "user"
+              }
+            ],
+            "model": "deepseek-v4.1-flash",
+            "response_format": {
+              "type": "json_object"
+            },
+            "temperature": 0
+          },
+          "request_hash": "f031a775dd6aa47b7da86ed8577b6fc46ac7b68d26ed7880e69692423b1c328c",
+          "requested_at": 1792625904.9724135,
+          "response_model": "deepseek-v4.1-flash",
+          "selection": {
+            "allowed_ids": [
+              "A1",
+              "A2"
+            ],
+            "confidence": 0.62,
+            "evidence": [
+              "r1_bps",
+              "r6_bps",
+              "r24_bps",
+              "vol24_bps",
+              "z24_logclose",
+              "roundtrip_cost_bps",
+              "liquidity"
+            ],
+            "reason": "Both have positive 1h/6h/24h momentum exceeding the 90 bps roundtrip cost. A1 ranks first on stronger recent return and much higher turnover; A2 offers lower volatility but a more extended z-score. Include both, with code controlling sizing and concentration."
+          },
+          "status": "ok",
+          "usage": {
+            "completion_tokens": 1067,
+            "completion_tokens_details": {
+              "reasoning_tokens": 945
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 945
+            },
+            "prompt_tokens": 611,
+            "prompt_tokens_details": {
+              "cached_tokens": 254
+            },
+            "total_tokens": 1678
+          }
+        },
+        "time": 1791018000
+      },
+      "hash": "b75c4e4a3b42a0b2cafd081219d4664a305ec4da5654e31979d2f577767d86aa"
+    },
+    {
+      "seq": 327,
+      "time": 1791018000,
+      "kind": "regime",
+      "payload": {
+        "btc_r24_bps": 132.0882000072763,
+        "observations_end": 1791018000,
+        "positive_fraction": 0.6486486486486487,
+        "risk_on": true,
+        "underlyings": 37
+      },
+      "hash": "0ed6a73b459a19b21b19f7146fac93a86af43eea683fed880e21ff491b9fb364"
+    },
+    {
+      "seq": 328,
+      "time": 1791018000,
+      "kind": "allocation",
+      "payload": {
+        "approved": true,
+        "budget_tmn": "185736.88848362335875",
+        "candidate": "UNITMN",
+        "reason": null,
+        "score": 0.791549779121004,
+        "stop_fraction": "0.08"
+      },
+      "hash": "2d343e59f42d03af63459b4f935dad6b377092726c00ae4c6c11a85b46f62e6d"
+    },
+    {
+      "seq": 329,
+      "time": 1791018000,
+      "kind": "order",
+      "payload": {
+        "base": "UNI",
+        "budget": "185736.88848362335875",
+        "eligible_at": 1791021600,
+        "id": "2a7003b16c7d6a81236b48eafd6d5528",
+        "limit": "2487470.94",
+        "reason": "signal",
+        "sequence": 4,
+        "side": "BUY",
+        "stage": "BUY",
+        "stop": "0.08",
+        "submitted_at": 1791018000,
+        "symbol": "UNITMN"
+      },
+      "hash": "803ecd36a41cffa1e7fa3794e761a0cb252a016ca84b2a4f318a91977b274ccb"
+    },
+    {
+      "seq": 330,
+      "time": 1791018000,
+      "kind": "allocation",
+      "payload": {
+        "approved": true,
+        "budget_tmn": "204918.8999896299774279857746",
+        "candidate": "COPXONTMN",
+        "reason": null,
+        "score": 0.703330785312852,
+        "stop_fraction": "0.07251137439953959"
+      },
+      "hash": "80746d6519083e5b97f18b84dbacea4c227fee62c90b519d70f2dcfa8a410609"
+    },
+    {
+      "seq": 331,
+      "time": 1791018000,
+      "kind": "order",
+      "payload": {
+        "base": "COPXON",
+        "budget": "204918.8999896299774279857746",
+        "eligible_at": 1791021600,
+        "id": "8cc492b79f64427c4503c57989d68047",
+        "limit": "22181720.70",
+        "reason": "signal",
+        "sequence": 5,
+        "side": "BUY",
+        "stage": "BUY",
+        "stop": "0.07251137439953959",
+        "submitted_at": 1791018000,
+        "symbol": "COPXONTMN"
+      },
+      "hash": "22e41444c311031635e83f02b7d5e326442f6b579db800f6a05356121d4ab06d"
+    },
+    {
+      "seq": 334,
+      "time": 1791021600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000592426231281889017534204",
+        "drawdown": "0.0021028628166619454880780639",
+        "equity": "5003013.951848360",
+        "halt": false,
+        "stale": [],
+        "time": 1791021600
+      },
+      "hash": "5235fde44c97fa24ded6bfe24fdb449383759e6bac94e40d570b728602d6b1bf"
+    },
+    {
+      "seq": 335,
+      "time": 1791021600,
+      "kind": "order_cancel",
+      "payload": {
+        "id": "2a7003b16c7d6a81236b48eafd6d5528",
+        "reason": "limit_not_crossed",
+        "stage": "BUY",
+        "symbol": "UNITMN"
+      },
+      "hash": "464d8c93d671981d95105ed8264c30345f643abfa505504b6a32bd10ef30a068"
+    },
+    {
+      "seq": 336,
+      "time": 1791021600,
+      "kind": "fill",
+      "payload": {
+        "fee": "609.2695422",
+        "fee_asset": "TMN",
+        "fee_tmn": "609.2695422",
+        "order_id": "8cc492b79f64427c4503c57989d68047",
+        "partial": false,
+        "price": "21837618",
+        "qty": "0.0093",
+        "remainder": "cancel; exit inventory is retried on later ticks",
+        "side": "BUY",
+        "stage": "BUY",
+        "symbol": "COPXONTMN",
+        "time": 1791021600
+      },
+      "hash": "94160a80623e79e56eaaaddbd41bcca127a8a96274405ce8d79bdbe76f2a44f4"
+    },
+    {
+      "seq": 337,
+      "time": 1791021600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000389458978877103073567412",
+        "drawdown": "0.0023052833375523241639210362",
+        "equity": "5001999.105074660",
+        "halt": false,
+        "stale": [],
+        "time": 1791021600
+      },
+      "hash": "332942e48e5a5916d263b28ef652254582f6301c0307b904aa77590e5ca87fc2"
+    },
+    {
+      "seq": 341,
+      "time": 1791025200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000606629802564268727766892",
+        "drawdown": "0.0020886975054434194280207396",
+        "equity": "5003084.970440375",
+        "halt": false,
+        "stale": [],
+        "time": 1791025200
+      },
+      "hash": "d368ff2d639d27301cbef7028892e1780f363d675a3448387bc747b3d9261c73"
+    },
+    {
+      "seq": 342,
+      "time": 1791025200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000606629802564268727766892",
+        "drawdown": "0.0020886975054434194280207396",
+        "equity": "5003084.970440375",
+        "halt": false,
+        "stale": [],
+        "time": 1791025200
+      },
+      "hash": "54c081eab9f69fef79f5e6877ba62398f4d24c0bc182f01df88479ef9113a5eb"
+    },
+    {
+      "seq": 346,
+      "time": 1791028800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001398815917790872735299750",
+        "drawdown": "0.0012986452965950053193556479",
+        "equity": "5007045.942043835",
+        "halt": false,
+        "stale": [],
+        "time": 1791028800
+      },
+      "hash": "cf099cfe8c22143794abf7c2800cb372998698564ee30f4fae54c4c0b6b5354e"
+    },
+    {
+      "seq": 347,
+      "time": 1791028800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001398815917790872735299750",
+        "drawdown": "0.0012986452965950053193556479",
+        "equity": "5007045.942043835",
+        "halt": false,
+        "stale": [],
+        "time": 1791028800
+      },
+      "hash": "55b96253aabf53f7a218db766408ca2bd421370eb31c99f69161c33a20c18e0a"
+    },
+    {
+      "seq": 351,
+      "time": 1791032400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001120285820965183300128250",
+        "drawdown": "0.0015764251187835734341787548",
+        "equity": "5005653.277134630",
+        "halt": false,
+        "stale": [],
+        "time": 1791032400
+      },
+      "hash": "bbd0e876cd9217b9c78c7c5d987b0dfa01475d6f96910f96f2a45455c9452a04"
+    },
+    {
+      "seq": 352,
+      "time": 1791032400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001120285820965183300128250",
+        "drawdown": "0.0015764251187835734341787548",
+        "equity": "5005653.277134630",
+        "halt": false,
+        "stale": [],
+        "time": 1791032400
+      },
+      "hash": "92484df37f85dee7fc9672d346974b43a1d67941a4f14e9494501153693f851c"
+    },
+    {
+      "seq": 356,
+      "time": 1791036000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001493411384086840056109930",
+        "drawdown": "0.0012043046414665110248074701",
+        "equity": "5007518.924274415",
+        "halt": false,
+        "stale": [],
+        "time": 1791036000
+      },
+      "hash": "217370234f5302b80a6cc235d7bc6440eccd561f69d39b90bfb59afe0ee6ca63"
+    },
+    {
+      "seq": 357,
+      "time": 1791036000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001493411384086840056109930",
+        "drawdown": "0.0012043046414665110248074701",
+        "equity": "5007518.924274415",
+        "halt": false,
+        "stale": [],
+        "time": 1791036000
+      },
+      "hash": "96372478b8188676b16be6f5f6bee5624666a08d9c13c9c7cf80154d8acb9868"
+    },
+    {
+      "seq": 361,
+      "time": 1791039600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001286018711545564904904585",
+        "drawdown": "0.0014111386617691022357988340",
+        "equity": "5006481.950170840",
+        "halt": false,
+        "stale": [],
+        "time": 1791039600
+      },
+      "hash": "6e4671ce990189a1b771527fe6e8de608eb550969e3c174424e480ed8ed8873a"
+    },
+    {
+      "seq": 362,
+      "time": 1791039600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001286018711545564904904585",
+        "drawdown": "0.0014111386617691022357988340",
+        "equity": "5006481.950170840",
+        "halt": false,
+        "stale": [],
+        "time": 1791039600
+      },
+      "hash": "7fa34ecef797175204f1c3d71ac8c6e2bb26f483e7c8241e3926f6012da20387"
+    },
+    {
+      "seq": 366,
+      "time": 1791043200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001484051089577789657134172",
+        "drawdown": "0.0012136397222135796387390443",
+        "equity": "5007472.122317100",
+        "halt": false,
+        "stale": [],
+        "time": 1791043200
+      },
+      "hash": "577076cac8fdafff43398c71e487bcfb49ca92b213d40433173464a48f02f331"
+    },
+    {
+      "seq": 367,
+      "time": 1791043200,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001484051089577789657134172",
+        "drawdown": "0.0012136397222135796387390443",
+        "equity": "5007472.122317100",
+        "halt": false,
+        "stale": [],
+        "time": 1791043200
+      },
+      "hash": "07486eb178e4c44aceeb14328f0ced5a1b0dd31aa8ce1202eadd86d3869abe36"
+    },
+    {
+      "seq": 371,
+      "time": 1791046800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001484272650445861734102549",
+        "drawdown": "0.0012134187581625186767087744",
+        "equity": "5007473.230132915",
+        "halt": false,
+        "stale": [],
+        "time": 1791046800
+      },
+      "hash": "b21c5b65edc0543d1d52851d2cb57ba8b5f1f9bf9749a7759eabbcf86b4acd0c"
+    },
+    {
+      "seq": 372,
+      "time": 1791046800,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001484272650445861734102549",
+        "drawdown": "0.0012134187581625186767087744",
+        "equity": "5007473.230132915",
+        "halt": false,
+        "stale": [],
+        "time": 1791046800
+      },
+      "hash": "6693ccb27ba33005788c2cf04166df90e316faa88d4c3b6806a44c344aa21b98"
+    },
+    {
+      "seq": 376,
+      "time": 1791050400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001076798414213831057969734",
+        "drawdown": "0.0016197953838016208654687361",
+        "equity": "5005435.837848660",
+        "halt": false,
+        "stale": [],
+        "time": 1791050400
+      },
+      "hash": "b02d8db23350887e2ba50cf40986dc559ea59b4035c07e2557418919835362e5"
+    },
+    {
+      "seq": 377,
+      "time": 1791050400,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001076798414213831057969734",
+        "drawdown": "0.0016197953838016208654687361",
+        "equity": "5005435.837848660",
+        "halt": false,
+        "stale": [],
+        "time": 1791050400
+      },
+      "hash": "b0958242a510b08b172d85912d25ef903de89cfa697a38571e7519964b6baf31"
+    },
+    {
+      "seq": 378,
+      "time": 1791050400,
+      "kind": "order",
+      "payload": {
+        "base": "LTC",
+        "eligible_at": 1791054000,
+        "id": "0cf8db3a5ba4c1121201b37a238efccf",
+        "limit": "17931853.80",
+        "qty": "0.01207",
+        "reason": "trend_reversed",
+        "sequence": 6,
+        "side": "SELL",
+        "stage": "SELL",
+        "submitted_at": 1791050400,
+        "symbol": "LTCTMN"
+      },
+      "hash": "2db4b7efa9b7bcb3bdbffe8b5f806d3fd92a5ac4db977155297475948b75838e"
+    },
+    {
+      "seq": 382,
+      "time": 1791054000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001474798244203780898415767",
+        "drawdown": "0.0012228676432606146101951721",
+        "equity": "5007425.857611025",
+        "halt": false,
+        "stale": [],
+        "time": 1791054000
+      },
+      "hash": "fae7586fbd829600acabac76a23531cf370a2012e98adcfb90ddaee103dff9c5"
+    },
+    {
+      "seq": 383,
+      "time": 1791054000,
+      "kind": "fill",
+      "payload": {
+        "fee": "664.38821337",
+        "fee_asset": "TMN",
+        "fee_tmn": "664.38821337",
+        "order_id": "0cf8db3a5ba4c1121201b37a238efccf",
+        "partial": false,
+        "price": "18348197",
+        "qty": "0.01207",
+        "remainder": "cancel; exit inventory is retried on later ticks",
+        "side": "SELL",
+        "stage": "SELL",
+        "symbol": "LTCTMN",
+        "time": 1791054000
+      },
+      "hash": "993348bd351494e76e634fcf41614f10a8fd0e7e0bfb6f47d2c452bc6f595675"
+    },
+    {
+      "seq": 384,
+      "time": 1791054000,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.001297562484865137334563333",
+        "drawdown": "0.0013996259838336087957733701",
+        "equity": "5006539.66963529",
+        "halt": false,
+        "stale": [],
+        "time": 1791054000
+      },
+      "hash": "1f5fae2e2f495bc56755ee3b9fb1cf6cbf451be8f1c580ee7075a9f345854d5a"
+    },
+    {
+      "seq": 388,
+      "time": 1791057600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000126360516177515910558229",
+        "drawdown": "0.0025676730937032159985588172",
+        "equity": "5000683.59913529",
+        "halt": false,
+        "stale": [],
+        "time": 1791057600
+      },
+      "hash": "10b458498db691ffc4d41be8aab7feeae1d2ae045aec82ca04ef405a4058bec1"
+    },
+    {
+      "seq": 389,
+      "time": 1791057600,
+      "kind": "risk",
+      "payload": {
+        "daily_halt": false,
+        "day_loss": "-0.000126360516177515910558229",
+        "drawdown": "0.0025676730937032159985588172",
+        "equity": "5000683.59913529",
+        "halt": false,
+        "stale": [],
+        "time": 1791057600
+      },
+      "hash": "2e9c29e02c12720e8f7585320cd116f619e141f42c81b2073ecbc5f14fd6a2a2"
+    }
+  ],
+  "scan": {
+    "coverage": {
+      "eligible_no_signal": 34,
+      "estimated_capacity_below_minimum": 6,
+      "fx_capacity_unavailable": 17,
+      "fx_funding_market": 1,
+      "insufficient_recent_liquidity": 46,
+      "missing_required_history": 16
+    },
+    "dataset_identity": "ab7234859377359d885ded0ef52a4b4107615026020aa1d03a8d472c8303b613",
+    "observations_end": 1791057600,
+    "pair_count": 120,
+    "ranking_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "time": 1791057600,
+    "top": []
+  },
+  "state": {
+    "ai_changed_entries": 1,
+    "ai_decisions": 6,
+    "ai_failures": 0,
+    "cash": "4797394.29463529",
+    "cooldowns": {
+      "LTC": 1791140400,
+      "SHIB": 1791057600
+    },
+    "daily_halt": false,
+    "day": 20729,
+    "day_nav": "5000051.790010190",
+    "dust_deferrals": 0,
+    "entry_committed_tmn": "788353.9459351997235856972478",
+    "fees": "2998.30317471",
+    "fills": 5,
+    "fx_lots": {},
+    "halt": false,
+    "marks": {
+      "COPXONTMN": {
+        "price": "21870000",
+        "ts": 1791057600
+      },
+      "LTCTMN": {
+        "price": "18375761",
+        "ts": 1791054000
+      },
+      "SHIBTMN": {
+        "price": "1.4595",
+        "ts": 1790971200
+      },
+      "USDTTMN": {
+        "price": "266999",
+        "ts": 1791057600
+      }
+    },
+    "max_dd": "0.0038439017280628277915774048",
+    "order_sequence": 6,
+    "orders": [],
+    "peak": "5013556.773967560",
+    "peak_gross": "0.08605518735572134719740496512",
+    "peak_positions": 2,
+    "positions": {
+      "COPXON": {
+        "cost": "203699.1169422",
+        "exit_reason": null,
+        "opened_at": 1791021600,
+        "peak_unit": "22488750.0000",
+        "qty": "0.0093",
+        "stop": "0.07251137439953959",
+        "symbol": "COPXONTMN"
+      }
+    },
+    "realized": "1093.41157749",
+    "stale_hours": 0,
+    "turnover": "999434.39157"
+  },
+  "mode": "historical_replay"
+}

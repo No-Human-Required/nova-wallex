@@ -1,0 +1,71 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":4328451834.482496,\"prior_capacity_tmn\":943745.12322278},\"r1_bps\":558.1808163441514,\"r24_bps\":1280.597266715603,\"r6_bps\":1189.3313644763984,\"roundtrip_cost_bps\":146.0,\"vol24_bps\":143.54763415870713,\"z24_logclose\":3.673683372848007},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":151797858548.7143,\"prior_capacity_tmn\":50002401.66126393},\"r1_bps\":109.33915479505833,\"r24_bps\":285.1591792762612,\"r6_bps\":164.92840576669076,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":40.93762667121822,\"z24_logclose\":2.6878082492787385},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":5997583588.9644,\"prior_capacity_tmn\":3784309.2635810003},\"r1_bps\":176.42054593704773,\"r24_bps\":375.7851486652969,\"r6_bps\":236.8234141503499,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":92.3812661806422,\"z24_logclose\":2.4020579543360676}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "76a027860430d2f52dbf5c0f83c1da4fe563a5235b2f9669817494d79670a036",
+  "requested_at": 1792625886.4088545,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A1\",\"A3\"],\"confidence\":0.72,\"reason\":\"A1 has the strongest net momentum after 146bp cost, though vol24 and z24 are elevated. A3 has better net short-horizon return than A2 and lower z24; A2's r1 net is only about 19bp. Rank A1 then A3.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 2394,
+    "prompt_tokens": 733,
+    "total_tokens": 3127,
+    "completion_tokens_details": {
+      "reasoning_tokens": 2271
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 2271
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0030180240",
+    "irt": 804.45,
+    "exchange_rate": 266550
+  },
+  "meta": {
+    "latency_ms": 17672.0,
+    "request_id": "01a160d4-46e9-7952-9456-6ad3dc7eb376",
+    "http_status": 200,
+    "server_date": "Wed, 21 Oct 2026 23:38:24 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A1",
+      "A3"
+    ],
+    "confidence": 0.72,
+    "reason": "A1 has the strongest net momentum after 146bp cost, though vol24 and z24 are elevated. A3 has better net short-horizon return than A2 and lower z24; A2's r1 net is only about 19bp. Rank A1 then A3.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 17.983137845993042,
+  "record_sha256": "71ec53ddf14c3ff8dff3232434ad431d754fc58389689bfa31e4b4560740f43c"
+}

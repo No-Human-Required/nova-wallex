@@ -1,0 +1,70 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":3489484772.8399997,\"prior_capacity_tmn\":10444466.2267},\"r1_bps\":1280.007929972863,\"r24_bps\":1699.5889023799748,\"r6_bps\":1312.5227186084055,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":292.5174572149466,\"z24_logclose\":4.053286643819647}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "ef387a9fe69b13f25192a06fec0d1f0d6a701773a0c4a1e10650f9a7fd2654f8",
+  "requested_at": 1792625817.5178647,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A1\"],\"confidence\":0.62,\"reason\":\"A1 shows strong 1h/6h/24h momentum and ample liquidity, clearing 90 bps cost, but z24 4.05 and 292 bps vol flag overextension; allow as sole ranked entry with moderate confidence.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 902,
+    "prompt_tokens": 502,
+    "total_tokens": 1404,
+    "completion_tokens_details": {
+      "reasoning_tokens": 791
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 791
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0011583240",
+    "irt": 308.75,
+    "exchange_rate": 266550
+  },
+  "meta": {
+    "latency_ms": 8422.0,
+    "request_id": "01a160d3-39ce-7402-83ce-c0a1aa4d315c",
+    "http_status": 200,
+    "server_date": "Wed, 21 Oct 2026 23:37:06 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A1"
+    ],
+    "confidence": 0.62,
+    "reason": "A1 shows strong 1h/6h/24h momentum and ample liquidity, clearing 90 bps cost, but z24 4.05 and 292 bps vol flag overextension; allow as sole ranked entry with moderate confidence.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 8.76500129699707,
+  "record_sha256": "248f94def1701f243d9915fc72203c948c69e33425feab6e696f5128be89a19b"
+}

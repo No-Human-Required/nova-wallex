@@ -1,0 +1,56 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":3707077958.2000003,\"prior_capacity_tmn\":494526.83800000005},\"r1_bps\":52.25867925828994,\"r24_bps\":494.41053883647874,\"r6_bps\":350.1345562583625,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":62.17153467344642,\"z24_logclose\":2.74703225386097},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":616326268.42112,\"prior_capacity_tmn\":301373.8072548},\"r1_bps\":126.10507591929515,\"r24_bps\":448.505661653516,\"r6_bps\":292.45568096461665,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":107.4102862515585,\"z24_logclose\":2.165384496971617}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 800
+  },
+  "request_hash": "c477515af0e3307b36991c54fd8661c196fef190c5101704690842096ce86d9b",
+  "requested_at": 1792624789.8827567,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 800,
+    "prompt_tokens": 538,
+    "total_tokens": 1338,
+    "completion_tokens_details": {
+      "reasoning_tokens": 800
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 178
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 800
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0010690680",
+    "irt": 284.96,
+    "exchange_rate": 266550
+  },
+  "meta": {
+    "latency_ms": 7860.0,
+    "request_id": "01a160c3-8b9f-7231-8793-50b459b12185",
+    "http_status": 200,
+    "server_date": "Wed, 21 Oct 2026 23:19:58 GMT"
+  },
+  "finish_reason": "length",
+  "status": "unavailable",
+  "reason": "ValueError",
+  "http_status": null,
+  "latency_seconds": 8.174004077911377,
+  "record_sha256": "d038f6ee9ef39631aa91fe2e1785d33bf18f2b714145a03ed0cbcc19fb22ea65"
+}

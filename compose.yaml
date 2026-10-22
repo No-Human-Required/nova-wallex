@@ -1,0 +1,24 @@
+services:
+  starwallex:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SW_ENV: production
+      SW_PUBLIC_ORIGIN: ${SW_PUBLIC_ORIGIN:?Set the public HTTPS origin}
+      SW_ADMIN_PASSWORD: ${SW_ADMIN_PASSWORD:?Set the operator password}
+      SW_VAULT_KEY: ${SW_VAULT_KEY:?Set a persistent Fernet encryption key}
+      SW_DATA_DIR: /data
+      SW_DATABASE_URL: ${SW_DATABASE_URL:?Set the private PostgreSQL connection URL}
+      SW_DB_NAMESPACE: starwallex
+      PORT: 8080
+    restart: unless-stopped
+    stop_grace_period: 35s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /data:uid=10001,gid=10001,mode=0700

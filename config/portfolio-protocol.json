@@ -1,0 +1,37 @@
+{
+  "version": "portfolio-v2-engineering-repair",
+  "declared_before_portfolio_results": true,
+  "window_hours": 72,
+  "warmup_hours": 72,
+  "development_windows": 20,
+  "validation_windows": 10,
+  "test_windows": 9,
+  "candidates": [
+    "trend24",
+    "trend48",
+    "breakout48",
+    "reversal24"
+  ],
+  "baselines": [
+    "cash",
+    "btc_hold",
+    "liquid_basket"
+  ],
+  "selection": "highest mean validation return after estimated terminal liquidation costs; cash included; invalidate any candidate with stale terminal marks; tie breaks by lower max drawdown then policy name",
+  "ai_evaluation": "all nine 72h test windows, paired with selected non-cash rule; entry gate/ranking only; up to 12 actual calls per window (108 overall); empty candidate sets require no call; separately report ablation and model expense",
+  "protocol_amendments": [
+    "Before any portfolio AI calls: expand AI comparison from one final window to all nine test windows to avoid selective model reporting",
+    "Before final runs: replace assumed uniform fees with read-only 120-pair observed TMN=0.003 and USDT=0.0013 rates; preserve earlier exploratory results",
+    "Fill-time risk and correlation checks strengthened after engineering review; strategy thresholds unchanged",
+    "Observed approximately 2x candle volume versus non-synchronous market metadata: reduce participation from 1% to 0.5% of reported v as a conservative assumption; do not assert the cause",
+    "Validate the target market minimum including FX costs before funding a USDT entry",
+    "Cross-process replay found an unordered stale-symbol list: sort set traversals; preserve old failed replay evidence. Economic values matched in the first failing case.",
+    "Use submission sequence for simultaneous fill priority instead of source-dependent order hash; recompute all results without changing strategy thresholds.",
+    "AI operational repair after 17/38 responses exhausted 800 tokens and one evidence enum violation: fixed 4096 token budget, 90 second timeout, explicit JSON example. Repeat all nine windows; old outcomes retained; no profit-driven response selection."
+  ],
+  "stress": "selected rule, same signal cost assumptions; execution fees x2, slippage/spread x3, latency 2h per leg; also deterministic missing-data scenario",
+  "prior_inspection": "last 21 days of BTC/ETH inspected before this protocol; all-market portfolio outcomes not inspected before specification; temporal test is not wholly untouched research",
+  "membership_bias": "uses current survivor universe and current precision/minimum rules; no historical delisting archive",
+  "terminal_accounting": "report marked NAV, TMN-realized PnL, and hypothetical full liquidation net of costs separately; liquidation estimate ignores final liquidity/delay and is not a contest rule",
+  "exchange_orders": false
+}

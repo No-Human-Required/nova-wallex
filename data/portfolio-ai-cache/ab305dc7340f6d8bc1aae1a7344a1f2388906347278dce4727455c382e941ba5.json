@@ -1,0 +1,73 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":4381664078.74,\"prior_capacity_tmn\":2317695.0130000003},\"r1_bps\":375.8064750697154,\"r24_bps\":1238.0662843454538,\"r6_bps\":785.0266289373228,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":125.13499717354236,\"z24_logclose\":2.409071106000046},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":146075003250.15298,\"prior_capacity_tmn\":196071772.745982},\"r1_bps\":435.54782407867845,\"r24_bps\":966.2437970943655,\"r6_bps\":741.0797215372158,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":103.46978606135997,\"z24_logclose\":3.797111186529285},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":63406895203.2,\"prior_capacity_tmn\":122234890.13},\"r1_bps\":457.0799772588131,\"r24_bps\":602.6928284470149,\"r6_bps\":551.057601846525,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":118.27572162019923,\"z24_logclose\":3.789687006548472},{\"id\":\"A4\",\"liquidity\":{\"daily_turnover_tmn\":4776628265.8,\"prior_capacity_tmn\":6744783.161},\"r1_bps\":311.9161247800712,\"r24_bps\":613.4465064869453,\"r6_bps\":411.4194333117528,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":123.69627320486168,\"z24_logclose\":3.216715011140952},{\"id\":\"A5\",\"liquidity\":{\"daily_turnover_tmn\":19135634876.6,\"prior_capacity_tmn\":21824092.225},\"r1_bps\":189.05048125645135,\"r24_bps\":305.1857725291612,\"r6_bps\":301.80747564126085,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":50.988408938746474,\"z24_logclose\":4.047980718151278},{\"id\":\"A6\",\"liquidity\":{\"daily_turnover_tmn\":3259234476.2322,\"prior_capacity_tmn\":7736554.33071},\"r1_bps\":207.81342563694562,\"r24_bps\":315.29181323445545,\"r6_bps\":335.37989848762334,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":55.0430717097672,\"z24_logclose\":4.059192485992494},{\"id\":\"A7\",\"liquidity\":{\"daily_turnover_tmn\":34812114097.0,\"prior_capacity_tmn\":48723391.111999996},\"r1_bps\":211.85081772544626,\"r24_bps\":313.7383754813353,\"r6_bps\":288.26447685023084,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":58.06147838793368,\"z24_logclose\":4.143548321443037},{\"id\":\"A8\",\"liquidity\":{\"daily_turnover_tmn\":10159111374.720001,\"prior_capacity_tmn\":7375293.241500001},\"r1_bps\":278.79587235568033,\"r24_bps\":403.9829583862498,\"r6_bps\":548.8555442649675,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":84.50194290695111,\"z24_logclose\":3.7809155556643965}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "ab305dc7340f6d8bc1aae1a7344a1f2388906347278dce4727455c382e941ba5",
+  "requested_at": 1792626098.2025614,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A2\",\"A3\",\"A1\",\"A8\"],\"confidence\":0.72,\"reason\":\"Selected A2, A3, A1, A8: all have r1 >278 bps and r6 >548 bps versus 90 bps roundtrip cost. A2/A3 offer deepest liquidity; A1 has strongest r6/r24 but highest vol; A8 balances momentum and vol. High z24 limits size.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 3827,
+    "prompt_tokens": 1294,
+    "total_tokens": 5121,
+    "completion_tokens_details": {
+      "reasoning_tokens": 3687
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 3687
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0049059240",
+    "irt": 1307.67,
+    "exchange_rate": 266550
+  },
+  "meta": {
+    "latency_ms": 28906.0,
+    "request_id": "01a160d7-82d6-7133-aa27-73c60c72ce9f",
+    "http_status": 200,
+    "server_date": "Wed, 21 Oct 2026 23:42:07 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A2",
+      "A3",
+      "A1",
+      "A8"
+    ],
+    "confidence": 0.72,
+    "reason": "Selected A2, A3, A1, A8: all have r1 >278 bps and r6 >548 bps versus 90 bps roundtrip cost. A2/A3 offer deepest liquidity; A1 has strongest r6/r24 but highest vol; A8 balances momentum and vol. High z24 limits size.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 29.213335752487183,
+  "record_sha256": "6d21e37a2da9ddfa27fc8e5b63eb58ea5d9d3de226be916d5b27a6bbb23550f4"
+}
