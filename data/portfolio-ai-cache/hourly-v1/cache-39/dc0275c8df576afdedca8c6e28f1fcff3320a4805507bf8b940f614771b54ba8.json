@@ -1,0 +1,72 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":1717094591.41694,\"prior_capacity_tmn\":2106700.9495739997},\"r1_bps\":223.363732165894,\"r24_bps\":845.9805767105997,\"r6_bps\":523.1045314185478,\"roundtrip_cost_bps\":146.0,\"vol24_bps\":115.07065878810653,\"z24_logclose\":2.3419639810691333},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":1338113977.28,\"prior_capacity_tmn\":67384.6122},\"r1_bps\":8.785952540343493,\"r24_bps\":564.6448972085146,\"r6_bps\":109.63049943444506,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":173.06781256762093,\"z24_logclose\":1.3314711261535979},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":2607268189.62,\"prior_capacity_tmn\":708444.4500000001},\"r1_bps\":120.57418117035299,\"r24_bps\":532.3485866655361,\"r6_bps\":231.8812691918589,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":175.68418608115476,\"z24_logclose\":1.2197556754656484},{\"id\":\"A4\",\"liquidity\":{\"daily_turnover_tmn\":10918157390.53094,\"prior_capacity_tmn\":2082307.9602420002},\"r1_bps\":50.91774038348062,\"r24_bps\":338.07388893543407,\"r6_bps\":107.78240305482318,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":90.77447842425065,\"z24_logclose\":1.1740750591184155},{\"id\":\"A5\",\"liquidity\":{\"daily_turnover_tmn\":29786929625.6,\"prior_capacity_tmn\":1918467.375},\"r1_bps\":48.734685952188265,\"r24_bps\":182.15439891340972,\"r6_bps\":52.12115462343444,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":93.03702218974584,\"z24_logclose\":0.7107503840467756}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "dc0275c8df576afdedca8c6e28f1fcff3320a4805507bf8b940f614771b54ba8",
+  "requested_at": 1792671476.9283442,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A3\",\"A1\",\"A4\",\"A2\"],\"confidence\":0.68,\"reason\":\"A3 leads on strong multi-horizon momentum with moderate z and 90 bps cost. A1 follows despite high cost/z for strongest momentum. A4 offers lower volatility and high liquidity. A2 ranks last on high volatility and weak r1. A5 excluded for weak net r24 after costs.\",\"evidence\":[\"r24_bps\",\"r6_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 1381,
+    "prompt_tokens": 959,
+    "total_tokens": 2340,
+    "completion_tokens_details": {
+      "reasoning_tokens": 1254
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 1254
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0018702240",
+    "irt": 506.27,
+    "exchange_rate": 270700
+  },
+  "meta": {
+    "latency_ms": 11235.0,
+    "request_id": "01a1638b-eeae-7770-9ea9-3de765283ea0",
+    "http_status": 200,
+    "server_date": "Thu, 22 Oct 2026 12:18:08 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A3",
+      "A1",
+      "A4",
+      "A2"
+    ],
+    "confidence": 0.68,
+    "reason": "A3 leads on strong multi-horizon momentum with moderate z and 90 bps cost. A1 follows despite high cost/z for strongest momentum. A4 offers lower volatility and high liquidity. A2 ranks last on high volatility and weak r1. A5 excluded for weak net r24 after costs.",
+    "evidence": [
+      "r24_bps",
+      "r6_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 11.238402843475342,
+  "record_sha256": "b5685d3de22f7d498ee96f7a10513b66cbdb3e1ea5392568284dbc81bf61b560"
+}

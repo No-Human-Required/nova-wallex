@@ -24,7 +24,9 @@ def timestamp(value):
     return int(d.timestamp())
 
 def validate_binding(binding,key,markets,cfg):
-    if cfg.get('runtime_policy')=='guarded_breakout_ai':
+    if cfg.get('runtime_policy') not in {None,'guarded_breakout_ai','hourly_opportunity_ai'}:
+        raise ContractError('Unknown runtime policy')
+    if cfg.get('runtime_policy') in {'guarded_breakout_ai','hourly_opportunity_ai'}:
         import re
         if not isinstance(binding.get('subaccount_client_id'),str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}',binding['subaccount_client_id']):
             raise ContractError('Dedicated credit account client ID is required')

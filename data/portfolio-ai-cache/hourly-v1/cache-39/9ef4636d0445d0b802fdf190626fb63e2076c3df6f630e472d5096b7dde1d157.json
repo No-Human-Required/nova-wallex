@@ -1,0 +1,57 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":7753785243.400001,\"prior_capacity_tmn\":606019.3928},\"r1_bps\":142.85580703812306,\"r24_bps\":630.8105415200539,\"r6_bps\":133.30369423370675,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":104.97185226725536,\"z24_logclose\":1.4542953613364087},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":135212408446.6336,\"prior_capacity_tmn\":23818599.937737003},\"r1_bps\":59.55167873951159,\"r24_bps\":640.7476376711164,\"r6_bps\":101.63731485829489,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":109.5193334832555,\"z24_logclose\":1.16957862463746},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":4251181280.16,\"prior_capacity_tmn\":706390.6320000001},\"r1_bps\":65.4404670755684,\"r24_bps\":691.6786929992512,\"r6_bps\":258.0762254413938,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":162.41624744233505,\"z24_logclose\":1.8736295489578216},{\"id\":\"A4\",\"liquidity\":{\"daily_turnover_tmn\":2100694873.23066,\"prior_capacity_tmn\":952345.4495880001},\"r1_bps\":174.1344044115878,\"r24_bps\":716.192680154072,\"r6_bps\":192.25664299779302,\"roundtrip_cost_bps\":146.0,\"vol24_bps\":151.42306900365793,\"z24_logclose\":1.436644595968354},{\"id\":\"A5\",\"liquidity\":{\"daily_turnover_tmn\":27197707687.920002,\"prior_capacity_tmn\":13700459.372000001},\"r1_bps\":148.4577585128024,\"r24_bps\":537.1316012821375,\"r6_bps\":362.2042072857579,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":153.08086991171663,\"z24_logclose\":1.8653616808623454}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "9ef4636d0445d0b802fdf190626fb63e2076c3df6f630e472d5096b7dde1d157",
+  "requested_at": 1792671444.578154,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 4096,
+    "prompt_tokens": 959,
+    "total_tokens": 5055,
+    "completion_tokens_details": {
+      "reasoning_tokens": 4096
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 4096
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0051282240",
+    "irt": 1388.21,
+    "exchange_rate": 270700
+  },
+  "meta": {
+    "latency_ms": 32313.0,
+    "request_id": "01a1638b-710e-7280-b5db-a59b94c0ca62",
+    "http_status": 200,
+    "server_date": "Thu, 22 Oct 2026 12:17:56 GMT"
+  },
+  "finish_reason": "length",
+  "status": "unavailable",
+  "reason": "ValueError",
+  "validation_error": "Incomplete AI output",
+  "http_status": null,
+  "latency_seconds": 32.31158971786499,
+  "record_sha256": "3fb21107b35f6c902c0dffc4623b4219da895de78df8a9c8a18e72141f906b3a"
+}

@@ -45,6 +45,9 @@ class Engine:
         self.feed=self.feed_factory(read_json(ROOT/'data/portfolio/universe.json'),directory/'observations')
         key=self.vault.get('wallex');self.binding_valid(run,key)
         binding,cfg=run['binding'],run['config']
+        if cfg.get('runtime_policy')=='hourly_opportunity_ai':
+            from execution.opportunity import OpportunityHistory
+            self.feed.history_type=OpportunityHistory
         start,end=validate_binding(binding,key,self.feed.markets,cfg)
         if time.time()>=end and not audit_exists(directory):raise ContractError('Window ended before first activation')
         self.gateway=self.gateway_factory(key,subaccount_id=binding['subaccount_client_id'])

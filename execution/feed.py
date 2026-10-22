@@ -46,7 +46,7 @@ class PublicFeed:
                 for f in as_completed([pool.submit(one,s) for s in sorted(self.markets)]):
                     s,result=f.result();results[s]=result
             write_json(directory/'coverage.json',results)
-        h=History(directory);self.cached={t:h};return h
+        h=getattr(self,'history_type',History)(directory);self.cached={t:h};return h
 
     def quotes(self,symbols):
         if not set(symbols)<=set(self.markets):raise ValueError('Quote symbol outside permitted universe')

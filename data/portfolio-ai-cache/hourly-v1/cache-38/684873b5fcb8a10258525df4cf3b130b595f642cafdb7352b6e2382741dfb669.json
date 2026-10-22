@@ -1,0 +1,72 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":4222724688.194,\"prior_capacity_tmn\":267003.0093},\"r1_bps\":58.42558784700505,\"r24_bps\":375.0314210615794,\"r6_bps\":119.07594917193921,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":51.29350461422302,\"z24_logclose\":2.012790681747083},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":4379910482.081,\"prior_capacity_tmn\":1378971.98763},\"r1_bps\":19.916651735433334,\"r24_bps\":272.65928097682723,\"r6_bps\":50.23651227098898,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":63.675695982920445,\"z24_logclose\":0.9896759540423311},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":1382053951.9,\"prior_capacity_tmn\":2154687.2362800003},\"r1_bps\":237.36382295234122,\"r24_bps\":317.14173157261183,\"r6_bps\":242.19334535312615,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":127.13298345167527,\"z24_logclose\":1.9921272527604121},{\"id\":\"A4\",\"liquidity\":{\"daily_turnover_tmn\":27758765935.1,\"prior_capacity_tmn\":671143.6347},\"r1_bps\":197.63094572962981,\"r24_bps\":401.98986855223427,\"r6_bps\":116.64258431155478,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":206.54609416071915,\"z24_logclose\":1.2521514396972988}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "684873b5fcb8a10258525df4cf3b130b595f642cafdb7352b6e2382741dfb669",
+  "requested_at": 1792671246.554523,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A3\",\"A1\",\"A4\"],\"confidence\":0.63,\"reason\":\"A3 leads on net short-term momentum (r1 237, r6 242) despite higher vol; A1 has best 24h risk-adjusted move with low vol but elevated z; A4 adds liquidity and strong r24/r1 but high vol. A2's post-cost r6/r1 are weak.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 1251,
+    "prompt_tokens": 840,
+    "total_tokens": 2091,
+    "completion_tokens_details": {
+      "reasoning_tokens": 1119
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 1119
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0016785240",
+    "irt": 454.38,
+    "exchange_rate": 270700
+  },
+  "meta": {
+    "latency_ms": 10579.0,
+    "request_id": "01a16388-6ab5-7ab3-893a-204ad4ab156f",
+    "http_status": 200,
+    "server_date": "Thu, 22 Oct 2026 12:14:17 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A3",
+      "A1",
+      "A4"
+    ],
+    "confidence": 0.63,
+    "reason": "A3 leads on net short-term momentum (r1 237, r6 242) despite higher vol; A1 has best 24h risk-adjusted move with low vol but elevated z; A4 adds liquidity and strong r24/r1 but high vol. A2's post-cost r6/r1 are weak.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 10.579225540161133,
+  "record_sha256": "fc93fc1745249affe4ac1c644010f8763001ea8b5fba247bbe6efcf31af9e003"
+}

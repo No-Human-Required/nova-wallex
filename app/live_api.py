@@ -93,6 +93,16 @@ class HistoryRevision(Body):
     approval_reference:str
     resume:StrictBool=False
 
+class EntryRevision(Body):
+    confirmation:str
+    approval_reference:str
+
+@router.post('/entry-revision')
+def entry_revision(body:EntryRevision,request:Request):
+    from .live_entry_revision import apply_entry_revision
+    try:return apply_entry_revision(request.app,body.confirmation,body.approval_reference)
+    except (ValueError,RuntimeError) as exc:raise HTTPException(409,problem(exc)) from None
+
 @router.post('/history-revision')
 def history_revision(body:HistoryRevision,request:Request):
     from .live_revision import apply_history_revision
@@ -102,12 +112,18 @@ def history_revision(body:HistoryRevision,request:Request):
 @router.get('/status')
 def status(request:Request):
     from execution.history import POLICY
+    from execution.opportunity import PROTOCOL_V1
+    from .live_entry_revision import PREVIOUS_SOURCE, entry_config
     app=request.app;state=app.state.live.state();run=app.state.live.run(state['run_id']) if state['run_id'] else None
     creds=app.state.vault.status();account=selection(app.state.store)
     creds['subaccount_client_id']=account['client_id'] if account else None
     return {'state':{k:v for k,v in state.items() if k!='preflight'},'credentials':creds,
             'vault_ready':bool(app.state.vault.cipher),'release_ready':release_ready(),'preflight':state['preflight'],
-            'last_snapshot':run['last_snapshot'] if run else None,'risk_config':risk_config(),
+            'last_snapshot':run['last_snapshot'] if run else None,'risk_config':run['config'] if run else risk_config(),
+            'entry_policy_review':{'protocol':PROTOCOL_V1,'proposed_config':entry_config(risk_config()),
+                'available':bool(run and run['binding']['source_sha256']==PREVIOUS_SOURCE),
+                'applied':bool(run and run['config'].get('runtime_policy')=='hourly_opportunity_ai'),
+                'historical_edge_confirmed':False,'requires_operator_resume':True},
             'history_policy':POLICY,'history_revision_applied':bool(run and run.get('revision') and
                 run['binding']['source_sha256']==run['revision']['new_source_sha256'])}
 

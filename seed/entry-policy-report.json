@@ -1,0 +1,2942 @@
+{
+  "protocol": {
+    "rules": {
+      "version": "hourly-opportunity-v1",
+      "candidates": [
+        "breakout12",
+        "breakout24",
+        "trend6"
+      ],
+      "entry_every_hours": 1,
+      "cost_hurdle_multiplier": 2.0,
+      "strong_breadth": 0.55,
+      "minimum_underlyings": 12,
+      "crash_breadth": 0.25,
+      "btc_crash_24h_bps": -100,
+      "normal_order_cap_tmn": "250000",
+      "weak_order_cap_tmn": "100000",
+      "entry_risk_fraction": "0.001",
+      "normal_positions": 2,
+      "weak_positions": 1,
+      "no_forced_trade": true
+    },
+    "source": {
+      "files": {
+        "__init__.py": "ea7dd803c82152c2ec431e9d8d957490eb8d20f24fae5a58aa3ddbb958f33d7a",
+        "activation.py": "4ebc9cd3609d4c33cde48fde7b47ca20db6a32feecc1425c6cf34ac43f318bcd",
+        "cli.py": "95bc100d67699093368772902df1dc66c4851d37c27b9f7a6f888b098e28d564",
+        "contracts.py": "fb8b0bc61f6e3407858184fe6aeaf79666504de3e4d9d692392c7a95379e3d4b",
+        "controller.py": "00e6982f239fae32517770b2bea12ebb8b7cc499e217eb96d478b131b5f8b708",
+        "feed.py": "003e6e20cd65c6d04cf62a4eacde6b08c42c94d9fc2802f52f894a181f5022cf",
+        "gateway.py": "964d0e12c00a662fa921fb2918c9c083f17cdced91614b69b7e1745886782f65",
+        "history.py": "1e6937dc964cbe1c1ef202f60cb9da69608e46b2a15efba5d7918cf3e9c0f171",
+        "inspect_contract.py": "04c3b5f1fedaf75933552b2f1482731250a2c01ee08e4faba390b4d5209de394",
+        "journal.py": "b358a43ee2364960d754571ebccd54c8ea5007372a3436c885956d5823e44224",
+        "ledger.py": "093d7e6a972f72f9bffdf58279e2a0a803bd478b330e717d546925ebb76d7057",
+        "opportunity.py": "d5bb119710f5b517b0e5f730876468cda31a419f84a6c71461d002a43a194863",
+        "planner.py": "ceb278773823d22864649f5744c2a031039abc5e89bc879d6c4e14d26dfcae9e",
+        "rehearse.py": "8cedfd716c9a6870774830bf345369af1eaa56ba470a1653c7347141893d9ead",
+        "revision.py": "f4f7776d6fe771602771a9e84ee1a8ff0523e12dbd8e94bc683fd9e59d17dbfe",
+        "session.py": "e9f8742511393811ba3afcf992c14c8119400e683af812f730e3462107150d5d",
+        "tests/test_activation.py": "f1fdcef4c53a6da4a150507407a68f447decd00db1c8b7ed09b03238087b45ca",
+        "tests/test_controller.py": "be04b3782abe11e9de59c7053934cdd30e085e490cc6b102b13312a2ab66981f",
+        "tests/test_execution.py": "0a4bd5bf972a1cd17dcb77fe8a16e1a3062b7ce39af17a8dc199832535692c66",
+        "tests/test_feed.py": "748b8b2c63a54d7d3da1f291ddf5c816404174626e33ec15069595e1f0e97131",
+        "tests/test_history.py": "5b89fa3e1e4b210bff07e94194dd4c6171db434f84c4c11441a98d8daa0683b3"
+      },
+      "sha256": "a81eb46cd1df6b8c50266de20fad4ede04228907bb5a1fb47bafda8e69b54bbd"
+    },
+    "dataset_identity": "6ab79b244302131806bed5a1b1285e899ddc461c83849e8d9fba08d67d96c98f",
+    "variants": [
+      "current_hourly",
+      "breakout12",
+      "breakout24",
+      "trend6"
+    ],
+    "selection_windows": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30
+    ],
+    "validation_windows": [
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39
+    ],
+    "independent_holdout": false,
+    "costs": "fees, spread, slippage, one-bar latency; stress doubles fees and delays two bars",
+    "minimum_trade_count": null,
+    "new_ai_calls": 0,
+    "real_orders": 0,
+    "selection_rule": "prefer nonnegative validation median and mean, stress and drawdown, then trading coverage; cash remains benchmark"
+  },
+  "rows": [
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 1,
+      "liquidation_return_percent": "-0.026620538605300",
+      "fill_count": 13,
+      "max_drawdown_percent": "0.4872176265963527246519682000",
+      "fees_tmn": "6331.72901535",
+      "order_count": 25,
+      "audit": {
+        "events": 618,
+        "chain_head": "2a3af463393500e95c25b80adf87bb454ad543efb7964d718dceea9e163024b3"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 2,
+      "liquidation_return_percent": "0.417510295092355004500",
+      "fill_count": 16,
+      "max_drawdown_percent": "0.273535701933200",
+      "fees_tmn": "9419.67375477",
+      "order_count": 23,
+      "audit": {
+        "events": 613,
+        "chain_head": "4b3e35cf82e0e360602b2438e0f6eb3a466ab488bb7584d572675d6403501a51"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 3,
+      "liquidation_return_percent": "0.428689125614400",
+      "fill_count": 16,
+      "max_drawdown_percent": "0.6727296619232362213504110000",
+      "fees_tmn": "9727.53239928",
+      "order_count": 25,
+      "audit": {
+        "events": 598,
+        "chain_head": "1725036637fa9a4e7ff9fc39a6703d60e65a38fcc931d972186f00ad21af5976"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 4,
+      "liquidation_return_percent": "-0.170061494803200",
+      "fill_count": 11,
+      "max_drawdown_percent": "0.4031397725463111833102084100",
+      "fees_tmn": "6154.80002016",
+      "order_count": 26,
+      "audit": {
+        "events": 568,
+        "chain_head": "af456ec6976f15fa2ccf5de7c4225dddd7968119c4abfa17af330c14fe3de2cd"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 5,
+      "liquidation_return_percent": "-0.792552233002921581600",
+      "fill_count": 16,
+      "max_drawdown_percent": "0.797417478932600",
+      "fees_tmn": "7029.21395685",
+      "order_count": 28,
+      "audit": {
+        "events": 620,
+        "chain_head": "7218bbc118f1172757970a30565ac1fdb5cb5d8b258bed918be1ae6216916012"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 6,
+      "liquidation_return_percent": "-0.57391267454724696100",
+      "fill_count": 17,
+      "max_drawdown_percent": "0.8895035142646767944541043600",
+      "fees_tmn": "8370.56409186",
+      "order_count": 26,
+      "audit": {
+        "events": 646,
+        "chain_head": "f19e44aa94e5b53c79cfe0def132e8a337f19ab499103df4e36772290233df3a"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 7,
+      "liquidation_return_percent": "-0.1493584924703338954437447600",
+      "fill_count": 17,
+      "max_drawdown_percent": "0.5636663658334199253857186600",
+      "fees_tmn": "11665.4519454360",
+      "order_count": 37,
+      "audit": {
+        "events": 751,
+        "chain_head": "d85c747d8812901d8f5ee3194ed7b780d7fa938b1a0bdc8e75a7741433ef9ff9"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 8,
+      "liquidation_return_percent": "-0.75607453735346786500",
+      "fill_count": 14,
+      "max_drawdown_percent": "1.013992316155459262016644920",
+      "fees_tmn": "9522.33566259",
+      "order_count": 16,
+      "audit": {
+        "events": 577,
+        "chain_head": "41131f0de85d16427153e57d0903d6ac3a3e6530967896ba5352b7f10e4f932d"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 9,
+      "liquidation_return_percent": "-0.016686332008198832282200",
+      "fill_count": 14,
+      "max_drawdown_percent": "0.3884335055401117392003690300",
+      "fees_tmn": "8982.61091505",
+      "order_count": 25,
+      "audit": {
+        "events": 660,
+        "chain_head": "7cc5350bff34d90e088de621dc690b43ca9090377ab8078a3c6c70128958c834"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 10,
+      "liquidation_return_percent": "0E-10",
+      "fill_count": 0,
+      "max_drawdown_percent": "0",
+      "fees_tmn": "0",
+      "order_count": 0,
+      "audit": {
+        "events": 504,
+        "chain_head": "faeea847865bd4a670a0b282db387260ae5cff74d0b42fb6a3143825e7b13410"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 11,
+      "liquidation_return_percent": "-0.530059045729133437339800",
+      "fill_count": 15,
+      "max_drawdown_percent": "0.9885705143125851384402402400",
+      "fees_tmn": "8794.87643127240",
+      "order_count": 29,
+      "audit": {
+        "events": 722,
+        "chain_head": "e37bf47914db60c570bff5c01615733959b32828b7affc685c8be0be9d43f942"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 12,
+      "liquidation_return_percent": "-0.377528622687800",
+      "fill_count": 13,
+      "max_drawdown_percent": "0.4363021292745159952327563000",
+      "fees_tmn": "6220.27940439",
+      "order_count": 23,
+      "audit": {
+        "events": 572,
+        "chain_head": "bbba90dc895f67d51f47264a6baf013e6e1574cfd0a18f05f960f627160fe3e8"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 13,
+      "liquidation_return_percent": "-0.35916340901600",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.5247623763058264612178112800",
+      "fees_tmn": "6139.97749080",
+      "order_count": 18,
+      "audit": {
+        "events": 539,
+        "chain_head": "796be966797d360bd412aaf44e36f9b77137f52fe2e8094369a5b8acd6426345"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 14,
+      "liquidation_return_percent": "0E-10",
+      "fill_count": 0,
+      "max_drawdown_percent": "0",
+      "fees_tmn": "0",
+      "order_count": 1,
+      "audit": {
+        "events": 500,
+        "chain_head": "a4d43ff9a0744623e40983237c1433b7b09469a63d6c19ec36dcf17bf797f18b"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 15,
+      "liquidation_return_percent": "-0.33483208201522888900",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.62474942484200",
+      "fees_tmn": "4460.6143317",
+      "order_count": 21,
+      "audit": {
+        "events": 551,
+        "chain_head": "08b6d16704cd40373c2d5d34f71b85569d269cf72bbb5dd267e3b093405e8212"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 16,
+      "liquidation_return_percent": "-0.526752515977881300",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.571622950500",
+      "fees_tmn": "6915.17799",
+      "order_count": 13,
+      "audit": {
+        "events": 606,
+        "chain_head": "79dfd755ffd8173276cdfa2fe463e28ae790cdb6aca1638a5d3e9c8757b6b656"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 17,
+      "liquidation_return_percent": "0E-10",
+      "fill_count": 0,
+      "max_drawdown_percent": "0",
+      "fees_tmn": "0",
+      "order_count": 1,
+      "audit": {
+        "events": 503,
+        "chain_head": "d5dbb0b0ea69ecc710e17935615f47beda0a4f7a8db44ec71fd783dc7ca5dd3f"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 18,
+      "liquidation_return_percent": "0.423679247577492800",
+      "fill_count": 12,
+      "max_drawdown_percent": "0.656800504547200",
+      "fees_tmn": "9014.70924960381",
+      "order_count": 25,
+      "audit": {
+        "events": 581,
+        "chain_head": "d112c0ae848862efd57d5b75700600ed979757eaccf78c4d85b480b34c8f393a"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 19,
+      "liquidation_return_percent": "3.422642784938135564046617600",
+      "fill_count": 17,
+      "max_drawdown_percent": "0.5381306854854270210227181900",
+      "fees_tmn": "10165.75362518064",
+      "order_count": 23,
+      "audit": {
+        "events": 889,
+        "chain_head": "8c75a6581720a07ba97a1c89ff8b034e9bea60e6c630069944dfddc353f90b34"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 20,
+      "liquidation_return_percent": "-0.55457905319489393958400",
+      "fill_count": 18,
+      "max_drawdown_percent": "0.9491238191234566801798040700",
+      "fees_tmn": "14319.60281758660",
+      "order_count": 27,
+      "audit": {
+        "events": 720,
+        "chain_head": "44a43903fa24012b70294fddf3bfcc76fcf5b07b7e949364d10df4e9e5b56da0"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 21,
+      "liquidation_return_percent": "0.27219710361401998400",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.7408771563548397378075171400",
+      "fees_tmn": "4971.13054032",
+      "order_count": 15,
+      "audit": {
+        "events": 535,
+        "chain_head": "47d389343f1133432820a58cb74b6a8f58d18c797f5d13d3ad6de31e7d590dfb"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 22,
+      "liquidation_return_percent": "-0.4570338200161756800",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.52345193341800",
+      "fees_tmn": "6023.4457914",
+      "order_count": 12,
+      "audit": {
+        "events": 563,
+        "chain_head": "eded9b3d190633d60d51cbf042863e4501daba309aa717d0a1ef5325f60f41b2"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 23,
+      "liquidation_return_percent": "1.703216572672182800600",
+      "fill_count": 15,
+      "max_drawdown_percent": "0.5552099253938102059250938400",
+      "fees_tmn": "9364.84630086",
+      "order_count": 28,
+      "audit": {
+        "events": 702,
+        "chain_head": "1fa95e6b185a2dbb1564887e21c1e255e35c6a707f419a40144862e456afef85"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 24,
+      "liquidation_return_percent": "-0.3826662534422328715413034400",
+      "fill_count": 15,
+      "max_drawdown_percent": "0.7441994673333558271614143200",
+      "fees_tmn": "7848.05259924",
+      "order_count": 34,
+      "audit": {
+        "events": 773,
+        "chain_head": "ddd14a7b318e2b5fd46449560dd41cbadc9953d878d97a4a93995c86b522d847"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 25,
+      "liquidation_return_percent": "0.23844713403904030800",
+      "fill_count": 12,
+      "max_drawdown_percent": "0.3600200521413822907704261000",
+      "fees_tmn": "5432.32078278",
+      "order_count": 21,
+      "audit": {
+        "events": 636,
+        "chain_head": "2f08ac8c8e00e1487aeb9e268e69ad02b214c39c6987aa3d12c22e4f381a9fba"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 26,
+      "liquidation_return_percent": "-0.517795545301995011200",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.503494241565800",
+      "fees_tmn": "5180.15934477",
+      "order_count": 9,
+      "audit": {
+        "events": 518,
+        "chain_head": "eebc98bf17d305ea7cc33d6a89d542edbbe39865be29314883019f18462aece8"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 27,
+      "liquidation_return_percent": "-0.0880086400",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.4699706427446345056055575400",
+      "fees_tmn": "3165.61200",
+      "order_count": 9,
+      "audit": {
+        "events": 523,
+        "chain_head": "34701dd343bfe81c5b8b1db0c6bfcdc8dd814141c8f1d17abae97abbc57896e8"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 28,
+      "liquidation_return_percent": "1.318040955404957540700",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.2528796971149611444177119700",
+      "fees_tmn": "2015.91102159",
+      "order_count": 8,
+      "audit": {
+        "events": 602,
+        "chain_head": "67a67d79ec5a1e33eec6a6d14956cec4e9d5890b1f2fe58da491ccaeb9de657a"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 29,
+      "liquidation_return_percent": "0.52561287337824600",
+      "fill_count": 13,
+      "max_drawdown_percent": "0.3353110622587745052933640100",
+      "fees_tmn": "5954.313312",
+      "order_count": 26,
+      "audit": {
+        "events": 700,
+        "chain_head": "5ee1a1842c2dbd161b42de073e51168beb9abfd1c46aee52ccc7ff2dc8eba307"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 30,
+      "liquidation_return_percent": "-0.679675187906400",
+      "fill_count": 8,
+      "max_drawdown_percent": "1.049197143676754383110986560",
+      "fees_tmn": "4513.52681532",
+      "order_count": 10,
+      "audit": {
+        "events": 542,
+        "chain_head": "7877d99eebf1f8671db3616d17c51601ac63717ddf7c526ec6ec167fce0fd25a"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 31,
+      "liquidation_return_percent": "0.039090619526800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.269701268745800",
+      "fees_tmn": "4104.74424366",
+      "order_count": 13,
+      "audit": {
+        "events": 575,
+        "chain_head": "15ac042e0697f6cf06e6ee59919e8d73c658d937da1e319436ab1b47a46efa5a"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 32,
+      "liquidation_return_percent": "-0.3619706581444777897486842800",
+      "fill_count": 18,
+      "max_drawdown_percent": "0.8292930136643691779946247600",
+      "fees_tmn": "10799.9618310520878",
+      "order_count": 35,
+      "audit": {
+        "events": 753,
+        "chain_head": "cccc873c9f6707c4a30d842515bd1ca0f5cd89003e297162b2539dc6fd1f1197"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 33,
+      "liquidation_return_percent": "0.361395398371201965200",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.4890077904404367533387951700",
+      "fees_tmn": "5383.24418589",
+      "order_count": 16,
+      "audit": {
+        "events": 625,
+        "chain_head": "a391bdfda6b4742e2929176542ad1fbe0e381ca2448f9c315585754d63fa0344"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 34,
+      "liquidation_return_percent": "0.10908871514600",
+      "fill_count": 12,
+      "max_drawdown_percent": "0.3456843375888221300212289400",
+      "fees_tmn": "7093.1735427",
+      "order_count": 19,
+      "audit": {
+        "events": 572,
+        "chain_head": "19645486d80788d6efb474ef9e8d43d8fc013f5d3e19677f08d420379320c585"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 35,
+      "liquidation_return_percent": "-0.08125698205800",
+      "fill_count": 2,
+      "max_drawdown_percent": "0.1142806721479877758399548300",
+      "fees_tmn": "1209.6898029",
+      "order_count": 2,
+      "audit": {
+        "events": 506,
+        "chain_head": "4ec8dfb69b40c3642f8be13f81ba30ea87a187e38df3bd9e6f8d68d042b6895f"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 36,
+      "liquidation_return_percent": "-1.137452027036100",
+      "fill_count": 12,
+      "max_drawdown_percent": "1.336505395263000248866226500",
+      "fees_tmn": "6569.5116588",
+      "order_count": 18,
+      "audit": {
+        "events": 610,
+        "chain_head": "6ae54c01553c63fc900093b5cddd0b86306bde63b0ee1520c65b9a4c0892007c"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 37,
+      "liquidation_return_percent": "0.24618540351548078600",
+      "fill_count": 1,
+      "max_drawdown_percent": "0.1299607174407619211000058300",
+      "fees_tmn": "985.4758770",
+      "order_count": 1,
+      "audit": {
+        "events": 494,
+        "chain_head": "a5afd7d9476e96abd0572a6a5c246faafc969db37dc1b8375b14f4ff94ea88ac"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 38,
+      "liquidation_return_percent": "-0.324181481558973747400",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.4473061200777087039259978100",
+      "fees_tmn": "3313.80378516",
+      "order_count": 13,
+      "audit": {
+        "events": 574,
+        "chain_head": "63694b31c1e172808714c439b8a1a742573c5e2bdb67d7a8abee122f83c10ba3"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "base",
+      "window": 39,
+      "liquidation_return_percent": "-0.008225374229296800",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1743615775950904693218376400",
+      "fees_tmn": "3212.8687173",
+      "order_count": 7,
+      "audit": {
+        "events": 551,
+        "chain_head": "54e1beab1f1313b561c4b0e6d1a1b94adab2a965fb19f12722044a7b1dea2a04"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "cost_delay_stress",
+      "window": 31,
+      "liquidation_return_percent": "0.002715463147200",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.1840140430864732515218900500",
+      "fees_tmn": "5878.47970614",
+      "order_count": 11,
+      "audit": {
+        "events": 568,
+        "chain_head": "b7f72eec519ee324837944e4ad3da96d1c8826472c61fbcea4d891f8bbda955d"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "cost_delay_stress",
+      "window": 32,
+      "liquidation_return_percent": "0.182457362685811775932258200",
+      "fill_count": 18,
+      "max_drawdown_percent": "0.9323825498805512027655616600",
+      "fees_tmn": "30534.7973750411588",
+      "order_count": 31,
+      "audit": {
+        "events": 764,
+        "chain_head": "1e7c96c13e30de5ebb1979362822a8140436eafd4f7a0c1bad1112e565a3304a"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "cost_delay_stress",
+      "window": 33,
+      "liquidation_return_percent": "0.025623243647123400",
+      "fill_count": 9,
+      "max_drawdown_percent": "0.5943092523824979977476039200",
+      "fees_tmn": "12075.75639104544",
+      "order_count": 19,
+      "audit": {
+        "events": 606,
+        "chain_head": "33b395006a18c5f0e8170b35835e5d9f0e90acde91d7a75c09309153b7e5cd55"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "cost_delay_stress",
+      "window": 34,
+      "liquidation_return_percent": "-1.26819292017348122354559200",
+      "fill_count": 16,
+      "max_drawdown_percent": "1.34919486830648327200",
+      "fees_tmn": "23082.6349251172",
+      "order_count": 23,
+      "audit": {
+        "events": 617,
+        "chain_head": "d4936e25dd436face3a78cfe3e30564d9822f3af6af94bc0fb8c0a43c6f12fc7"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "cost_delay_stress",
+      "window": 35,
+      "liquidation_return_percent": "-0.16607219188800",
+      "fill_count": 2,
+      "max_drawdown_percent": "0.16607219188800",
+      "fees_tmn": "2429.4295944",
+      "order_count": 2,
+      "audit": {
+        "events": 506,
+        "chain_head": "65fbdb27bdd79527b834fce342835c077f6598b8c6547e9b26318f069b9b16b3"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "cost_delay_stress",
+      "window": 36,
+      "liquidation_return_percent": "-1.111137661748800",
+      "fill_count": 11,
+      "max_drawdown_percent": "1.185924038652319721890580930",
+      "fees_tmn": "12912.51747144",
+      "order_count": 17,
+      "audit": {
+        "events": 567,
+        "chain_head": "275114ef3769f98879e83a5e46445658d79625a3040ac134cc6a89881d434958"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "cost_delay_stress",
+      "window": 37,
+      "liquidation_return_percent": "0.22314454910730814800",
+      "fill_count": 1,
+      "max_drawdown_percent": "0.1298160842834994374869145000",
+      "fees_tmn": "1959.7132440",
+      "order_count": 1,
+      "audit": {
+        "events": 494,
+        "chain_head": "67937f6805341745cf0e512e4dcf3646769052c14a1831af771fdf1ef4bb634f"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "cost_delay_stress",
+      "window": 38,
+      "liquidation_return_percent": "-0.426215081937200",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.4443909845716760765953514900",
+      "fees_tmn": "6636.07990686",
+      "order_count": 17,
+      "audit": {
+        "events": 559,
+        "chain_head": "d20422c6aa95452acb92699fcc4b11ae1586751b75173c5117b40acf50ae03da"
+      }
+    },
+    {
+      "variant": "current_hourly",
+      "scenario": "cost_delay_stress",
+      "window": 39,
+      "liquidation_return_percent": "0.336222702829224400",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.1945972518778591194227527200",
+      "fees_tmn": "5468.27676",
+      "order_count": 11,
+      "audit": {
+        "events": 516,
+        "chain_head": "d90a93c756dc92068bb503828b5ed983c5e49978c14f9c62dfd197927c126781"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 1,
+      "liquidation_return_percent": "-0.15169404812514400",
+      "fill_count": 11,
+      "max_drawdown_percent": "0.194824943765900",
+      "fees_tmn": "2620.41384411",
+      "order_count": 20,
+      "audit": {
+        "events": 665,
+        "chain_head": "210229d890f51ac6e47f2dab6828cddc81156b98e489a9ccccfa3e9730be66b7"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 2,
+      "liquidation_return_percent": "0.057608179643172657500",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1951533828080268785331600000",
+      "fees_tmn": "1126.14982800",
+      "order_count": 13,
+      "audit": {
+        "events": 691,
+        "chain_head": "98eb0d5d838ceafba75f8d1b704fedf5eed9d183244b6471321cd30c1b321e03"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 3,
+      "liquidation_return_percent": "0.279871304008415902600",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.1176559280337312297706992700",
+      "fees_tmn": "1341.32307978",
+      "order_count": 8,
+      "audit": {
+        "events": 627,
+        "chain_head": "3a9d0babc82835bce6e4bfca1d2cd613ebfa62d737f8a7a457d28012c87cdf83"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 4,
+      "liquidation_return_percent": "0.09045375129095200",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.1580719414057632311646097300",
+      "fees_tmn": "939.91665",
+      "order_count": 9,
+      "audit": {
+        "events": 589,
+        "chain_head": "98ccdda8781e5dffe0db0b46378d88fcb2e14fe70174df1233c464a8ed461714"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 5,
+      "liquidation_return_percent": "0.003062320858010300",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.1308713294280932762978284300",
+      "fees_tmn": "1258.20555",
+      "order_count": 8,
+      "audit": {
+        "events": 637,
+        "chain_head": "bb8ef0409e9b3be519650073e20b64d591cd6c4b7275a1823b6cda815d925963"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 6,
+      "liquidation_return_percent": "0.065368442463051360500",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.0769992517751537908830497300",
+      "fees_tmn": "997.58411097",
+      "order_count": 6,
+      "audit": {
+        "events": 640,
+        "chain_head": "50800ca2783c975403bf318a74f3ee1bb40f6bdfee4cc7fa9f91e7d46ddecb45"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 7,
+      "liquidation_return_percent": "0.02039656891686330100",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.1227005183417756612651200500",
+      "fees_tmn": "1231.97540471868",
+      "order_count": 12,
+      "audit": {
+        "events": 678,
+        "chain_head": "f94fd595e646ba8202925b7c79bebe6194e97e7bb6c9a3afc5e6479eb5f504e1"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 8,
+      "liquidation_return_percent": "0.114987545040730633600",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.1498742499193525043799106400",
+      "fees_tmn": "1700.61855468",
+      "order_count": 9,
+      "audit": {
+        "events": 604,
+        "chain_head": "20cf129a7a062c2d0dbab555393fbf2bc8e8353c6bdd16906947c0f30ec7e04c"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 9,
+      "liquidation_return_percent": "-0.08355402749498995600",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1821414069500",
+      "fees_tmn": "1445.7463125",
+      "order_count": 13,
+      "audit": {
+        "events": 679,
+        "chain_head": "ffd7ec1ef0bcc6cade34189b31eb835c1e9cfe55c4232748b95926ae9090a4d7"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 10,
+      "liquidation_return_percent": "-0.10833313320659523200",
+      "fill_count": 3,
+      "max_drawdown_percent": "0.1118447281994366029370707500",
+      "fees_tmn": "593.88738990",
+      "order_count": 5,
+      "audit": {
+        "events": 469,
+        "chain_head": "56795737d6502a83c29a578b3fe0db2f98a88576602293967ffb406c4d3c16a7"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 11,
+      "liquidation_return_percent": "-0.07086324370295665400",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.2129345284048499504306028700",
+      "fees_tmn": "1389.90254028",
+      "order_count": 8,
+      "audit": {
+        "events": 597,
+        "chain_head": "fa96730038dc590e97ad76740f27bf04fc3b5978434de50e730a6547f65bec54"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 12,
+      "liquidation_return_percent": "-0.0525419704944100",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.0852278642570481536116795700",
+      "fees_tmn": "1365.30269418",
+      "order_count": 10,
+      "audit": {
+        "events": 525,
+        "chain_head": "ae53f03cedc9d91d5c89256668d01e3645f4b7ce7cf573a42f5aecc38d44a939"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 13,
+      "liquidation_return_percent": "-0.16204341621200",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.171531191611400",
+      "fees_tmn": "1677.43809060",
+      "order_count": 13,
+      "audit": {
+        "events": 534,
+        "chain_head": "77faa198fbea9aac72d18b47da96a00f27e95c08ee9a724bbb27879f953e01d2"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 14,
+      "liquidation_return_percent": "-0.16060337515725276500",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.15048162812800",
+      "fees_tmn": "1137.7859094",
+      "order_count": 8,
+      "audit": {
+        "events": 509,
+        "chain_head": "c94d33b08d33f305878b26bc42a51e20e05f5af0662d30e56a6b30ff41454c82"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 15,
+      "liquidation_return_percent": "0.051676433925549900",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0924758092929885207223761600",
+      "fees_tmn": "861.271488",
+      "order_count": 7,
+      "audit": {
+        "events": 577,
+        "chain_head": "868d6099b2e6a591198dcd3cb26472b53a8d2d1d2898c041f702f729161ad00a"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 16,
+      "liquidation_return_percent": "-0.230062808425900",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.229080831859800",
+      "fees_tmn": "1875.27673299",
+      "order_count": 8,
+      "audit": {
+        "events": 505,
+        "chain_head": "95a8cf3a2e73047cd8e15ced26225ef56019bbc8948ca99c1ea50cb6a6e639b4"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 17,
+      "liquidation_return_percent": "-0.05327848103844600",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.2481726369804836630811985900",
+      "fees_tmn": "1240.90680",
+      "order_count": 12,
+      "audit": {
+        "events": 496,
+        "chain_head": "3b429bc870d256a88ce7a8eab8a3acc98f8434bc92b332a2af6745bb837cea41"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 18,
+      "liquidation_return_percent": "0.04127979726577700",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.163693385482400",
+      "fees_tmn": "1663.02541608",
+      "order_count": 15,
+      "audit": {
+        "events": 647,
+        "chain_head": "687824e0df473bad103457e166581cc57f82b19e7d8361175dc152772c0cda73"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 19,
+      "liquidation_return_percent": "0.50376441431903600",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.1758710749180356346609670500",
+      "fees_tmn": "2192.32575990",
+      "order_count": 13,
+      "audit": {
+        "events": 869,
+        "chain_head": "d131c663c10f6210d25d7fc1cda3040613352267a69eb5193af3007a1d972266"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 20,
+      "liquidation_return_percent": "0.020587078296800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1232962949495547595557625300",
+      "fees_tmn": "2087.92224516",
+      "order_count": 11,
+      "audit": {
+        "events": 695,
+        "chain_head": "4f44f158cd3bd4e3b399e2f9886bb1e56f7c80e0f2ef7e4d8dfaf827d4abd89d"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 21,
+      "liquidation_return_percent": "0.0273659516717973400",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.2863050917821445802035770700",
+      "fees_tmn": "1589.05403628",
+      "order_count": 13,
+      "audit": {
+        "events": 565,
+        "chain_head": "569d33dede208679f435231ae4680f212587f5334e7ab4eb47970de298985738"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 22,
+      "liquidation_return_percent": "0.002659205977392881200",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0756644638025050814777664500",
+      "fees_tmn": "919.32846828",
+      "order_count": 7,
+      "audit": {
+        "events": 614,
+        "chain_head": "64f9e5e31bd3443e3df9285f6e9f33cf2742c589735430139837d41fc222e0df"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 23,
+      "liquidation_return_percent": "0.393802715278164500",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1452794032569925498858292600",
+      "fees_tmn": "1812.3397692",
+      "order_count": 11,
+      "audit": {
+        "events": 824,
+        "chain_head": "46d56727ab738333ac6bdf713efa31197a3c11675f80ddc6ce6ff4e15d2f41df"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 24,
+      "liquidation_return_percent": "-0.053231156327800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1182762787470930316326151700",
+      "fees_tmn": "1401.37410639",
+      "order_count": 10,
+      "audit": {
+        "events": 677,
+        "chain_head": "91e3f42ed4fa027c617de75c4afd2d110fba8546633f32cf10a6cb2ea92760e6"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 25,
+      "liquidation_return_percent": "0.09753543034766542200",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1847246302121410896849684500",
+      "fees_tmn": "1464.39208869",
+      "order_count": 9,
+      "audit": {
+        "events": 655,
+        "chain_head": "9b884ebf5bb76ae109d7ed8a84ace8c2bfdf48ac2a0c88ac9ccebd520b58c33a"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 26,
+      "liquidation_return_percent": "0.03639527188200",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1473571523884178175223227700",
+      "fees_tmn": "1275.99430590",
+      "order_count": 8,
+      "audit": {
+        "events": 529,
+        "chain_head": "9119b88bd5c83308f4546ca2df7516959f80f7f64f45309938cc8bd5c6d0d24c"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 27,
+      "liquidation_return_percent": "0.023052857600",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0910415832787613520179082100",
+      "fees_tmn": "718.97712",
+      "order_count": 6,
+      "audit": {
+        "events": 506,
+        "chain_head": "432428bf2b16c290c35ee22e07e0e985f4d67a7670996d75a623c51b23ef3d14"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 28,
+      "liquidation_return_percent": "0.279704802788413600",
+      "fill_count": 2,
+      "max_drawdown_percent": "0.0541835266958411891414247700",
+      "fees_tmn": "365.06496",
+      "order_count": 5,
+      "audit": {
+        "events": 717,
+        "chain_head": "36e1fcbc8792ee2ebd7853c5a05d9d5ccd8c65d52329461d7f5e0a95ccd3f6f8"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 29,
+      "liquidation_return_percent": "0.241899074389770779200",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.0998686980220972350656592600",
+      "fees_tmn": "882.59325453",
+      "order_count": 5,
+      "audit": {
+        "events": 794,
+        "chain_head": "d623a67346f01a33e9005981d477c11f959c4a58c6857a59708bd77ce6db5551"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 30,
+      "liquidation_return_percent": "-0.19142399288225562400",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.2068053910359929635995483000",
+      "fees_tmn": "1179.32859085659",
+      "order_count": 8,
+      "audit": {
+        "events": 562,
+        "chain_head": "7aeaa0c72e91b1f3eef09ed3e355f08839b1017b2b9322a05d78caff2046d291"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 31,
+      "liquidation_return_percent": "-0.01281582375215100",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.1429563007253941464455569400",
+      "fees_tmn": "2130.0167160",
+      "order_count": 18,
+      "audit": {
+        "events": 709,
+        "chain_head": "eeff2d0813b3925af557ae8c74bb0c0779755efc614ee556d44ec264d5192bb4"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 32,
+      "liquidation_return_percent": "-0.06806452993386100",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.1718346446535678087035928200",
+      "fees_tmn": "2414.80431210",
+      "order_count": 14,
+      "audit": {
+        "events": 721,
+        "chain_head": "ae4371d9d778e62002600e04f116ceabf604b0756c73f9fcdd05c51a14db3f52"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 33,
+      "liquidation_return_percent": "0.18953632873207600",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.0863740479792917264783313300",
+      "fees_tmn": "1675.10622669",
+      "order_count": 8,
+      "audit": {
+        "events": 671,
+        "chain_head": "d9248541ff5157a681b75a43c851ce01c6a2bbddffebdb38c8cde6419a2446b9"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 34,
+      "liquidation_return_percent": "-0.073028931852817215600",
+      "fill_count": 9,
+      "max_drawdown_percent": "0.1026153498182101919066287900",
+      "fees_tmn": "1818.71584692",
+      "order_count": 14,
+      "audit": {
+        "events": 638,
+        "chain_head": "c162422f135b854fc6641f4af3b94a607d4b7f8a82e0b4707fb47012fd1228b3"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 35,
+      "liquidation_return_percent": "-0.04323176765187478400",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.0648831728869766321014535600",
+      "fees_tmn": "1092.3258723",
+      "order_count": 6,
+      "audit": {
+        "events": 496,
+        "chain_head": "d379a3414c7534d486c73b524792c2cf5a2191152be20c25ef7bc8df2a425b5d"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 36,
+      "liquidation_return_percent": "-0.23527817477924200",
+      "fill_count": 11,
+      "max_drawdown_percent": "0.2816008785537827938255362500",
+      "fees_tmn": "2432.9051082",
+      "order_count": 18,
+      "audit": {
+        "events": 642,
+        "chain_head": "bbc0e272b6eea4cf88402f332ff3108f846ee5e682aa17310658cd0245fa544d"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 37,
+      "liquidation_return_percent": "-0.114716776807408626300",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1165618658357719336856231100",
+      "fees_tmn": "1235.92789302",
+      "order_count": 9,
+      "audit": {
+        "events": 517,
+        "chain_head": "0c9008825295a513c69321d8515ddca0fbceb4e8e0321f5847116e4bbb4f313e"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 38,
+      "liquidation_return_percent": "-0.182493534946804800",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.1916921220538189554663437600",
+      "fees_tmn": "900.34974",
+      "order_count": 9,
+      "audit": {
+        "events": 505,
+        "chain_head": "d59d48a56f8dcd18de95d638fba8c3831e8bfa350f37e6544a2d7a048878ff99"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "base",
+      "window": 39,
+      "liquidation_return_percent": "0.1457028346571020800",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.0719599339816503966263460600",
+      "fees_tmn": "1316.0591979",
+      "order_count": 10,
+      "audit": {
+        "events": 571,
+        "chain_head": "1adbb72fd90eb707d167cee5c2eb9c7958d5266b703efef2111e5ebf8e6d4f54"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "cost_delay_stress",
+      "window": 31,
+      "liquidation_return_percent": "0.0636293395709600",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.0675661498289741362879777800",
+      "fees_tmn": "2191.32636",
+      "order_count": 19,
+      "audit": {
+        "events": 708,
+        "chain_head": "3d52771e18207801e3ad35fc391f5a43581eb3181c7b366d388e8c8b772ca225"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "cost_delay_stress",
+      "window": 32,
+      "liquidation_return_percent": "-0.2867079194370700",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.273431130318400",
+      "fees_tmn": "4613.17258092",
+      "order_count": 13,
+      "audit": {
+        "events": 718,
+        "chain_head": "7e3f6dd4e7a33fb4fafa8f65c95011e7ee956d013545bc664cdab86635d69874"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "cost_delay_stress",
+      "window": 33,
+      "liquidation_return_percent": "-0.025690541508339400",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.1641807290878680405876677800",
+      "fees_tmn": "2665.95574068",
+      "order_count": 12,
+      "audit": {
+        "events": 677,
+        "chain_head": "3d0d615090257f1fef968ee220c020957c846cbcfe97ccfe21ec5cca92e2a659"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "cost_delay_stress",
+      "window": 34,
+      "liquidation_return_percent": "-0.086529335311477074800",
+      "fill_count": 9,
+      "max_drawdown_percent": "0.1046271177607912855220446800",
+      "fees_tmn": "4001.19289992",
+      "order_count": 12,
+      "audit": {
+        "events": 636,
+        "chain_head": "21e0196dcc001ef882242000c6a374361855092cd2b2d968b5c3944c1ad82287"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "cost_delay_stress",
+      "window": 35,
+      "liquidation_return_percent": "-0.11131885746172143600",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.11846984443100",
+      "fees_tmn": "2190.2330316",
+      "order_count": 6,
+      "audit": {
+        "events": 496,
+        "chain_head": "cd942d9ee5771155001e3c9ad8b83551634b54172ac94b1b9fd24b22cdcc7b98"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "cost_delay_stress",
+      "window": 36,
+      "liquidation_return_percent": "-0.264610254166132200",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.3738524111034359866000693900",
+      "fees_tmn": "2997.27276",
+      "order_count": 17,
+      "audit": {
+        "events": 638,
+        "chain_head": "447b2fbd888c7385caacc2b1daf53e1feca5b4a24833458d1e499417e8cd7596"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "cost_delay_stress",
+      "window": 37,
+      "liquidation_return_percent": "-0.01918722372071346400",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0678224300851930544529328600",
+      "fees_tmn": "1664.9124204",
+      "order_count": 7,
+      "audit": {
+        "events": 513,
+        "chain_head": "d03e708e515ee8016f17500f956f55e20152fe1e5a2e857dd81e9159351e852b"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "cost_delay_stress",
+      "window": 38,
+      "liquidation_return_percent": "-0.123242828800",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.144495018800",
+      "fees_tmn": "1436.94144",
+      "order_count": 6,
+      "audit": {
+        "events": 500,
+        "chain_head": "d7a05e5f30c863852a587a9061d9a93ec0110a570c813f94c682ac7b72829773"
+      }
+    },
+    {
+      "variant": "breakout12",
+      "scenario": "cost_delay_stress",
+      "window": 39,
+      "liquidation_return_percent": "0.27530103682286200",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.0714556898254338103794571600",
+      "fees_tmn": "2252.74338",
+      "order_count": 8,
+      "audit": {
+        "events": 566,
+        "chain_head": "4c36bc0b026bc7f186cd99e1891554f70566bd5b2253dbb25e3639f400909273"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 1,
+      "liquidation_return_percent": "-0.18513848886724300",
+      "fill_count": 12,
+      "max_drawdown_percent": "0.3137763691001927177158093100",
+      "fees_tmn": "2773.66815579",
+      "order_count": 22,
+      "audit": {
+        "events": 652,
+        "chain_head": "b0a66f755cebd5eee98885a4f2444c4cae12eb1d7b7caf7266c5bb7be9b10c5e"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 2,
+      "liquidation_return_percent": "0.057608179643172657500",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1951533828080268785331600000",
+      "fees_tmn": "1126.14982800",
+      "order_count": 12,
+      "audit": {
+        "events": 681,
+        "chain_head": "81110b545993e353c13269bd843cf277b2442e828a4db77c5df187b50c95cf56"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 3,
+      "liquidation_return_percent": "0.279871304008415902600",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.1176559280337312297706992700",
+      "fees_tmn": "1341.32307978",
+      "order_count": 8,
+      "audit": {
+        "events": 610,
+        "chain_head": "f4908de6e8c90c24816f8630d48a9169ddcbe86c0d9036c0f0cfec6765d4da05"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 4,
+      "liquidation_return_percent": "0.09045375129095200",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.1580719414057632311646097300",
+      "fees_tmn": "939.91665",
+      "order_count": 9,
+      "audit": {
+        "events": 581,
+        "chain_head": "7eb9a4432dbd77e9016b42d0e10f8f7d32479270f55cebfe60f9ab0907fbe44b"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 5,
+      "liquidation_return_percent": "0.003062320858010300",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.1308713294280932762978284300",
+      "fees_tmn": "1258.20555",
+      "order_count": 8,
+      "audit": {
+        "events": 634,
+        "chain_head": "e35a3a4e77deeca71dcea71e08efaf93a442f575b6e300caf003736fdfb7ffb1"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 6,
+      "liquidation_return_percent": "0.065368442463051360500",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.0769992517751537908830497300",
+      "fees_tmn": "997.58411097",
+      "order_count": 6,
+      "audit": {
+        "events": 634,
+        "chain_head": "9b63e2af35f4710d6bac13fa97340a7af105d3def974e4ba0f21374abb556cbe"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 7,
+      "liquidation_return_percent": "0.02039656891686330100",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.1227005183417756612651200500",
+      "fees_tmn": "1231.97540471868",
+      "order_count": 12,
+      "audit": {
+        "events": 671,
+        "chain_head": "f589ba910260c0a505ce43478a8988301c0f8447be6726ee3922c52eba43e41a"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 8,
+      "liquidation_return_percent": "0.155626566526826633600",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1446627113047944208104676800",
+      "fees_tmn": "1515.28095468",
+      "order_count": 9,
+      "audit": {
+        "events": 592,
+        "chain_head": "ec105b721d5dd108f3d2c714046560aeb2778a63cd61e5406886a99052a5e357"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 9,
+      "liquidation_return_percent": "-0.08355402749498995600",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1821414069500",
+      "fees_tmn": "1445.7463125",
+      "order_count": 12,
+      "audit": {
+        "events": 669,
+        "chain_head": "43afce69855e807ab49b1b43a7cda2b201907fbae438eac5a4be0a7aac3ded40"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 10,
+      "liquidation_return_percent": "-0.10833313320659523200",
+      "fill_count": 3,
+      "max_drawdown_percent": "0.1118447281994366029370707500",
+      "fees_tmn": "593.88738990",
+      "order_count": 5,
+      "audit": {
+        "events": 469,
+        "chain_head": "65225945bf08f21a70ae7857e211b03d9d47ae25152240315f32d8e7ca513704"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 11,
+      "liquidation_return_percent": "-0.07086324370295665400",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.2129345284048499504306028700",
+      "fees_tmn": "1389.90254028",
+      "order_count": 8,
+      "audit": {
+        "events": 590,
+        "chain_head": "1db5c1d3d32c6d46b136ac0d53e0fe7f2cf0d9cdbab5a8d4c1e1ecfd76a2a9c0"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 12,
+      "liquidation_return_percent": "-0.0743210100984100",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.0852464243871449338683569400",
+      "fees_tmn": "1733.27847438",
+      "order_count": 11,
+      "audit": {
+        "events": 523,
+        "chain_head": "7cef27399608c55bcb105a53c989670f419941e17023f9c8ec9cb4688bd7c0c7"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 13,
+      "liquidation_return_percent": "-0.17107889424800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.180565811005100",
+      "fees_tmn": "1680.28293240",
+      "order_count": 14,
+      "audit": {
+        "events": 529,
+        "chain_head": "16ed492463437967b38f1c085d87e8fc3d0e0ac3ee09c7287ae1e7e3996b0685"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 14,
+      "liquidation_return_percent": "-0.1170079517058540400",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.1147758561800",
+      "fees_tmn": "954.739809",
+      "order_count": 8,
+      "audit": {
+        "events": 497,
+        "chain_head": "93c293771b5d1594d6a67932cd3b7da52a4ea4233146c7440726bc665e504f2a"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 15,
+      "liquidation_return_percent": "0.017384037649549900",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.12546757194200",
+      "fees_tmn": "772.8603018",
+      "order_count": 8,
+      "audit": {
+        "events": 570,
+        "chain_head": "1028775c9eab4216a8893a21d3d75d18c92fff1c3ff109a4f0c206e5621b5e54"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 16,
+      "liquidation_return_percent": "-0.230062808425900",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.229080831859800",
+      "fees_tmn": "1875.27673299",
+      "order_count": 8,
+      "audit": {
+        "events": 502,
+        "chain_head": "241159526e8a6c6bcba62f9b58c873c67925426309d70228e47ff1fd24a752c1"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 17,
+      "liquidation_return_percent": "-0.05327848103844600",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.2481726369804836630811985900",
+      "fees_tmn": "1240.90680",
+      "order_count": 12,
+      "audit": {
+        "events": 492,
+        "chain_head": "500cfd395c60061d289147451b67afc381f74e2080287905b82c38549208b307"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 18,
+      "liquidation_return_percent": "0.04127979726577700",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.163693385482400",
+      "fees_tmn": "1663.02541608",
+      "order_count": 15,
+      "audit": {
+        "events": 639,
+        "chain_head": "fdaf7384b3cee4f7199ca704e5acdd44002387befab0ddc38ec473a7f412823d"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 19,
+      "liquidation_return_percent": "0.50376441431903600",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.1758710749180356346609670500",
+      "fees_tmn": "2192.32575990",
+      "order_count": 13,
+      "audit": {
+        "events": 854,
+        "chain_head": "50f9f9a1af2fbf7d5fc91bd56ba8ad76debb110a5e7c8a5fa679e0b7ba82828c"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 20,
+      "liquidation_return_percent": "0.02990235751175200",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1232848271443109482331495800",
+      "fees_tmn": "2187.71661681240",
+      "order_count": 11,
+      "audit": {
+        "events": 678,
+        "chain_head": "22ffd3ecbd95ef1fca4b4272d5d98e817b01e48338b15e5c4c3b51118f6fe64a"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 21,
+      "liquidation_return_percent": "-0.1236803968522026600",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.1723978603611213064741964600",
+      "fees_tmn": "1196.61406248",
+      "order_count": 7,
+      "audit": {
+        "events": 541,
+        "chain_head": "d43f492bcea2ed98bf3250a95621a5837953c4a6456732d76fab6b0ec7715e00"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 22,
+      "liquidation_return_percent": "0.002659205977392881200",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0756644638025050814777664500",
+      "fees_tmn": "919.32846828",
+      "order_count": 6,
+      "audit": {
+        "events": 593,
+        "chain_head": "dd3affb2c4bce6cb49089ab06f29ce80131cf849b2311ca9182c77021b47ac79"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 23,
+      "liquidation_return_percent": "0.393802715278164500",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1452794032569925498858292600",
+      "fees_tmn": "1812.3397692",
+      "order_count": 11,
+      "audit": {
+        "events": 816,
+        "chain_head": "8c2b7c06ade30e0733a609fb7c552740904dd471943c14811f5e3370fe40cc78"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 24,
+      "liquidation_return_percent": "-0.053231156327800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1182762787470930316326151700",
+      "fees_tmn": "1401.37410639",
+      "order_count": 10,
+      "audit": {
+        "events": 670,
+        "chain_head": "9fb48cb2ed5a25469f33f3b87425bd30835375cc3e7c2e1287c1dd0010f15d8b"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 25,
+      "liquidation_return_percent": "0.15231104318736300",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.0895494063997167751938314400",
+      "fees_tmn": "1222.37622624",
+      "order_count": 7,
+      "audit": {
+        "events": 625,
+        "chain_head": "b72c4c2b66a2e85646f313da2029da5aa56545c434dc21013a2ce815bcd12bfa"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 26,
+      "liquidation_return_percent": "0.03639527188200",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1473571523884178175223227700",
+      "fees_tmn": "1275.99430590",
+      "order_count": 8,
+      "audit": {
+        "events": 516,
+        "chain_head": "f530da4aafe308ccc272fea1dfc64b2b1ecf59d4574d6921677ec32e00fb91eb"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 27,
+      "liquidation_return_percent": "0.023052857600",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0910415832787613520179082100",
+      "fees_tmn": "718.97712",
+      "order_count": 6,
+      "audit": {
+        "events": 503,
+        "chain_head": "a23fc311a538338395d9cced2de0b95525d9d3e4f443a3970a70156741b4e468"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 28,
+      "liquidation_return_percent": "0.279704802788413600",
+      "fill_count": 2,
+      "max_drawdown_percent": "0.0541835266958411891414247700",
+      "fees_tmn": "365.06496",
+      "order_count": 5,
+      "audit": {
+        "events": 713,
+        "chain_head": "b4f4163d2b5e6efeda0652212a38c34b464b92c5c71f7ff06ac1cb0dab1b0247"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 29,
+      "liquidation_return_percent": "0.165510777290194879200",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.0845700558491147810017852300",
+      "fees_tmn": "1278.57938493",
+      "order_count": 8,
+      "audit": {
+        "events": 790,
+        "chain_head": "5e52d5d925cb2db117d6f0833f4300018c72a4b4f18033713c040df89792c981"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 30,
+      "liquidation_return_percent": "-0.19142399288225562400",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.2068053910359929635995483000",
+      "fees_tmn": "1179.32859085659",
+      "order_count": 8,
+      "audit": {
+        "events": 553,
+        "chain_head": "991f7ffff67c330b6754253d74d9ff7b3f3ca3afb53b139e85fc532b3b1d48d9"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 31,
+      "liquidation_return_percent": "0.01819801634461600",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.1186317613036856729659289100",
+      "fees_tmn": "2126.6919660",
+      "order_count": 16,
+      "audit": {
+        "events": 692,
+        "chain_head": "6ddc69ab833150f99611b007f293f04adeef64d6b4f208b993bbefcb555dbb1a"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 32,
+      "liquidation_return_percent": "-0.05472457993386100",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.1542104657434979527092600500",
+      "fees_tmn": "2516.10681210",
+      "order_count": 14,
+      "audit": {
+        "events": 712,
+        "chain_head": "b82ef4c43c1913b7399eebde2fdce48817c297e38a1fd37e3cd514234bf47f1c"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 33,
+      "liquidation_return_percent": "0.20134982873207600",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.0863638691435708264261157600",
+      "fees_tmn": "1314.43122669",
+      "order_count": 8,
+      "audit": {
+        "events": 647,
+        "chain_head": "0ac1cacd5eab82af635e830ad27297361e0f9ad04749db26cf958fcc7f054622"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 34,
+      "liquidation_return_percent": "-0.073028931852817215600",
+      "fill_count": 9,
+      "max_drawdown_percent": "0.1026153498182101919066287900",
+      "fees_tmn": "1818.71584692",
+      "order_count": 14,
+      "audit": {
+        "events": 629,
+        "chain_head": "392369579310b9eee2695b6509f9c0af318ea2e045aeb7159978802a85341db9"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 35,
+      "liquidation_return_percent": "-0.06365899240834655600",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1126446840100554836479805200",
+      "fees_tmn": "1123.3146963",
+      "order_count": 10,
+      "audit": {
+        "events": 507,
+        "chain_head": "39588b9cfbcb280d84b363c8ddec4e1e0c7721eada64ada2a248eb2749290c73"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 36,
+      "liquidation_return_percent": "-0.23527817477924200",
+      "fill_count": 11,
+      "max_drawdown_percent": "0.2816008785537827938255362500",
+      "fees_tmn": "2432.9051082",
+      "order_count": 18,
+      "audit": {
+        "events": 633,
+        "chain_head": "08cd50171557ed562333876696d15a0dea0b86ff4f5543b4a7bb769a8fc73603"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 37,
+      "liquidation_return_percent": "-0.114716776807408626300",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1165618658357719336856231100",
+      "fees_tmn": "1235.92789302",
+      "order_count": 9,
+      "audit": {
+        "events": 510,
+        "chain_head": "dcc5e0684b7eb5d169b725ccbcf53486bcfdee99faee85751e3690a9d9167e67"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 38,
+      "liquidation_return_percent": "-0.182493534946804800",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.1916921220538189554663437600",
+      "fees_tmn": "900.34974",
+      "order_count": 9,
+      "audit": {
+        "events": 499,
+        "chain_head": "89ef78ccecf916705e3cd7536455d808af62095cd13fa5b3e090148678fdf41f"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "base",
+      "window": 39,
+      "liquidation_return_percent": "0.1457028346571020800",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.0719599339816503966263460600",
+      "fees_tmn": "1316.0591979",
+      "order_count": 10,
+      "audit": {
+        "events": 556,
+        "chain_head": "6d94ef17d61a97831a3ce3e19c50ee6d3f56227d56e619d4f97f658bcbb4d469"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "cost_delay_stress",
+      "window": 31,
+      "liquidation_return_percent": "0.0636293395709600",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.0675661498289741362879777800",
+      "fees_tmn": "2191.32636",
+      "order_count": 19,
+      "audit": {
+        "events": 695,
+        "chain_head": "58ff2c5548c7c23285af2946f511b0cc29776fcd4b96937295de61228b2fbd9f"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "cost_delay_stress",
+      "window": 32,
+      "liquidation_return_percent": "-0.2498495711629731200",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.2415488188805322824778620200",
+      "fees_tmn": "4817.83110492",
+      "order_count": 13,
+      "audit": {
+        "events": 709,
+        "chain_head": "8d5d75905540a7d8daf3273064138c55d92bd77fdd8a4da79eb666ff51d874da"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "cost_delay_stress",
+      "window": 33,
+      "liquidation_return_percent": "-0.12815829044592800",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.1641807290878680405876677800",
+      "fees_tmn": "2895.14350068",
+      "order_count": 12,
+      "audit": {
+        "events": 653,
+        "chain_head": "2205b2c45abbf989d12450fd31e2f5e065fbf26fc32fbd57c5f7ac8ffba0524a"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "cost_delay_stress",
+      "window": 34,
+      "liquidation_return_percent": "-0.086529335311477074800",
+      "fill_count": 9,
+      "max_drawdown_percent": "0.1046271177607912855220446800",
+      "fees_tmn": "4001.19289992",
+      "order_count": 12,
+      "audit": {
+        "events": 627,
+        "chain_head": "38e520e0d9fdbf9d8be855e0045ab4f2a13611c3e9e4c621bffb50fb0da5c80e"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "cost_delay_stress",
+      "window": 35,
+      "liquidation_return_percent": "-0.13941931695692122800",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.16098467972300",
+      "fees_tmn": "2235.6603612",
+      "order_count": 9,
+      "audit": {
+        "events": 501,
+        "chain_head": "0db827d10a5aab80bd180bb712b4b07935054229affffdd728170742a0e7f588"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "cost_delay_stress",
+      "window": 36,
+      "liquidation_return_percent": "-0.264610254166132200",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.3738524111034359866000693900",
+      "fees_tmn": "2997.27276",
+      "order_count": 17,
+      "audit": {
+        "events": 629,
+        "chain_head": "23137e03f2bde75075b5121aaa9e2bbf864b78da32751445caf99eb3fa187783"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "cost_delay_stress",
+      "window": 37,
+      "liquidation_return_percent": "-0.02120100769865940800",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0961275910272790339761167900",
+      "fees_tmn": "1938.40618512",
+      "order_count": 6,
+      "audit": {
+        "events": 506,
+        "chain_head": "67d37dcc0392d24e3deb9d2e8600364e608f35c5f29087b01d958b42d16490a4"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "cost_delay_stress",
+      "window": 38,
+      "liquidation_return_percent": "-0.123242828800",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.144495018800",
+      "fees_tmn": "1436.94144",
+      "order_count": 6,
+      "audit": {
+        "events": 494,
+        "chain_head": "40d73e9b4a306e1b9e4db8170dc2cacb08103059662b940f3ff6a6736572e3e4"
+      }
+    },
+    {
+      "variant": "breakout24",
+      "scenario": "cost_delay_stress",
+      "window": 39,
+      "liquidation_return_percent": "-0.013528025357946800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.16456925459200",
+      "fees_tmn": "2895.2867196",
+      "order_count": 12,
+      "audit": {
+        "events": 559,
+        "chain_head": "610c189bb643a93c08fb1f636f6f5ecd5c91c25368959935f6dd0e821ba1fe68"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 1,
+      "liquidation_return_percent": "0.08996085485161542900",
+      "fill_count": 9,
+      "max_drawdown_percent": "0.1559288795897965059759843200",
+      "fees_tmn": "2162.08870419",
+      "order_count": 16,
+      "audit": {
+        "events": 726,
+        "chain_head": "635c20060f604ec33103f5118d93198786b4015e3aea25f9782857b50bfb3d81"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 2,
+      "liquidation_return_percent": "0.108541348200348898601400",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1114874031473276874607976800",
+      "fees_tmn": "1620.57708194760",
+      "order_count": 13,
+      "audit": {
+        "events": 765,
+        "chain_head": "e98019ffd78e3e681f2fa217e6ba5c4b7c1a6d05ba1172f207d9ed79462bba75"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 3,
+      "liquidation_return_percent": "0.267383273022415902600",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.1299519695487225441420001200",
+      "fees_tmn": "1339.37452908",
+      "order_count": 7,
+      "audit": {
+        "events": 720,
+        "chain_head": "3f6602bde60934a50fe2bc4b92e29fe6dd8f812d04a0e85dbd3acae2d289ecb0"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 4,
+      "liquidation_return_percent": "-0.00855392270904800",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.0749877106380371615784180100",
+      "fees_tmn": "1079.20035",
+      "order_count": 7,
+      "audit": {
+        "events": 622,
+        "chain_head": "e147ce232804cd3252d4c1e4523ab3ab0ebb6bb2185fc7bd96f0beadabc157c8"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 5,
+      "liquidation_return_percent": "0.012621305158010300",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.0873980008105378808627379400",
+      "fees_tmn": "1182.469335",
+      "order_count": 8,
+      "audit": {
+        "events": 687,
+        "chain_head": "6171912b3467bbfa2cc3678d90aab5edebae2470237fbeeceb4f32fb67742f53"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 6,
+      "liquidation_return_percent": "-0.21435883950214789400",
+      "fill_count": 12,
+      "max_drawdown_percent": "0.2744397143592890993590454700",
+      "fees_tmn": "2184.7329501",
+      "order_count": 20,
+      "audit": {
+        "events": 665,
+        "chain_head": "46ff1393e20ede496c67cc79d0f5f4b70026d1dc5baa0d6ebacf795b1fc7c621"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 7,
+      "liquidation_return_percent": "-0.10142805103815968800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.2448858993757446694642831500",
+      "fees_tmn": "2608.57075353210",
+      "order_count": 11,
+      "audit": {
+        "events": 724,
+        "chain_head": "6c0fc402c47813f6549fee16dee4587e7f8e8d46ff47cd09a42767fca493edb1"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 8,
+      "liquidation_return_percent": "-0.07526209833205800",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.1761847005342514963829322300",
+      "fees_tmn": "1292.56471947",
+      "order_count": 10,
+      "audit": {
+        "events": 628,
+        "chain_head": "534d929c1677b1ad0eecb6c7cd3c8ccd5068beeee4bda96d0074cd6331e084d8"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 9,
+      "liquidation_return_percent": "0.02342800367010834400",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.0612151764628683934852427400",
+      "fees_tmn": "1308.71252784",
+      "order_count": 11,
+      "audit": {
+        "events": 700,
+        "chain_head": "dbff039918a400dbac4c7053d9343e66ebb290c3e9fe4884700dc1866ed04872"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 10,
+      "liquidation_return_percent": "-0.104126386600",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.17604739900",
+      "fees_tmn": "921.3357300",
+      "order_count": 15,
+      "audit": {
+        "events": 530,
+        "chain_head": "a30f6706c83194365bbe1af4897a00713fac72ca2be73b256bf28cb3c9f1b375"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 11,
+      "liquidation_return_percent": "-0.227872176013921959099200",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.2205597667688229602406099300",
+      "fees_tmn": "2232.72235231728",
+      "order_count": 12,
+      "audit": {
+        "events": 676,
+        "chain_head": "4aeb39f53ae5a76004302e359a13ffdeeac84fab93807b6df89e9dbdd32d5140"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 12,
+      "liquidation_return_percent": "-0.16108026188093800",
+      "fill_count": 11,
+      "max_drawdown_percent": "0.1839609765673174658297699500",
+      "fees_tmn": "1981.9121262",
+      "order_count": 12,
+      "audit": {
+        "events": 574,
+        "chain_head": "4bb2700aeb07ba61ec078d9ee5cc05545a3bac9e79c922d77e0fe52a0c9b55a0"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 13,
+      "liquidation_return_percent": "-0.0454871318700",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1360722433343007266827068500",
+      "fees_tmn": "1503.1360935",
+      "order_count": 11,
+      "audit": {
+        "events": 554,
+        "chain_head": "979374b99b2821583388130aab1294d7e0c7c2b2e9b1b09ee1867935178f1456"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 14,
+      "liquidation_return_percent": "-0.1736910104243176400",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.2664753098478585734576822100",
+      "fees_tmn": "1516.8160305",
+      "order_count": 13,
+      "audit": {
+        "events": 538,
+        "chain_head": "3eac3ec698fc31667367ee20d1c1ce5906537b216db0e1bc7aee20d2dbe7a6b9"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 15,
+      "liquidation_return_percent": "0.03723280270482900",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.1053799580863231401912464200",
+      "fees_tmn": "1233.55498542",
+      "order_count": 8,
+      "audit": {
+        "events": 595,
+        "chain_head": "82316273f8e2664a4186f0523c6447a82de37b505ff07ae9158a9002e412330a"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 16,
+      "liquidation_return_percent": "-0.230062808425900",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.229080831859800",
+      "fees_tmn": "1875.27673299",
+      "order_count": 8,
+      "audit": {
+        "events": 529,
+        "chain_head": "f71ca2b485a89df4a784652f42846602bfdad9381eccd6c03b4a57eef4eb1c77"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 17,
+      "liquidation_return_percent": "-0.087267451353289800",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.1087927801436405931143030100",
+      "fees_tmn": "747.1204116",
+      "order_count": 10,
+      "audit": {
+        "events": 520,
+        "chain_head": "59db0244c9ae4d7965ac310af5a6e55fbde8a2ca02f17ab856bb285c670756f1"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 18,
+      "liquidation_return_percent": "0.086869593145070093600",
+      "fill_count": 7,
+      "max_drawdown_percent": "0.15609485900",
+      "fees_tmn": "1489.72437432",
+      "order_count": 10,
+      "audit": {
+        "events": 664,
+        "chain_head": "e8f298237d3f50b49f18a205f8c895028ef39a9e756e0deebf8a510ae75e6091"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 19,
+      "liquidation_return_percent": "0.728348059999444800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1934804380765940869810248100",
+      "fees_tmn": "1590.94898940",
+      "order_count": 10,
+      "audit": {
+        "events": 970,
+        "chain_head": "0ba7c08199c1c1c04817cb2990aba693bbb11fd4a1efe6d2170d05ba32225eb9"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 20,
+      "liquidation_return_percent": "0.04138698076800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1327756605842966393683490200",
+      "fees_tmn": "2035.08656160",
+      "order_count": 9,
+      "audit": {
+        "events": 787,
+        "chain_head": "eaabe7ca156c13998a6c3871bb5b63862bf70fd1db8ab9d6c0ac6b5ba0d9f7e7"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 21,
+      "liquidation_return_percent": "-0.08260608888200",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1786041286915526247387896200",
+      "fees_tmn": "1540.7283441",
+      "order_count": 12,
+      "audit": {
+        "events": 636,
+        "chain_head": "3610a9650d00b424f8f25fabc9a8049477c5671afd1472d832afdc8f9e0ecfc9"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 22,
+      "liquidation_return_percent": "-0.264258653240201033200",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.3433880827667022669554030800",
+      "fees_tmn": "2337.18157032",
+      "order_count": 14,
+      "audit": {
+        "events": 671,
+        "chain_head": "a9dab45dbc677c9a9ed4301f4a43b367b52ead8a668e64a24d119520ccc75f02"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 23,
+      "liquidation_return_percent": "0.41339085174083420500",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1487332151412674204736392900",
+      "fees_tmn": "1757.8763190",
+      "order_count": 12,
+      "audit": {
+        "events": 901,
+        "chain_head": "da7eaf96c596b1b3f5d4c402fbe4edf7d2bf48606f5c2b2ecffeadf348478e38"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 24,
+      "liquidation_return_percent": "-0.1480619579381895700",
+      "fill_count": 11,
+      "max_drawdown_percent": "0.1886069797242315698443094900",
+      "fees_tmn": "1992.19784499",
+      "order_count": 13,
+      "audit": {
+        "events": 761,
+        "chain_head": "60cfbce694a684dee4dca890bd3723a5889381fcc36a3990485d46f2817f4640"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 25,
+      "liquidation_return_percent": "0.24924039610150668900",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1020137980310749289561240800",
+      "fees_tmn": "1180.03812846",
+      "order_count": 9,
+      "audit": {
+        "events": 718,
+        "chain_head": "e700027e59f8530f17c0dbb8593014b54bafd26ddc708bcc0b3b8fa6d38299e8"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 26,
+      "liquidation_return_percent": "-0.029019655322600",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.1690062449104732304325338200",
+      "fees_tmn": "2657.49395613",
+      "order_count": 11,
+      "audit": {
+        "events": 596,
+        "chain_head": "332113bdc03da7809d096447b5f3327af761c6cf5f82bc44768344d5764458c8"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 27,
+      "liquidation_return_percent": "-0.129119601235200",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1568127592498915446912011100",
+      "fees_tmn": "1068.98518176",
+      "order_count": 11,
+      "audit": {
+        "events": 550,
+        "chain_head": "eba4f5bf35d19cc1f923f76ca0b791fdafb012752504a6ecca8fbf535d541756"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 28,
+      "liquidation_return_percent": "0.312033696753182400",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0774975115877532982997323700",
+      "fees_tmn": "708.6037950",
+      "order_count": 7,
+      "audit": {
+        "events": 767,
+        "chain_head": "0f45d341e769550158041cd564e3fd2ec3b9695c16a892349aa7c9eb84ea181d"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 29,
+      "liquidation_return_percent": "0.160056467981387600",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1793924951370828590595685200",
+      "fees_tmn": "1531.4329740",
+      "order_count": 8,
+      "audit": {
+        "events": 849,
+        "chain_head": "02639c04689163b178825a4861fec6e72922ef656ea7096ea7d6a88dc798314c"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 30,
+      "liquidation_return_percent": "-0.13749767596126562400",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1862441334698084787205724500",
+      "fees_tmn": "1189.03107085659",
+      "order_count": 7,
+      "audit": {
+        "events": 617,
+        "chain_head": "e4640792a10714b1c1c98f9de6c901dee75ee054e524a37006deb1a89ca95194"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 31,
+      "liquidation_return_percent": "0.023575287237439125300",
+      "fill_count": 12,
+      "max_drawdown_percent": "0.1341089337059440098501783500",
+      "fees_tmn": "2248.90990791",
+      "order_count": 16,
+      "audit": {
+        "events": 816,
+        "chain_head": "989cf018bdd1fa82311e455ea968a9f52e3f208030f230067f54d60bb0af03fa"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 32,
+      "liquidation_return_percent": "-0.03464870057856800",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.1755366929458379938831752200",
+      "fees_tmn": "2372.89903608",
+      "order_count": 13,
+      "audit": {
+        "events": 815,
+        "chain_head": "f5c99b732b0a3cfe656922a54c185c58c09a5c1f18c3da5098bd0c03c2cf7e93"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 33,
+      "liquidation_return_percent": "-0.106137708467559980800",
+      "fill_count": 12,
+      "max_drawdown_percent": "0.2757971441790916609414259400",
+      "fees_tmn": "2363.90426049",
+      "order_count": 18,
+      "audit": {
+        "events": 795,
+        "chain_head": "9b8d14e7b837bc288c44d674bbc5b09ee32580e78cee9456c7ccf74634ee8910"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 34,
+      "liquidation_return_percent": "0.00783743669600",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.1058782828781339166399921300",
+      "fees_tmn": "2100.7121652",
+      "order_count": 13,
+      "audit": {
+        "events": 737,
+        "chain_head": "d7771ddf110797be8cbcd28077f46558e2faf99c335ba91810ec26e811b1c6f4"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 35,
+      "liquidation_return_percent": "-0.01723498558854304600",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.0779814969200",
+      "fees_tmn": "1053.0371268",
+      "order_count": 6,
+      "audit": {
+        "events": 522,
+        "chain_head": "e5e76dcff54ae1fc77f9a599b9933068825519097f26aa6622ef5b06067e9307"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 36,
+      "liquidation_return_percent": "-0.037748729600",
+      "fill_count": 12,
+      "max_drawdown_percent": "0.3158284967932105064330237500",
+      "fees_tmn": "2248.6672800",
+      "order_count": 17,
+      "audit": {
+        "events": 709,
+        "chain_head": "a8a6d15232c18d0715ef15ff3077122cbb17a76ebc4008027939b9b6a10f435e"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 37,
+      "liquidation_return_percent": "0.02447087848228472500",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0689274296513756553578297600",
+      "fees_tmn": "845.3169321",
+      "order_count": 6,
+      "audit": {
+        "events": 537,
+        "chain_head": "754a180fdcb0daced1050d5ddd67df679a053f24f9383475b1c6b13c5a350216"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 38,
+      "liquidation_return_percent": "-0.131607315400",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.1993710373897582188487237800",
+      "fees_tmn": "1069.13577",
+      "order_count": 8,
+      "audit": {
+        "events": 538,
+        "chain_head": "8604be05db831f807df9ec8cef4ddaef4b17fe8a6ca3298c02a6df011876107b"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "base",
+      "window": 39,
+      "liquidation_return_percent": "-0.0435422287704833300",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.15365392766600",
+      "fees_tmn": "1446.9574788",
+      "order_count": 12,
+      "audit": {
+        "events": 711,
+        "chain_head": "e64810c478e7c2fb75c486181648a37c256a92d068608f731816ca86dfa9fd57"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "cost_delay_stress",
+      "window": 31,
+      "liquidation_return_percent": "-0.015253013452834244600",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.1044651148697279709018424800",
+      "fees_tmn": "3013.20885366",
+      "order_count": 16,
+      "audit": {
+        "events": 815,
+        "chain_head": "504ec5eae08d218296e4de216e8dd90d70ad310a31e84db018887fe86f44f252"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "cost_delay_stress",
+      "window": 32,
+      "liquidation_return_percent": "-0.18062684863315500",
+      "fill_count": 10,
+      "max_drawdown_percent": "0.23231039300",
+      "fees_tmn": "4602.54209784",
+      "order_count": 11,
+      "audit": {
+        "events": 810,
+        "chain_head": "f68cf20448327394e7b415e336183329205c6cc2010dcda95e03627b6f0587e9"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "cost_delay_stress",
+      "window": 33,
+      "liquidation_return_percent": "-0.46333361886632400",
+      "fill_count": 14,
+      "max_drawdown_percent": "0.443867408751066800",
+      "fees_tmn": "6049.09337324334",
+      "order_count": 19,
+      "audit": {
+        "events": 797,
+        "chain_head": "bb743ea0b2093af60558d69cbb51a3844bf543ea50f8eb0fee1186659d281f82"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "cost_delay_stress",
+      "window": 34,
+      "liquidation_return_percent": "-0.21729396284937600",
+      "fill_count": 11,
+      "max_drawdown_percent": "0.218700851330400",
+      "fees_tmn": "4284.12812652",
+      "order_count": 16,
+      "audit": {
+        "events": 744,
+        "chain_head": "bac878d9560db5ae6102c70eeade4c669e9bc855e2fbb0ff92311ac8c6ecf42d"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "cost_delay_stress",
+      "window": 35,
+      "liquidation_return_percent": "-0.129900625068428500",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.11518727187200",
+      "fees_tmn": "2182.4583186",
+      "order_count": 7,
+      "audit": {
+        "events": 524,
+        "chain_head": "51221401071eced6ed0d5618ac30ea492020dda889f9243c2d9e5f96eb661c23"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "cost_delay_stress",
+      "window": 36,
+      "liquidation_return_percent": "-0.21439565996800",
+      "fill_count": 8,
+      "max_drawdown_percent": "0.2238082577433227432951136200",
+      "fees_tmn": "3278.3517984",
+      "order_count": 9,
+      "audit": {
+        "events": 691,
+        "chain_head": "c01b03528e0c141ccea630ff1a12a820a88f8f66d85be29f635950a7498b9a86"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "cost_delay_stress",
+      "window": 37,
+      "liquidation_return_percent": "-0.01445506718825940800",
+      "fill_count": 4,
+      "max_drawdown_percent": "0.0753478109522900290647199000",
+      "fees_tmn": "1759.3531596",
+      "order_count": 5,
+      "audit": {
+        "events": 535,
+        "chain_head": "8415491e90cc72a29b3ed0af2d0cac7f13d73eef0471c088c40f33c28c8c3ccb"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "cost_delay_stress",
+      "window": 38,
+      "liquidation_return_percent": "-0.106168742400",
+      "fill_count": 6,
+      "max_drawdown_percent": "0.171199206400",
+      "fees_tmn": "2157.17712",
+      "order_count": 7,
+      "audit": {
+        "events": 536,
+        "chain_head": "1d076f76a1e86714cee7f8058b153cd49ec9873b9649936adcbc9f2af9cde561"
+      }
+    },
+    {
+      "variant": "trend6",
+      "scenario": "cost_delay_stress",
+      "window": 39,
+      "liquidation_return_percent": "0.10756361199078400",
+      "fill_count": 5,
+      "max_drawdown_percent": "0.08265888928100",
+      "fees_tmn": "1883.0214762",
+      "order_count": 10,
+      "audit": {
+        "events": 704,
+        "chain_head": "2606cd850bd034314e202bd0ef376d7d721a86af1ca2cef5649d4e9dc79a799e"
+      }
+    }
+  ],
+  "aggregates": [
+    {
+      "variant": "current_hourly",
+      "split": "selection",
+      "scenario": "base",
+      "mean_return_percent": 0.04855585380841399,
+      "median_return_percent": -0.11868356623516695,
+      "worst_return_percent": -0.7925522330029215,
+      "max_drawdown_percent": 1.0491971436767544,
+      "fills": 332,
+      "active_windows": 27,
+      "windows": 30
+    },
+    {
+      "variant": "current_hourly",
+      "split": "validation",
+      "scenario": "base",
+      "mean_return_percent": -0.12859182071859615,
+      "median_return_percent": -0.0082253742292968,
+      "worst_return_percent": -1.1374520270361,
+      "max_drawdown_percent": 1.3365053952630002,
+      "fills": 76,
+      "active_windows": 9,
+      "windows": 9
+    },
+    {
+      "variant": "current_hourly",
+      "split": "validation",
+      "scenario": "cost_delay_stress",
+      "mean_return_percent": -0.2446060593700904,
+      "median_return_percent": 0.0027154631472,
+      "worst_return_percent": -1.2681929201734812,
+      "max_drawdown_percent": 1.3491948683064832,
+      "fills": 74,
+      "active_windows": 9,
+      "windows": 9
+    },
+    {
+      "variant": "breakout12",
+      "split": "selection",
+      "scenario": "base",
+      "mean_return_percent": 0.03446138309652711,
+      "median_return_percent": 0.0218199679484,
+      "worst_return_percent": -0.2300628084259,
+      "max_drawdown_percent": 0.2863050917821446,
+      "fills": 191,
+      "active_windows": 30,
+      "windows": 30
+    },
+    {
+      "variant": "breakout12",
+      "split": "validation",
+      "scenario": "base",
+      "mean_return_percent": -0.04382115292610904,
+      "median_return_percent": -0.068064529933861,
+      "worst_return_percent": -0.235278174779242,
+      "max_drawdown_percent": 0.2816008785537828,
+      "fills": 72,
+      "active_windows": 9,
+      "windows": 9
+    },
+    {
+      "variant": "breakout12",
+      "split": "validation",
+      "scenario": "cost_delay_stress",
+      "mean_return_percent": -0.06426184266795906,
+      "median_return_percent": -0.08652933531147708,
+      "worst_return_percent": -0.28670791943707,
+      "max_drawdown_percent": 0.373852411103436,
+      "fills": 60,
+      "active_windows": 9,
+      "windows": 9
+    },
+    {
+      "variant": "breakout24",
+      "split": "selection",
+      "scenario": "base",
+      "mean_return_percent": 0.02853936098687609,
+      "median_return_percent": 0.0188903032832066,
+      "worst_return_percent": -0.2300628084259,
+      "max_drawdown_percent": 0.31377636910019274,
+      "fills": 190,
+      "active_windows": 30,
+      "windows": 30
+    },
+    {
+      "variant": "breakout24",
+      "split": "validation",
+      "scenario": "base",
+      "mean_return_percent": -0.03985003455496513,
+      "median_return_percent": -0.06365899240834656,
+      "worst_return_percent": -0.235278174779242,
+      "max_drawdown_percent": 0.2816008785537828,
+      "fills": 70,
+      "active_windows": 9,
+      "windows": 9
+    },
+    {
+      "variant": "breakout24",
+      "split": "validation",
+      "scenario": "cost_delay_stress",
+      "mean_return_percent": -0.10698992114767532,
+      "median_return_percent": -0.1232428288,
+      "worst_return_percent": -0.2646102541661322,
+      "max_drawdown_percent": 0.373852411103436,
+      "fills": 62,
+      "active_windows": 9,
+      "windows": 9
+    },
+    {
+      "variant": "trend6",
+      "split": "selection",
+      "scenario": "base",
+      "mean_return_percent": 0.010357995445583882,
+      "median_return_percent": -0.037253393596300005,
+      "worst_return_percent": -0.26425865324020104,
+      "max_drawdown_percent": 0.34338808276670224,
+      "fills": 226,
+      "active_windows": 30,
+      "windows": 30
+    },
+    {
+      "variant": "trend6",
+      "split": "validation",
+      "scenario": "base",
+      "mean_return_percent": -0.03500400733215894,
+      "median_return_percent": -0.034648700578568,
+      "worst_return_percent": -0.1316073154,
+      "max_drawdown_percent": 0.3158284967932105,
+      "fills": 80,
+      "active_windows": 9,
+      "windows": 9
+    },
+    {
+      "variant": "trend6",
+      "split": "validation",
+      "scenario": "cost_delay_stress",
+      "mean_return_percent": -0.13709599182617702,
+      "median_return_percent": -0.1299006250684285,
+      "worst_return_percent": -0.463333618866324,
+      "max_drawdown_percent": 0.4438674087510668,
+      "fills": 72,
+      "active_windows": 9,
+      "windows": 9
+    }
+  ]
+}

@@ -8,7 +8,7 @@ from decimal import Decimal
 from math import ceil
 from .contracts import ContractError,dec,number,normalize_detail_balances
 from .ledger import Ledger
-from .planner import plan,compile_intent,bound_risk_authorizer,select
+from .planner import plan,compile_intent,bound_risk_authorizer,select,QuoteView
 from .journal import TERMINAL
 
 class PortfolioController:
@@ -94,6 +94,15 @@ class PortfolioController:
         if (t-self.start//3600*3600)%(self.cfg['entry_every_hours']*3600):return
         cache=self.j.s.get('runtime_selections',{})
         if str(t) in cache:return
+        if self.cfg.get('runtime_policy')=='hourly_opportunity_ai':
+            context=history.context(t,self.cfg['min_daily_turnover_tmn'])
+            strategy=self.strategy()
+            if strategy.get('route') or len(strategy['positions'])>=context['max_positions']:
+                s=deepcopy(self.j.s)
+                selection={'time':t,'ai':{'status':'not_requested','reason':'allocation_already_reserved'}}
+                s['runtime_selections']={str(t):{'ranked':[],'selection':selection}}
+                self.j.checkpoint('runtime_selection',selection,s)
+                return
         has_candidates=bool(self.j.s['runtime_scans'][str(t)]['top'])
         reservations=self.j.s.get('runtime_ai_reservations',{})
         recovering=str(t) in reservations
@@ -144,6 +153,22 @@ class PortfolioController:
             prepared=self.j.s.get('runtime_selections',{}).get(str(t))
             if prepared:ranked,selection=prepared['ranked'],prepared['selection']
             else:selection={'status':'selection_not_prepared','reason':'exits continue without AI entry authorization'}
+        executable_rejections=[]
+        if self.cfg.get('runtime_policy')=='hourly_opportunity_ai':
+            # A wide first-ranked market must not consume the sole weak-market
+            # allocation and hide another AI-approved, executable candidate.
+            view=QuoteView(history,t,quotes,now);eligible=[]
+            for candidate in ranked:
+                symbols=[candidate['symbol']]
+                if history.markets[candidate['symbol']].quote=='USDT':symbols.append('USDTTMN')
+                reason=None
+                for symbol in symbols:
+                    quote=view.quote(symbol)
+                    if not quote:reason='missing_or_stale_quote';break
+                    if (quote[1]/quote[0]-1)*10000>30:reason='spread_gate';break
+                if reason:executable_rejections.append({'symbol':candidate['symbol'],'reason':reason})
+                else:eligible.append(candidate)
+            ranked=eligible
         deadline=None
         if self.cfg.get('adaptive_deadline'):
             ranked,deadline=self.deadline_gate(history,quotes,strategy,ranked,now=now)
@@ -154,6 +179,7 @@ class PortfolioController:
         decision=plan(history,t,self.cfg,self.j.s['ledger'],strategy,quotes,now=now,
                       ranked=ranked,selection=selection,allow_entries=entries_enabled and now<self.end-self.cfg.get('entry_stop_before_end_seconds',3600) and (entry_slot or bool(strategy['route'])),end=self.end)
         if deadline is not None:decision['events'].append(('deadline_liquidity_gate',deadline))
+        if executable_rejections:decision['events'].append(('entry_quote_gate',{'rejected':executable_rejections}))
         s=deepcopy(self.j.s);strategy['control']=decision['control'];strategy['positions']=decision['positions']
         if any(k=='route_abandoned' for k,p in decision['events']):strategy['route']=None
         s['strategy']=strategy

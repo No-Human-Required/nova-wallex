@@ -13,6 +13,7 @@
     paused: 'متوقف موقت', blocked: 'متوقف به‌علت مانع', error: 'خطا', failed: 'خطای اجرا',
     reduce_only: 'فقط کاهش موقعیت', stopped_safely: 'متوقف', completed: 'پایان‌یافته',
     idle: 'آماده و غیرفعال', disabled: 'غیرفعال', stopped_by_operator: 'متوقف توسط اپراتور',
+    policy_reviewed_stopped: 'سیاست جدید ثبت شد · منتظر ادامهٔ اپراتور',
     cash_tmn: 'تومان نقد', equity_tmn: 'ارزش حساب · تومان', realized_pnl_tmn: 'سود و زیان محقق‌شده · تومان',
     fees_tmn: 'کارمزد · تومان', net_return_pct: 'بازده خالص · درصد', drawdown_pct: 'افت سرمایه · درصد',
     max_drawdown_pct: 'سقف افت سرمایه · درصد', max_position_pct: 'سقف هر موقعیت · درصد',
@@ -138,7 +139,7 @@
     const credentials = live.data?.credentials;
     el('live-save-keys').disabled = !ready;
     const selectedAccount = Boolean(credentials?.subaccount_client_id);
-    el('live-check-account').disabled = !ready || !credentials?.wallex?.present || !selectedAccount;
+    el('live-check-account').disabled = !ready || !credentials?.wallex?.present || !selectedAccount || Boolean(live.data?.state?.run_id);
     el('live-load-accounts').disabled = !ready || !credentials?.wallex?.present;
     el('live-account-select').disabled = !ready || el('live-account-select').options.length < 2;
     el('live-save-account').disabled = !ready || !el('live-account-select').value;
@@ -148,6 +149,8 @@
     el('live-activation-phrase').disabled = !permitted;
     el('live-activate').disabled = !permitted || el('live-activation-phrase').value.trim() !== phrase;
     for (const id of ['live-reduce-only', 'live-stop', 'live-resume']) el(id).disabled = !signedIn || live.busy || !live.data?.state?.run_id;
+    el('live-entry-apply').disabled = !ready || !live.data?.entry_policy_review?.available || live.data?.state?.desired !== 'stopped' || !el('live-entry-accept').checked;
+    if(live.data?.entry_policy_review?.available)el('live-resume').disabled=true;
     if (live.preview && !validPreview()) el('live-preview-expiry').textContent = 'این پیش‌نمایش معتبر نیست یا منقضی شده است؛ بررسی نهایی را دوباره انجام دهید.';
   }
   function render(data) {
@@ -180,10 +183,17 @@
       const fingerprint = credential?.fingerprint ? String(credential.fingerprint).slice(0, 20) : '';
       el(`live-${name}-state`).textContent = credential?.present ? 'کلید ثبت‌شده' + (fingerprint ? ` · اثرانگشت: ${fingerprint}` : '') : 'کلیدی ثبت نشده است.';
     }
-    const preflight = data.preflight;
-    el('live-preflight-status').textContent = !preflight ? 'هنوز بررسی نشده' : (reasonsOf(preflight).length || preflight.ok === false || preflight.ready === false) ? 'نیازمند بررسی' : preflight.ok === true ? 'بررسی حساب موفق' : 'بررسی ثبت شده';
-    renderReasons('live-preflight-reasons', reasonsOf(preflight));
-    el('live-preflight-json').textContent = preflight ? json(preflight) : 'هنوز شاهدی دریافت نشده است.';
+    const preflight = data.preflight, reconciliation=data.last_snapshot;
+    if(engine.run_id){
+      const fresh=reconciliation?.balance_confirmed_at && Date.now()/1000-reconciliation.balance_confirmed_at<=90;
+      el('live-preflight-status').textContent=fresh && !reconciliation.halt && !reconciliation.unresolved?.length ? 'دفتر حساب اخیراً تطبیق داده شد' : 'تطبیق حساب را از وضعیت موتور دنبال کنید';
+      renderReasons('live-preflight-reasons',[]);
+      el('live-preflight-json').textContent=json({balance_confirmed_at:reconciliation?.balance_confirmed_at,halt:reconciliation?.halt,unresolved:reconciliation?.unresolved,initial_activation_preflight:preflight});
+    }else{
+      el('live-preflight-status').textContent = !preflight ? 'هنوز بررسی نشده' : (reasonsOf(preflight).length || preflight.ok === false || preflight.ready === false) ? 'نیازمند بررسی' : preflight.ok === true ? 'بررسی حساب موفق' : 'بررسی ثبت شده';
+      renderReasons('live-preflight-reasons', reasonsOf(preflight));
+      el('live-preflight-json').textContent = preflight ? json(preflight) : 'هنوز شاهدی دریافت نشده است.';
+    }
     const cfg=data.risk_config||{};
     const localInput=d=>new Date(d.getTime()+210*60000).toISOString().slice(0,16);
     if(!el('live-end').value && cfg.contest_end_utc)el('live-end').value=localInput(new Date(cfg.contest_end_utc));
@@ -195,10 +205,16 @@
       max_daily_loss_pct:cfg.max_daily_loss_fraction==null?null:Number(cfg.max_daily_loss_fraction)*100,
       max_drawdown_pct:cfg.max_drawdown_fraction==null?null:Number(cfg.max_drawdown_fraction)*100,
       max_positions:cfg.max_positions, model:cfg.ai_model_documented_backend,
+      'فاصلهٔ بررسی ورود':cfg.entry_every_hours+' ساعت',
+      'سیاست ورود':cfg.runtime_policy==='hourly_opportunity_ai'?'روند کوتاه‌مدت · آزمایشی':'شکست سقف ۴۸ ساعت',
       'تاریخچهٔ لازم برای سیگنال':data.history_policy ? data.history_policy.required_closed_hours+' کندل بستهٔ ساعتی' : '—',
       'کندل با حجم صفر':data.history_policy ? 'پذیرفته؛ کنترل نقدشوندگی برقرار است' : '—',
       'تنظیمات کامل برای بررسی':cfg
     }, 'تنظیمات ریسک هنوز دریافت نشده است.');
+    const entryReview=data.entry_policy_review;
+    el('live-entry-review').hidden=!(entryReview?.available || entryReview?.applied);
+    el('live-entry-status').textContent=entryReview?.applied?'سیاست ساعتی ثبت شده است؛ وضعیت اجرای آن در بالای صفحه نمایش داده می‌شود.':'این سیاست هنوز اعمال نشده است. برای بررسی و ثبت، موتور باید متوقف باشد.';
+    el('live-entry-accept').disabled=Boolean(entryReview?.applied);
     const globalStatus=el('global-live-status'), globalDetail=el('global-live-detail');
     if(globalStatus)globalStatus.textContent=stateName(engine.status);
     if(globalDetail)globalDetail.textContent=engine.run_id?'اجرای اختصاصی ثبت شده':'اجرای واقعی فعال نشده است';
@@ -336,6 +352,13 @@
     }));
   }
   el('live-refresh').addEventListener('click', () => refresh({ notify: true }));
+  el('live-entry-accept').addEventListener('change',syncButtons);
+  el('live-entry-apply').addEventListener('click',()=>action(async()=>{
+    if(!el('live-entry-accept').checked)throw new Error('ابتدا نتیجهٔ ارزیابی و حدود را بررسی کنید.');
+    await post('/api/live/entry-revision',{confirmation:'Apply reviewed hourly experimental policy; keep execution stopped',approval_reference:'authenticated_panel_hourly_policy_review'});
+    toast('سیاست ثبت شد و موتور متوقف است. برای آغاز، «درخواست ادامه» را انتخاب کنید.');
+    await refresh();
+  }));
   function renderOverview(data, failed = false) {
     const authorized = Boolean(state.csrf);
     const engine = authorized ? data?.state : null;

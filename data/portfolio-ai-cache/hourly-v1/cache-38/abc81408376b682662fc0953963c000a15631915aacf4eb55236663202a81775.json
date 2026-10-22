@@ -1,0 +1,70 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":4672232178.2,\"prior_capacity_tmn\":525133.276},\"r1_bps\":54.2987759436924,\"r24_bps\":788.4006170777616,\"r6_bps\":182.15439891341222,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":113.34121810725738,\"z24_logclose\":1.227865774226864},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":29652859329.94,\"prior_capacity_tmn\":12901725.8842},\"r1_bps\":105.5228536475877,\"r24_bps\":718.2365380059316,\"r6_bps\":281.67151399432146,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":201.64328250988865,\"z24_logclose\":1.5056011637903668}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "abc81408376b682662fc0953963c000a15631915aacf4eb55236663202a81775",
+  "requested_at": 1792671257.1844132,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A2\",\"A1\"],\"confidence\":0.64,\"reason\":\"A2 leads on r1/r6 and liquidity; A1 has lower vol and still clears cost with r6 182 vs 90. Both show positive 24h momentum; rank A2 first, A1 second.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 633,
+    "prompt_tokens": 610,
+    "total_tokens": 1243,
+    "completion_tokens_details": {
+      "reasoning_tokens": 529
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 529
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0008679240",
+    "irt": 234.95,
+    "exchange_rate": 270700
+  },
+  "meta": {
+    "latency_ms": 5907.0,
+    "request_id": "01a16388-94b6-7de2-a10e-8772fbae6c56",
+    "http_status": 200,
+    "server_date": "Thu, 22 Oct 2026 12:14:23 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A2",
+      "A1"
+    ],
+    "confidence": 0.64,
+    "reason": "A2 leads on r1/r6 and liquidity; A1 has lower vol and still clears cost with r6 182 vs 90. Both show positive 24h momentum; rank A2 first, A1 second.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 5.89935040473938,
+  "record_sha256": "70a2f65859449650b7a8a9d6b529c0f60b462ce7bf55e58c4aa05d7b4358b68f"
+}

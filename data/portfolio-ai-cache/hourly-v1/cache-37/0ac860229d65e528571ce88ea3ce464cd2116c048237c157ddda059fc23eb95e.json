@@ -1,0 +1,72 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":31355659931.4626,\"prior_capacity_tmn\":4072038.0525},\"r1_bps\":86.84062202748791,\"r24_bps\":352.60886856501435,\"r6_bps\":96.01502811855165,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":109.91298083540549,\"z24_logclose\":1.3510575682271984},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":236961495.2,\"prior_capacity_tmn\":74230.55500000001},\"r1_bps\":195.6052585449357,\"r24_bps\":319.83045853050834,\"r6_bps\":195.6052585449357,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":244.51384318502033,\"z24_logclose\":-0.0008338160444874087},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":118117895791.18001,\"prior_capacity_tmn\":1159035.75},\"r1_bps\":236.3188503822534,\"r24_bps\":327.23158378447323,\"r6_bps\":529.2450524337158,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":564.0014435009491,\"z24_logclose\":0.23107544772966623}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "0ac860229d65e528571ce88ea3ce464cd2116c048237c157ddda059fc23eb95e",
+  "requested_at": 1792670978.1767786,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A3\",\"A2\",\"A1\"],\"confidence\":0.68,\"reason\":\"A3 leads on r1/r6 despite high vol; A2 is balanced with z near zero; A1 has lower vol but z extended and r1 below the 90bp cost. Rank A3, A2, A1.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 807,
+    "prompt_tokens": 730,
+    "total_tokens": 1537,
+    "completion_tokens_details": {
+      "reasoning_tokens": 692
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 692
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0011127240",
+    "irt": 301.21,
+    "exchange_rate": 270700
+  },
+  "meta": {
+    "latency_ms": 6407.0,
+    "request_id": "01a16384-5289-79e3-b448-5c34d249974b",
+    "http_status": 200,
+    "server_date": "Thu, 22 Oct 2026 12:09:44 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A3",
+      "A2",
+      "A1"
+    ],
+    "confidence": 0.68,
+    "reason": "A3 leads on r1/r6 despite high vol; A2 is balanced with z near zero; A1 has lower vol but z extended and r1 below the 90bp cost. Rank A3, A2, A1.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 6.416733741760254,
+  "record_sha256": "2798d6de97a09a2edf43153155445e284c3f35097854386fd6926364560939dc"
+}

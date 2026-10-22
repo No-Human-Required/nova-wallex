@@ -1,0 +1,72 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":117481584675.69661,\"prior_capacity_tmn\":13801314.78484},\"r1_bps\":30.03568993536054,\"r24_bps\":340.3082997973001,\"r6_bps\":126.38100872681972,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":107.73067613673634,\"z24_logclose\":1.4199448683860167},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":2004699183.88,\"prior_capacity_tmn\":65460.45659999999},\"r1_bps\":39.1028902951348,\"r24_bps\":300.8830236677236,\"r6_bps\":271.0214970758746,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":166.2745183938942,\"z24_logclose\":1.0362931207588233},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":172811726244.80002,\"prior_capacity_tmn\":28464094.175},\"r1_bps\":68.31794291703272,\"r24_bps\":276.1176278344821,\"r6_bps\":197.68585322422726,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":224.48396425802264,\"z24_logclose\":1.323461593589933}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "235a5536c0fb58f84220af3f5c36dd7e21febb2cac783ead7ac372dcf6977d7c",
+  "requested_at": 1792671389.6411927,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A2\",\"A1\",\"A3\"],\"confidence\":0.72,\"reason\":\"Rank A2 first on strongest 6h momentum (271 bps) and lower z (1.04); A1 second on highest 24h return (340 bps) and lowest vol (108 bps); A3 third despite strongest 1h (68 bps) due highest vol (224 bps). All clear 90 bps roundtrip cost with ample liquidity.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 1865,
+    "prompt_tokens": 728,
+    "total_tokens": 2593,
+    "completion_tokens_details": {
+      "reasoning_tokens": 1719
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 1719
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0023817240",
+    "irt": 644.73,
+    "exchange_rate": 270700
+  },
+  "meta": {
+    "latency_ms": 12734.0,
+    "request_id": "01a1638a-999b-7353-b38a-2fe62e246dd0",
+    "http_status": 200,
+    "server_date": "Thu, 22 Oct 2026 12:16:42 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A2",
+      "A1",
+      "A3"
+    ],
+    "confidence": 0.72,
+    "reason": "Rank A2 first on strongest 6h momentum (271 bps) and lower z (1.04); A1 second on highest 24h return (340 bps) and lowest vol (108 bps); A3 third despite strongest 1h (68 bps) due highest vol (224 bps). All clear 90 bps roundtrip cost with ample liquidity.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 12.734348058700562,
+  "record_sha256": "07d1d44806fbef8ac1e281ec4a76ee3b21385a62da2b40844291bf896def214e"
+}

@@ -15,6 +15,7 @@ from starwallex.portfolio_cost import fee_rate
 from starwallex.util import digest,source_manifest
 from .contracts import ContractError,dec,number
 from .ledger import Ledger
+from .opportunity import OpportunityRules, PROTOCOL_V1
 
 CONTROL=['peak','day_nav','day','halt','daily_halt','max_dd','cooldowns','stale_hours','order_sequence']
 
@@ -54,6 +55,10 @@ class GuardedPlanningEngine(PlanningEngine,GuardedEngine):
         effective_end=end+PROTOCOL['stop_entries_hours_before_end']*3600-cfg.get('entry_stop_before_end_seconds',21600)
         super().__init__(cfg,history,audit,policy,end=effective_end)
 
+class OpportunityPlanningEngine(OpportunityRules,PlanningEngine,GuardedEngine):
+    """Shared experimental rules, actual deadline, and live quotes only."""
+    pass
+
 def select(history,t,cfg,ai):
     ranked,coverage=history.scan(t,cfg,'breakout48')
     ranked=ranked[:cfg['ai_top_candidates']]
@@ -65,14 +70,21 @@ def select(history,t,cfg,ai):
                      'original_candidates':original,'ai':record,'selected_symbols':[x['symbol'] for x in selected]}
 
 def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection,allow_entries,end=None):
+    if cfg.get('runtime_policy') not in {None,'guarded_breakout_ai','hourly_opportunity_ai'}:
+        raise ContractError('Unknown runtime policy')
     ledger=Ledger(ledger_state)
     view=QuoteView(history,t,quotes,now)
     identity={'ledger':ledger_state,'strategy':strategy_state,'time':t,'observed_at':now,
               'selection':selection,'quotes':quotes,'data':history.identity,'source':source_manifest()['sha256']}
     dummy=SimpleNamespace(latest=lambda:None,identity=identity)
-    guarded=cfg.get('runtime_policy')=='guarded_breakout_ai'
+    opportunity=cfg.get('runtime_policy')=='hourly_opportunity_ai'
+    guarded=cfg.get('runtime_policy') in {'guarded_breakout_ai','hourly_opportunity_ai'}
     if guarded and end is None:raise ContractError('V3 planner requires the official end time')
-    engine=GuardedPlanningEngine(cfg,view,dummy,'breakout48',end=end) if guarded else PlanningEngine(cfg,view,dummy,'breakout48')
+    if opportunity:
+        if cfg.get('entry_policy')!='trend6' or cfg.get('entry_every_hours')!=1:
+            raise ContractError('Unreviewed experimental entry configuration')
+        engine=OpportunityPlanningEngine(cfg,view,dummy,'trend6',end=end)
+    else:engine=GuardedPlanningEngine(cfg,view,dummy,'breakout48',end=end) if guarded else PlanningEngine(cfg,view,dummy,'breakout48')
     engine.s.update(deepcopy(strategy_state.get('control',{})))
     # JSON checkpoints carry decimal strings; use the core's own restoration.
     from starwallex.portfolio_engine import restore_state
@@ -107,6 +119,9 @@ def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection
         stop=dec(route['stop'])
         budget=min(dec(route['budget_tmn']),engine.equity()*dec(cfg['max_asset_fraction']),
                    engine.equity()*dec(cfg['risk_per_asset_fraction'])/stop,dec(cfg['max_order_tmn']))
+        if opportunity:
+            context=history.context(t,cfg['min_daily_turnover_tmn'])
+            budget=min(budget,dec(context['order_cap_tmn']),engine.equity()*dec(PROTOCOL_V1['entry_risk_fraction'])/stop)
         reason=engine.entry_checks(c,t,budget,stop)
         if not allow_entries:reason='entry_window_closed'
         if reason:

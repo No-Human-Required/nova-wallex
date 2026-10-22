@@ -1,0 +1,73 @@
+{
+  "request": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are an experimental spot-portfolio entry gate. All observations are closed hourly bars available at one historical decision time. Asset IDs are anonymized; do not infer dates, names, news, or future prices. Returns and volatility are in basis points. Every candidate already satisfies a fixed, cost-aware rule. Signals are not a profit guarantee. Review the five price features, liquidity, volatility, and estimated roundtrip cost. Choose a subset and order of the supplied candidate IDs, or choose none. Prefer defensible net opportunities without excessive concentration. Deterministic code controls quantity, total exposure, correlation, stops, and order validity; you cannot modify these limits. You only filter/rank NEW entries; existing position exits are controlled by code. Confidence is subjective and is not a calibrated probability. Return a JSON object with exactly: allowed_ids (unique array of provided IDs, best first), confidence (number 0 to 1), reason (short text), evidence (nonempty array drawn from r1_bps,r6_bps,r24_bps,vol24_bps,z24_logclose,roundtrip_cost_bps,liquidity). No additional text or fields.\nExample of valid schema only (not a recommended decision): {\"allowed_ids\":[],\"confidence\":0.65,\"reason\":\"No sufficiently clear entry after costs.\",\"evidence\":[\"r24_bps\",\"roundtrip_cost_bps\"]}. Evidence items must be exact field names from the enum; put observations and numbers only in reason. Keep reason under 60 words.\n"
+      },
+      {
+        "role": "user",
+        "content": "{\"candidates\":[{\"id\":\"A1\",\"liquidity\":{\"daily_turnover_tmn\":107079559536.3658,\"prior_capacity_tmn\":14148067.66377},\"r1_bps\":37.22594587866001,\"r24_bps\":491.3454061981537,\"r6_bps\":154.5451831128286,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":48.36322503010709,\"z24_logclose\":1.4493486067095973},{\"id\":\"A2\",\"liquidity\":{\"daily_turnover_tmn\":33324568342.8,\"prior_capacity_tmn\":6090070.0},\"r1_bps\":72.2269689053288,\"r24_bps\":371.1235558447462,\"r6_bps\":176.3378978974924,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":51.984144867266906,\"z24_logclose\":2.013127321023466},{\"id\":\"A3\",\"liquidity\":{\"daily_turnover_tmn\":30749858328.399998,\"prior_capacity_tmn\":6663052.944},\"r1_bps\":40.35987282451183,\"r24_bps\":375.617949984043,\"r6_bps\":312.3791460275922,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":63.48876300993107,\"z24_logclose\":2.0083383818641383},{\"id\":\"A4\",\"liquidity\":{\"daily_turnover_tmn\":18744925081.4,\"prior_capacity_tmn\":3602169.8880000003},\"r1_bps\":115.26332776962444,\"r24_bps\":359.1666336319841,\"r6_bps\":135.28699879055998,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":58.23159303251897,\"z24_logclose\":1.7868953032384076},{\"id\":\"A5\",\"liquidity\":{\"daily_turnover_tmn\":75793736749.58327,\"prior_capacity_tmn\":30431214.0},\"r1_bps\":91.90590756050013,\"r24_bps\":351.861522839174,\"r6_bps\":175.73962343161068,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":57.41284020224143,\"z24_logclose\":2.0877548400933374},{\"id\":\"A6\",\"liquidity\":{\"daily_turnover_tmn\":51210196363.4462,\"prior_capacity_tmn\":13661139.751812},\"r1_bps\":87.75193421514383,\"r24_bps\":492.4530959625076,\"r6_bps\":153.1507764351571,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":107.73196569784761,\"z24_logclose\":1.6729370230999019},{\"id\":\"A7\",\"liquidity\":{\"daily_turnover_tmn\":24236666326.09956,\"prior_capacity_tmn\":6610571.588970601},\"r1_bps\":84.87453985671195,\"r24_bps\":345.9840239679142,\"r6_bps\":101.20769278927773,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":57.40263159893703,\"z24_logclose\":1.6761850976441814},{\"id\":\"A8\",\"liquidity\":{\"daily_turnover_tmn\":102654966534.59999,\"prior_capacity_tmn\":30648035.913},\"r1_bps\":174.31286377967535,\"r24_bps\":445.5421983770476,\"r6_bps\":98.15103332659007,\"roundtrip_cost_bps\":90.0,\"vol24_bps\":93.13398439176495,\"z24_logclose\":1.6171915945800308}],\"max_gross_fraction\":\"0.40\",\"max_positions\":4}"
+      }
+    ],
+    "response_format": {
+      "type": "json_object"
+    },
+    "temperature": 0,
+    "max_tokens": 4096
+  },
+  "request_hash": "a8dac3c9c92e30317104607617188b5f37dfebf6a84b4bcbb143dce8039fca74",
+  "requested_at": 1792671052.4482863,
+  "documented_backend": "DeepSeek-V4.1-Flash-1017",
+  "content": "{\"allowed_ids\":[\"A1\",\"A2\",\"A3\",\"A4\"],\"confidence\":0.64,\"reason\":\"Selected A1-A4 for best blend of positive multi-horizon momentum, moderate z-scores, and lower volatility; all clear the 90 bps roundtrip cost. Excluded A6/A8 for elevated volatility and A7 for weaker r6/r24.\",\"evidence\":[\"r1_bps\",\"r6_bps\",\"r24_bps\",\"vol24_bps\",\"z24_logclose\",\"roundtrip_cost_bps\",\"liquidity\"]}",
+  "response_model": "deepseek-v4.1-flash",
+  "usage": {
+    "completion_tokens": 2301,
+    "prompt_tokens": 1299,
+    "total_tokens": 3600,
+    "completion_tokens_details": {
+      "reasoning_tokens": 2176
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 254
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 2176
+    }
+  },
+  "estimated_cost": {
+    "unit": "0.0030762240",
+    "irt": 832.73,
+    "exchange_rate": 270700
+  },
+  "meta": {
+    "latency_ms": 13984.0,
+    "request_id": "01a16385-747b-7343-9853-16c82da028e4",
+    "http_status": 200,
+    "server_date": "Thu, 22 Oct 2026 12:11:06 GMT"
+  },
+  "finish_reason": "stop",
+  "selection": {
+    "allowed_ids": [
+      "A1",
+      "A2",
+      "A3",
+      "A4"
+    ],
+    "confidence": 0.64,
+    "reason": "Selected A1-A4 for best blend of positive multi-horizon momentum, moderate z-scores, and lower volatility; all clear the 90 bps roundtrip cost. Excluded A6/A8 for elevated volatility and A7 for weaker r6/r24.",
+    "evidence": [
+      "r1_bps",
+      "r6_bps",
+      "r24_bps",
+      "vol24_bps",
+      "z24_logclose",
+      "roundtrip_cost_bps",
+      "liquidity"
+    ]
+  },
+  "status": "ok",
+  "latency_seconds": 13.978136539459229,
+  "record_sha256": "1d6f252f586290797c103f6faa0184d935ffb8cd201c8d071b895e7fe5134315"
+}
