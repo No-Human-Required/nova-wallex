@@ -115,6 +115,7 @@ class Engine:
               'max_drawdown_percent':number(dec(strategy.get('control',{}).get('max_dd','0'))*100),
               'unresolved':self.j.unresolved(),'halt':self.j.s['halt'],'chain_hash':row[0] if row else '0'*64,
               'balance_confirmed_at':self.j.s['balance_confirmed_at'],'source_sha256':self.current['binding']['source_sha256'],
+              'reported_cash_tmn':self.j.s.get('reported_cash_tmn'),'balance_precision':self.j.s.get('balance_precision'),
               'fully_realized_tmn':not holdings and not self.j.unresolved(),'settlement_complete':phase=='window_ended' and not holdings and not self.j.unresolved()})
 
     def detach(self):

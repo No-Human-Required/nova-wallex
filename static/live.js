@@ -14,6 +14,7 @@
     reduce_only: 'فقط کاهش موقعیت', stopped_safely: 'متوقف', completed: 'پایان‌یافته',
     idle: 'آماده و غیرفعال', disabled: 'غیرفعال', stopped_by_operator: 'متوقف توسط اپراتور',
     policy_reviewed_stopped: 'سیاست جدید ثبت شد · منتظر ادامهٔ اپراتور',
+    wallet_reviewed_stopped: 'حساب تطبیق داده شد · منتظر ادامهٔ اپراتور',
     cash_tmn: 'تومان نقد', equity_tmn: 'ارزش حساب · تومان', realized_pnl_tmn: 'سود و زیان محقق‌شده · تومان',
     fees_tmn: 'کارمزد · تومان', net_return_pct: 'بازده خالص · درصد', drawdown_pct: 'افت سرمایه · درصد',
     max_drawdown_pct: 'سقف افت سرمایه · درصد', max_position_pct: 'سقف هر موقعیت · درصد',
@@ -151,14 +152,19 @@
     for (const id of ['live-reduce-only', 'live-stop', 'live-resume']) el(id).disabled = !signedIn || live.busy || !live.data?.state?.run_id;
     el('live-entry-apply').disabled = !ready || !live.data?.entry_policy_review?.available || live.data?.state?.desired !== 'stopped' || !el('live-entry-accept').checked;
     if(live.data?.entry_policy_review?.available)el('live-resume').disabled=true;
+    el('live-wallet-apply').disabled=!ready || !live.data?.wallet_review?.available || live.data?.state?.desired!=='stopped' || !el('live-wallet-accept').checked;
+    if(live.data?.wallet_review?.available)el('live-resume').disabled=true;
     if (live.preview && !validPreview()) el('live-preview-expiry').textContent = 'این پیش‌نمایش معتبر نیست یا منقضی شده است؛ بررسی نهایی را دوباره انجام دهید.';
   }
   function render(data) {
     live.data = data;
     renderOverview(data);
     const engine = data.state || {};
+    const walletReview=data.wallet_review;
+    el('live-wallet-review').hidden=!(walletReview?.available || walletReview?.applied);
+    el('live-wallet-status').textContent=walletReview?.applied ? 'بازیابی ثبت شده است؛ شروع دوباره فقط با «درخواست ادامه» انجام می‌شود.' : 'ابتدا سفارش‌های ثبت‌شده و موجودی از صرافی دوباره خوانده و بررسی می‌شوند.';
     root.querySelector('.live-activation-panel').hidden = Boolean(engine.run_id);
-    if(engine.run_id && state.page==='live') api('/api/live/evidence').then(ev=>{
+    if(engine.run_id && state.page==='live') api('/api/live/evidence?tail=true').then(ev=>{
       el('live-events-json').textContent=json(ev.events);
       const box=el('live-equity-chart'), pts=ev.equity;
       if(!pts.length){box.textContent='هنوز مشاهدهٔ حسابی ثبت نشده است.';return;}
@@ -352,6 +358,12 @@
     }));
   }
   el('live-refresh').addEventListener('click', () => refresh({ notify: true }));
+  el('live-wallet-accept').addEventListener('change',syncButtons);
+  el('live-wallet-apply').addEventListener('click',()=>action(async()=>{
+    if(!el('live-wallet-accept').checked)throw new Error('ابتدا فرض دقت موجودی را بررسی کنید.');
+    await post('/api/live/wallet-revision',{confirmation:'Review bounded wallet observation recovery; keep execution stopped',approval_reference:'authenticated_panel_wallet_observation_review'});
+    toast('دفتر حساب تطبیق داده شد؛ موتور متوقف است.');await refresh();
+  }));
   el('live-entry-accept').addEventListener('change',syncButtons);
   el('live-entry-apply').addEventListener('click',()=>action(async()=>{
     if(!el('live-entry-accept').checked)throw new Error('ابتدا نتیجهٔ ارزیابی و حدود را بررسی کنید.');

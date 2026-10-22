@@ -30,7 +30,7 @@ def build():
     if live['source_sha256']!=bundle_hash() or not live['offline_fault_tests_passed']:
         raise ValueError('Live runtime proof does not match source')
     postgres=read_json(ROOT/'evidence/postgres-tests.json')
-    if not postgres['all_passed'] or not container.get('database_backend')=='postgresql':
+    if not postgres['all_passed'] or postgres.get('execution_source_sha256')!=bundle_hash() or not container.get('database_backend')=='postgresql':
         raise ValueError('PostgreSQL persistence proof is required')
     paths=[]
     for folder in ['app','execution','starwallex','config','prompts','data/portfolio','data/portfolio-ai-cache','seed','static','scripts','tests','docs']:

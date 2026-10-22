@@ -5,6 +5,7 @@ active/executedQty/origQty, without inventing an exchange rejection/cancel reaso
 """
 from collections import Counter
 from decimal import Decimal, InvalidOperation
+from datetime import datetime
 import re
 
 from starwallex.util import canonical
@@ -90,10 +91,28 @@ def normalize_order(envelope,intent):
     return {'phase':phase,'active':r['active'],'executed_qty':number(qty),'fills':fills}
 
 def incremental_fills(previous,current):
-    before=Counter(canonical(f) for f in previous)
-    after=Counter(canonical(f) for f in current)
-    if any(after[k]<n for k,n in before.items()):raise ContractError('Cumulative fill history regressed or changed')
-    return after-before
+    # Wallex POST/GET observations of the same fill can round its timestamp to
+    # the next second. Match a multiset, not a purported unique timestamp ID.
+    # All financial fields remain exact; at most one second of timestamp
+    # presentation drift is accepted. Both observations stay in the audit.
+    def stamp(value):
+        try:
+            if str(value).isdigit():return Decimal(str(value))
+            d=datetime.fromisoformat(str(value).replace('Z','+00:00'))
+            return Decimal(str(d.timestamp())) if d.tzinfo else None
+        except (ValueError,TypeError):return None
+    def same(a,b):
+        if {k:v for k,v in a.items() if k!='timestamp'}!={k:v for k,v in b.items() if k!='timestamp'}:return False
+        if a['timestamp']==b['timestamp']:return True
+        x,y=stamp(a['timestamp']),stamp(b['timestamp'])
+        return x is not None and y is not None and abs(x-y)<=1
+    remaining=list(current)
+    for old in sorted(previous,key=lambda f:stamp(f['timestamp']) or Decimal(0)):
+        matches=[(i,new) for i,new in enumerate(remaining) if same(old,new)]
+        if not matches:raise ContractError('Cumulative fill history regressed or changed')
+        i,_=min(matches,key=lambda pair:stamp(pair[1]['timestamp']) or Decimal(0))
+        remaining.pop(i)
+    return Counter(canonical(f) for f in remaining)
 
 def normalize_balances(envelope,*,value_semantics):
     """Wallet docs do not resolve value/locked arithmetic. Require a verified binding."""

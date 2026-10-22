@@ -13,6 +13,7 @@ from starwallex.util import canonical,digest
 from .contracts import ContractError,validate_intent,normalize_order,incremental_fills,dec,number
 from .ledger import Ledger
 from .gateway import NotDispatched
+from .wallet_precision import check_wallet,POLICY
 
 TERMINAL={'FILLED','CLOSED','LOCAL_REJECTED'}
 
@@ -69,7 +70,10 @@ class ExecutionJournal:
         ledger=Ledger(self.s['ledger'])
         spend=m.quote if intent['side']=='BUY' else m.base
         required=(p*q if intent['side']=='BUY' else q)*(1+self.fee_buffer)
-        if required>ledger.quantity(spend):raise ContractError('Insufficient balance including conservative fee reserve')
+        available=ledger.quantity(spend)
+        if spend=='TMN' and self.s.get('reported_cash_tmn') is not None:
+            available=min(available,dec(self.s['reported_cash_tmn']))
+        if required>available:raise ContractError('Insufficient balance including conservative fee reserve')
         if risk_authorizer is None:raise PermissionError('Portfolio risk integration has not authorized this intent')
         verdict=risk_authorizer(deepcopy(intent),deepcopy(self.s['ledger']))
         if not isinstance(verdict,dict) or verdict.get('approved') is not True or not verdict.get('source_sha256'):
@@ -106,11 +110,11 @@ class ExecutionJournal:
         old=self.s['orders'][cid]
         try:
             normalized=normalize_order(response,old['intent'])
-            if old['phase'] in TERMINAL and (normalized['active'] or Counter(canonical(x) for x in normalized['fills'])!=Counter(canonical(x) for x in old['fills'])):
-                raise ContractError('Previously closed order changed')
             if old['observed_at'] is not None and now<old['observed_at']:
                 raise ContractError('Response observation time regressed')
             delta=incremental_fills(old['fills'],normalized['fills'])
+            if old['phase'] in TERMINAL and (normalized['active'] or delta):
+                raise ContractError('Previously closed order changed')
             ledger=Ledger(self.s['ledger'])
             for encoded,count in delta.items():
                 for _ in range(count):ledger.apply(old['intent'],json.loads(encoded))
@@ -169,11 +173,16 @@ class ExecutionJournal:
         latest=max((o['observed_at'] or o['submitted_at'] for o in self.s['orders'].values()),default=0)
         if observed_at<latest:raise ContractError('Balance snapshot predates order observation')
         if any(dec(v)!=0 for v in locked.values()):raise ContractError('Unexpected locked balance')
-        actual={a:dec(v) for a,v in totals.items() if dec(v)!=0}
-        expected={a:dec(v) for a,v in Ledger(self.s['ledger']).totals().items() if dec(v)!=0}
-        if actual!=expected:
-            self.halt('wallet_ledger_mismatch');raise ContractError('Wallet differs from ledger; no silent resync')
+        expected=Ledger(self.s['ledger']).totals()
+        try:
+            precision=check_wallet(totals,expected,allow_integer_tmn=self.s.get('wallet_observation_policy')==POLICY)
+        except ContractError:
+            s=deepcopy(self.s);s['halt']='wallet_ledger_mismatch'
+            self.checkpoint('wallet_ledger_mismatch',{'observed_at':observed_at,
+                'expected':expected,'actual':{a:v for a,v in totals.items() if dec(v)!=0}},s)
+            raise
         s=deepcopy(self.s);s['balance_confirmed_at']=observed_at
+        s['reported_cash_tmn']=number(totals.get('TMN','0'));s['balance_precision']=precision
         for order in s['orders'].values():order['settled']=True
-        self.checkpoint('balance_reconciliation',{'observed_at':observed_at,'totals':totals,'open_count':0},s)
+        self.checkpoint('balance_reconciliation',{'observed_at':observed_at,'totals':totals,'open_count':0,'precision':precision},s)
         return True

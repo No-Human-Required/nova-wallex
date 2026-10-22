@@ -14,10 +14,18 @@ def read_identity(directory):
     return identity,state
 
 
-def checked_identity(directory,receipt,current_cfg,binding):
-    identity,state=read_identity(directory)
-    if not state:
-        raise ContractError('Explicit history revision receipt missing')
+def receipt_origin(identity,receipt):
+    if receipt.get('version')==3 and receipt.get('policy')=='wallet-observation-v1':
+        prior=receipt.get('previous_revision',{})
+        if prior.get('version')!=2 or digest(prior)!=receipt.get('previous_revision_sha256'):
+            raise ContractError('Wallet recovery previous receipt differs')
+        original_binding=receipt_origin(identity,prior)
+        if prior.get('new_binding_sha256')!=receipt.get('old_binding_sha256') or prior.get('new_source_sha256')!=receipt.get('old_source_sha256'):
+            raise ContractError('Wallet recovery source chain does not connect')
+        if receipt.get('config_changes')!={} or receipt.get('new_config_sha256')!=receipt.get('old_config_sha256') or receipt.get('old_config_sha256')!=prior.get('new_config_sha256'):
+            raise ContractError('Wallet recovery cannot change trading configuration')
+        if receipt.get('prior_identity_sha256')!=digest(identity):raise ContractError('Wallet recovery identity differs')
+        return original_binding
     if receipt.get('version')==2 and receipt.get('policy')=='hourly-opportunity-v1':
         prior=receipt.get('previous_revision',{})
         if prior.get('version')!=1 or prior.get('policy')!='closed49-volume-aware-v1' or digest(prior)!=receipt.get('previous_revision_sha256'):
@@ -28,11 +36,18 @@ def checked_identity(directory,receipt,current_cfg,binding):
         original_binding=prior.get('old_binding_sha256')
         if receipt.get('config_changes')!={'runtime_policy':'hourly_opportunity_ai','entry_policy':'trend6','entry_every_hours':1}:
             raise ContractError('Unreviewed entry policy configuration change')
-        if binding and binding.get('risk_config_sha256')!=receipt.get('new_config_sha256'):
-            raise ContractError('Policy risk configuration differs')
     elif receipt.get('version')==1 and receipt.get('policy')=='closed49-volume-aware-v1':
         original_binding=receipt.get('old_binding_sha256')
     else:raise ContractError('Unsupported reviewed revision')
+    return original_binding
+
+
+def checked_identity(directory,receipt,current_cfg,binding):
+    identity,state=read_identity(directory)
+    if not state:raise ContractError('Explicit history revision receipt missing')
+    original_binding=receipt_origin(identity,receipt)
+    if receipt.get('version') in {2,3} and binding and binding.get('risk_config_sha256')!=receipt.get('new_config_sha256'):
+        raise ContractError('Policy risk configuration differs')
     if digest(identity)!=receipt.get('prior_identity_sha256'):
         raise ContractError('Revision does not match original journal identity')
     if not binding or digest(binding)!=receipt.get('new_binding_sha256') or binding.get('source_sha256')!=receipt.get('new_source_sha256'):

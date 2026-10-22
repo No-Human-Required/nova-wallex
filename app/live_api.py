@@ -97,6 +97,12 @@ class EntryRevision(Body):
     confirmation:str
     approval_reference:str
 
+@router.post('/wallet-revision')
+def wallet_revision(body:EntryRevision,request:Request):
+    from .live_wallet_revision import apply_wallet_revision
+    try:return apply_wallet_revision(request.app,body.confirmation,body.approval_reference)
+    except (ValueError,RuntimeError) as exc:raise HTTPException(409,problem(exc)) from None
+
 @router.post('/entry-revision')
 def entry_revision(body:EntryRevision,request:Request):
     from .live_entry_revision import apply_entry_revision
@@ -114,12 +120,16 @@ def status(request:Request):
     from execution.history import POLICY
     from execution.opportunity import PROTOCOL_V1
     from .live_entry_revision import PREVIOUS_SOURCE, entry_config
+    from .live_wallet_revision import PREVIOUS_SOURCE as WALLET_PREVIOUS
     app=request.app;state=app.state.live.state();run=app.state.live.run(state['run_id']) if state['run_id'] else None
     creds=app.state.vault.status();account=selection(app.state.store)
     creds['subaccount_client_id']=account['client_id'] if account else None
     return {'state':{k:v for k,v in state.items() if k!='preflight'},'credentials':creds,
             'vault_ready':bool(app.state.vault.cipher),'release_ready':release_ready(),'preflight':state['preflight'],
             'last_snapshot':run['last_snapshot'] if run else None,'risk_config':run['config'] if run else risk_config(),
+            'wallet_review':{'available':bool(run and run['binding']['source_sha256']==WALLET_PREVIOUS),
+                'applied':bool(run and run.get('revision') and run['revision'].get('version')==3),
+                'execution_resumed':False,'maximum_tmn_uncertainty_exclusive':'1','ledger_modified':False},
             'entry_policy_review':{'protocol':PROTOCOL_V1,'proposed_config':entry_config(risk_config()),
                 'available':bool(run and run['binding']['source_sha256']==PREVIOUS_SOURCE),
                 'applied':bool(run and run['config'].get('runtime_policy')=='hourly_opportunity_ai'),
@@ -246,7 +256,7 @@ def control(body:Control,request:Request):
     except ValueError as exc:raise HTTPException(409,problem(exc)) from None
 
 @router.get('/evidence')
-def evidence(request:Request,after:int=Query(default=0,ge=0)):
+def evidence(request:Request,after:int=Query(default=0,ge=0),tail:bool=False):
     import json
     from starwallex.persistence import audit_exists, audit_reader
     app=request.app;state=app.state.live.state();ident=state['run_id']
@@ -258,6 +268,8 @@ def evidence(request:Request,after:int=Query(default=0,ge=0)):
     if audit_exists(path.parent):
         with audit_reader(path.parent) as db:
             identity=json.loads(db.execute("SELECT v FROM meta WHERE k='identity'").fetchone()[0])
+            order='DESC' if tail else 'ASC'
             events=[{'seq':seq,'kind':kind,'payload':json.loads(payload),'hash':h}
-                    for seq,kind,payload,h in db.execute("SELECT seq,kind,payload,hash FROM events WHERE seq>? AND kind!='state_checkpoint' ORDER BY seq LIMIT 200",(after,))]
+                    for seq,kind,payload,h in db.execute("SELECT seq,kind,payload,hash FROM events WHERE seq>? AND kind!='state_checkpoint' ORDER BY seq "+order+" LIMIT 200",(after,))]
+            if tail:events.reverse()
     return {'run_id':ident,'events':events,'equity':points,'identity':identity}
