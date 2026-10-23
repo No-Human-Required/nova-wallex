@@ -41,8 +41,20 @@ class CandleStore:
     def __init__(self):
         self.bars, self.fetched, self.lock = {}, {}, threading.Lock()
 
+    # Wallex's public UDF history serves 1-minute and hourly bars; for '5' and
+    # '15' it returns 1-minute bars (or nothing). Those resolutions are built
+    # here from 1-minute bars; minutes without trades stay gaps.
+    AGGREGATED = {'5', '15'}
+
     def fetch(self, symbol, resolution, start, end):
         step = RESOLUTIONS[resolution]
+        if resolution in self.AGGREGATED:
+            out = {}
+            for ts, (o, h, l, c, v) in sorted(self.fetch(symbol, '1', start//step*step, end).items()):
+                b = ts//step*step
+                x = out.get(b)
+                out[b] = (o, h, l, c, v) if x is None else (x[0], max(x[1], h), min(x[2], l), c, x[4]+v)
+            return out
         api, rows = WallexPublic(), {}
         lo = start//step*step
         while lo < end:

@@ -1,5 +1,5 @@
 {
-  "version": "4.6.0",
+  "version": "4.6.1",
   "source_sha256": "1e32cce3a77f96da408ddaf96bb7711da8630fab0388a3b138f02c5928fbc381",
   "offline_fault_tests_passed": true,
   "sqlite_tests_passed": 285,
@@ -29,5 +29,6 @@
   "decision_page_history": "scans recorded before 4.3.0 get per-pair stages by replaying the screener on the immutable hourly observations, used only when counts equal the recorded coverage; otherwise recorded coverage counts",
   "llm_provider_policy": "OpenAI-compatible providers avalai/metisai/boxapi with pinned hosts; provider, model, base URL and bound keys change only through the v7 operator upgrade; replacement keys for bound credentials are staged and promoted in the rebinding transaction",
   "strategy_studio": "agentic LLM loop (propose/backtest/tune/save) over a validated JSON strategy specification; backtests on recorded hourly data in memory without orders or AI; human full test and approval required; approved specifications enter the engine config via the operator upgrade and pass the same quality, AI, sizing and exit controls",
-  "exit_order_policy": "all algorithmic sells (stops, take-profit, time/trend exits, portfolio halt, final TMN conversion) use a marketable LIMIT 5% below the best bid (exit_limit_bps=500): immediate fills against visible bids with a bounded worst price; no historical-volume throttle on exits, visible bid depth and order cap bind; native TRX stop uses a 5% deep limit (stop-market behaviour) and an operator replacement path cancels the resting stop before a renewed approval; raw MARKET/STOP_MARKET avoided because their reply contract is undocumented"
+  "exit_order_policy": "all algorithmic sells (stops, take-profit, time/trend exits, portfolio halt, final TMN conversion) use a marketable LIMIT 5% below the best bid (exit_limit_bps=500): immediate fills against visible bids with a bounded worst price; no historical-volume throttle on exits, visible bid depth and order cap bind; native TRX stop uses a 5% deep limit (stop-market behaviour) and an operator replacement path cancels the resting stop before a renewed approval; raw MARKET/STOP_MARKET avoided because their reply contract is undocumented",
+  "shadow_candles": "Wallex public UDF has no 5-minute resolution: 5/15-minute bars are aggregated from 1-minute candles (shadow test, market and equity charts)"
 }

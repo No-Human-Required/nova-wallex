@@ -87,4 +87,4 @@ def simulate(decisions, candles, markets, now=None):
     return {'rows': rows[::-1], 'summary': {'ai_enter': summary([r for r in rows if r['ai_action'] == 'enter']),
             'ai_skip': summary([r for r in rows if r['ai_action'] == 'skip']),
             'all_rules': summary(rows)},
-            'method': 'Shadow: no orders. Entry at the next 5-minute open plus fee, half-spread and slippage; TP1 at the plan target, at least max(1R, 2x cost), TP2/TP3 at the same distance above it; whole position held; stop steps to break-even and TP1; full exit at TP3; strategy maximum holding; unfinished trades marked at the last close. Candle gaps are not filled.'}
+            'method': 'Shadow: no orders. 5-minute bars aggregated from public 1-minute candles. Entry at the next 5-minute open plus fee, half-spread and slippage; TP1 at the plan target, at least max(1R, 2x cost), TP2/TP3 at the same distance above it; whole position held; stop steps to break-even and TP1; full exit at TP3; strategy maximum holding; unfinished trades marked at the last close. Candle gaps are not filled.'}
