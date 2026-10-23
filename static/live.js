@@ -16,6 +16,7 @@
     policy_reviewed_stopped: 'سیاست جدید ثبت شد · منتظر ادامهٔ اپراتور',
     wallet_reviewed_stopped: 'حساب تطبیق داده شد · منتظر ادامهٔ اپراتور',
     native_reviewed_stopped: 'محافظ تطبیق داده شد · منتظر ادامهٔ اپراتور',
+    native_cancel_reviewed_stopped: 'لغو محافظ تطبیق داده شد · منتظر ادامهٔ اپراتور',
     cash_tmn: 'تومان نقد', equity_tmn: 'ارزش حساب · تومان', realized_pnl_tmn: 'سود و زیان محقق‌شده · تومان',
     fees_tmn: 'کارمزد · تومان', net_return_pct: 'بازده خالص · درصد', drawdown_pct: 'افت سرمایه · درصد',
     max_drawdown_pct: 'سقف افت سرمایه · درصد', max_position_pct: 'سقف هر موقعیت · درصد',
@@ -141,7 +142,7 @@
     const credentials = live.data?.credentials;
     const native=live.data?.last_snapshot?.native_protection;
     el('native-stop-reconcile').disabled=!ready || live.data?.state?.desired!=='stopped' || !native?.client_id;
-    el('native-stop-preview').disabled=!ready || !['running','reduce_only'].includes(live.data?.state?.desired) || (native && !['not_enabled','approval_expired'].includes(native.status));
+    el('native-stop-preview').disabled=!ready || !['running','reduce_only'].includes(live.data?.state?.desired) || (native && !['not_enabled','approval_expired'].includes(native.status) && !(native.status==='CLOSED' && live.data?.risk_config?.trx_trend_exit_hold));
     el('native-stop-approve').disabled=!ready || !live.nativePreview || live.nativePreview.expires_at*1000<=Date.now() || el('native-stop-phrase').value.trim()!=='فعال‌سازی محافظ TRX در والکس';
     el('live-save-keys').disabled = !ready;
     const selectedAccount = Boolean(credentials?.subaccount_client_id);
@@ -167,7 +168,9 @@
     const engine = data.state || {};
     const native=data.last_snapshot?.native_protection;
     const freshNative=native?.exchange_confirmed && Date.now()/1000-native.observed_at<=90;
-    el('native-stop-status').textContent=freshNative ? 'محافظ در والکس تأیید شده است' : native?.exchange_confirmed ? 'محافظ قبلاً تأیید شده؛ مشاهدهٔ تازه در دسترس نیست' : native?.status==='not_enabled' || !native ? 'محافظ صرافی هنوز فعال نشده است.' : 'وضعیت محافظ: '+native.status;
+    el('native-stop-status').textContent=freshNative ? 'محافظ در والکس تأیید شده است' : native?.exchange_confirmed ? 'محافظ قبلاً تأیید شده؛ مشاهدهٔ تازه در دسترس نیست' : native?.status==='CLOSED' ? 'محافظ قبلی لغو شده است؛ سفارش محافظ بازی در صرافی تأیید نشده.' : native?.status==='not_enabled' || !native ? 'محافظ صرافی هنوز فعال نشده است.' : 'وضعیت محافظ: '+native.status;
+    el('native-trx-trend-hold').disabled=Boolean(data.risk_config?.trx_trend_exit_hold);
+    if(data.risk_config?.trx_trend_exit_hold)el('native-trx-trend-hold').checked=true;
     rows('native-stop-values',native ? {'قیمت تحریک · تومان':native.stop_price,'حداقل قیمت فروش · تومان':native.price,'مقدار سفارش · TRX':native.quantity,'باقی‌ماندهٔ محافظ · TRX':native.remaining_protected_qty,'موجودی خرد خارج از پوشش · TRX':native.residual_qty,'شناسهٔ سفارش':native.client_id,'آخرین مشاهده':tehranTime(native.observed_at)} : {},'هنوز سفارشی برای محافظ ثبت نشده است.');
     const walletReview=data.wallet_review;
     el('live-wallet-review').hidden=!(walletReview?.available || walletReview?.applied);
@@ -220,6 +223,7 @@
       max_daily_loss_pct:cfg.max_daily_loss_fraction==null?null:Number(cfg.max_daily_loss_fraction)*100,
       max_drawdown_pct:cfg.max_drawdown_fraction==null?null:Number(cfg.max_drawdown_fraction)*100,
       max_positions:cfg.max_positions, model:cfg.ai_model_documented_backend,
+      'خروج روندی TRX':cfg.trx_trend_exit_hold?'متوقف با درخواست اپراتور؛ حد ضرر و پایان مسابقه برقرار':'طبق الگوریتم',
       'فاصلهٔ بررسی ورود':cfg.entry_every_hours+' ساعت',
       'سیاست ورود':cfg.runtime_policy==='hourly_opportunity_ai'?'روند کوتاه‌مدت · آزمایشی':'شکست سقف ۴۸ ساعت',
       'تاریخچهٔ لازم برای سیگنال':data.history_policy ? data.history_policy.required_closed_hours+' کندل بستهٔ ساعتی' : '—',
@@ -369,7 +373,7 @@
   el('live-refresh').addEventListener('click', () => refresh({ notify: true }));
   el('native-stop-phrase').addEventListener('input',syncButtons);
   el('native-stop-reconcile').addEventListener('click',()=>action(async()=>{
-    await post('/api/live/native-stop/reconcile',{});
+    await post('/api/live/native-stop/reconcile',{hold_trx_trend_exit:el('native-trx-trend-hold').checked});
     toast('همان سفارش با والکس تطبیق داده شد؛ سفارش جدیدی ارسال نشد و موتور متوقف است.');await refresh();
   }));
   el('native-stop-preview').addEventListener('click',()=>action(async()=>{

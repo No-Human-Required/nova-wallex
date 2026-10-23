@@ -3,10 +3,10 @@ import json
 import time
 import secrets
 from fastapi import APIRouter,Request,HTTPException
-from pydantic import BaseModel,ConfigDict
+from pydantic import BaseModel,ConfigDict,StrictBool
 from starwallex.util import ROOT,read_json,canonical,digest
 from starwallex.data import WallexPublic
-from execution.protection import preview,reference,status as protection_status
+from execution.protection import preview,reference,status as protection_status,renewable
 from execution.revision import read_identity
 from execution.activation import bundle_hash,timestamp
 from execution.contracts import ContractError
@@ -70,7 +70,8 @@ def approve_native(body:Approval,request:Request):
             if p['preview']['portfolio_sha256']!=digest(state['ledger']):raise ContractError('Position changed; preview again')
             old=state.get('native_protection',{})
             rejected=bool(existing and json.loads(existing[0])['request_id'] in state.get('native_rejected_requests',[]))
-            if existing and not rejected and not (old.get('status')=='approval_expired' and old.get('client_id') not in state['orders']):
+            renew=run['config'].get('trx_trend_exit_hold') is True and renewable(state) and p['preview'].get('replaces_client_id')==old.get('client_id') and existing and json.loads(existing[0])['request_id']==old.get('request_id')
+            if existing and not rejected and not renew and not (old.get('status')=='approval_expired' and old.get('client_id') not in state['orders']):
                 raise ContractError('An approval already exists for this position')
             approval={**p,'request_id':body.preview_id,'expires_at':row['expires'],'approved_at':time.time(),
                       'operator_approved':True,'approval_reference':'authenticated_panel_native_stop_confirmation'}
@@ -84,9 +85,14 @@ def pending(store,run_id):
     with store.connect() as db:row=db.execute('SELECT body FROM live_native_requests WHERE run_id=?',(run_id,)).fetchone()
     return json.loads(row[0]) if row else None
 
+class Reconciliation(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    hold_trx_trend_exit:StrictBool=False
+
+
 @router.post('/reconcile')
-def reconcile_native(request:Request):
+def reconcile_native(body:Reconciliation,request:Request):
     from .live_native_recovery import recover
     from .live_api import problem
-    try:return recover(request.app)
+    try:return recover(request.app,hold_trx_trend_exit=body.hold_trx_trend_exit)
     except (ValueError,RuntimeError,KeyError) as exc:raise HTTPException(409,problem(exc)) from None

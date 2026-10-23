@@ -14,6 +14,12 @@ from .journal import TERMINAL
 POLICY='trx-native-stop-limit-v1'
 
 
+def renewable(state):
+    p=state.get('native_protection',{});o=state.get('orders',{}).get(p.get('client_id'),{})
+    return bool(p.get('exit_requested') and o.get('phase')=='CLOSED' and o.get('settled')
+                and o.get('cancel_requested') and o.get('intent',{}).get('type')=='STOP_LIMIT')
+
+
 def entry_id(state):
     candidates=[(o['submission_sequence'],cid) for cid,o in state['orders'].items()
                 if o['intent']['symbol']=='TRXTMN' and o['intent']['side']=='BUY' and dec(o['executed_qty'])>0]
@@ -26,10 +32,12 @@ def preview(state,market,cfg,reference,*,now):
     if any(o['phase'] not in TERMINAL or not o['settled'] for o in state['orders'].values()):
         raise ContractError('Existing pending/protective order must be reconciled first')
     old=state.get('native_protection',{})
-    if old.get('operator_approved') and not (old.get('status')=='approval_expired' and old.get('client_id') not in state['orders']):
+    renew=cfg.get('trx_trend_exit_hold') is True and renewable(state)
+    if old.get('operator_approved') and not (old.get('status')=='approval_expired' and old.get('client_id') not in state['orders']) and not renew:
         raise ContractError('This position already has a protection approval; no duplicate/replacement')
     holding=state['ledger']['holdings'].get('TRX');position=state.get('strategy',{}).get('positions',{}).get('TRX')
-    if not holding or not position or position['symbol']!='TRXTMN' or position.get('exit_reason'):
+    pending_exit=position and position.get('exit_reason') and not (cfg.get('trx_trend_exit_hold') is True and position['exit_reason']=='trend_reversed')
+    if not holding or not position or position['symbol']!='TRXTMN' or pending_exit:
         raise ContractError('A managed TRX/TMN position without a pending exit is required')
     trigger=(dec(position['peak_unit'])*(1-dec(position['stop']))/market.price_step).to_integral_value(rounding=ROUND_UP)*market.price_step
     limit=floor_step(trigger*(1-dec(cfg['order_limit_bps'])/10000),market.price_step)
@@ -42,7 +50,8 @@ def preview(state,market,cfg,reference,*,now):
             'entry_client_id':entry_id(state),'portfolio_sha256':digest(state['ledger']),
             'position_sha256':digest({'entry':entry_id(state),'opened_at':position['opened_at']}),
             'observed_at':now,'reference':reference,'fill_guaranteed':False,'fixed_backup':True,
-            'protective_orders_sent':0}
+            'protective_orders_sent':0,'replaces_client_id':old.get('client_id') if renew else None,
+            'trx_trend_exit_hold':cfg.get('trx_trend_exit_hold') is True}
 
 
 def validate_reference(reference,trigger,*,now):
@@ -68,7 +77,8 @@ def approve(j,request,*,now):
     old=j.s.get('native_protection')
     if old:
         if old.get('request_id')==request['request_id']:return
-        if old.get('status')!='approval_expired' or old.get('client_id') in j.s['orders']:
+        renew=renewable(j.s) and request['preview'].get('replaces_client_id')==old.get('client_id')
+        if not renew and (old.get('status')!='approval_expired' or old.get('client_id') in j.s['orders']):
             raise ContractError('A protection request is already committed')
     p=request['preview']
     if request.get('operator_approved') is not True or not now<request['expires_at']:
@@ -83,7 +93,8 @@ def submit(j,gateway,reference,*,now):
     p=j.s.get('native_protection',{})
     if not p.get('operator_approved') or p.get('client_id') in j.s['orders'] or p.get('exit_requested') or p.get('status')=='approval_expired':return None
     spec=p['preview'];position=j.s.get('strategy',{}).get('positions',{}).get('TRX')
-    if now>=p['expires_at'] or j.account_hash()!=spec['portfolio_sha256'] or not position or position.get('exit_reason'):
+    pending_exit=position and position.get('exit_reason') and not (spec.get('trx_trend_exit_hold') is True and position['exit_reason']=='trend_reversed')
+    if now>=p['expires_at'] or j.account_hash()!=spec['portfolio_sha256'] or not position or pending_exit:
         s=deepcopy(j.s);s['native_protection']['status']='approval_expired'
         j.checkpoint('native_protection_expired',{'request_id':p['request_id'],'time':now},s);return None
     validate_reference(reference,dec(spec['stop_price']),now=now)

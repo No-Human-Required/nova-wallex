@@ -71,17 +71,19 @@ def normalize_order(envelope,intent):
     if intent['type']=='STOP_LIMIT' and dec(r.get('stopPrice'))!=dec(intent['stop_price']):
         raise ContractError('Exchange did not confirm the protective trigger')
     if type(r.get('active')) is not bool:raise ContractError('active must be a boolean')
-    # Observed on Wallex's GET detail for an untriggered conditional order:
+    # Observed on Wallex's GET detail for an untriggered or cancelled conditional order:
     # all execution aggregates are explicitly null, while fills is an empty
     # list. This exception is NOT valid for missing fields or executed orders.
-    nullable_new=(intent['type']=='STOP_LIMIT' and r.get('status')=='NEW'
-                  and r.get('active') is True and r.get('fills')==[]
+    nullable_unfilled=(intent['type']=='STOP_LIMIT'
+                  and (r.get('status'),r.get('active')) in {('NEW',True),('CANCELED',False)}
+                  and r.get('fills')==[]
                   and r.get('stopPriceCondition')=='<='
+                  and dec(r.get('fee','0'))==0
                   and all(k in r and r[k] is None for k in
                           ('executedQty','executedSum','executedPrice','executedPercent')))
     if intent['type']=='STOP_LIMIT' and 'stopPriceCondition' in r and r['stopPriceCondition']!='<=':
         raise ContractError('Protective trigger direction differs')
-    qty=Decimal(0) if nullable_new else dec(r.get('executedQty'))
+    qty=Decimal(0) if nullable_unfilled else dec(r.get('executedQty'))
     if qty<0 or qty>dec(intent['quantity']):raise ContractError('Executed quantity outside original order')
     fills=[]
     if not isinstance(r.get('fills'),list):raise ContractError('Complete cumulative fills required')
@@ -102,7 +104,7 @@ def normalize_order(envelope,intent):
                       'feeAsset':asset(f.get('feeAsset')),'timestamp':str(stamp)})
     if sum((dec(f['quantity']) for f in fills),Decimal(0))!=qty:
         raise ContractError('Truncated or inconsistent cumulative fills')
-    if not nullable_new and 'executedSum' in r and dec(r['executedSum'])!=sum((dec(f['price'])*dec(f['quantity']) for f in fills),Decimal(0)):
+    if not nullable_unfilled and 'executedSum' in r and dec(r['executedSum'])!=sum((dec(f['price'])*dec(f['quantity']) for f in fills),Decimal(0)):
         raise ContractError('Executed notional mismatch')
     if r['active'] and qty==dec(intent['quantity']):raise ContractError('Contradictory active/full order')
     phase=('PARTIAL' if qty else 'OPEN') if r['active'] else ('FILLED' if qty==dec(intent['quantity']) else 'CLOSED')

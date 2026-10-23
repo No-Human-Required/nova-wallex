@@ -37,6 +37,21 @@ class QuoteView:
         return self.history.fx(t,previous=True) if previous else self.open('USDTTMN',t)
 
 class PlanningEngine(PortfolioEngine):
+    def exits(self,t):
+        # This reviewed hold suppresses only the TRX trend signal. The core
+        # still evaluates stops, time exits, account loss and deadline exits.
+        held=self.cfg.get('trx_trend_exit_hold') is True
+        position=self.s['positions'].get('TRX')
+        if held and position and position.get('exit_reason')=='trend_reversed':
+            position['exit_reason']=None
+            self.event('trx_trend_exit_hold',{'time':t,'reason':'prior_trend_signal_reconsidered','risk_exits_enabled':True})
+        super().exits(t)
+        position=self.s['positions'].get('TRX')
+        if held and position and position.get('exit_reason')=='trend_reversed':
+            position['exit_reason']=None
+            self.s['orders']=[o for o in self.s['orders'] if not (o['base']=='TRX' and o['stage']=='SELL' and o['reason']=='trend_reversed')]
+            self.event('trx_trend_exit_hold',{'time':t,'reason':'trend_exit_suppressed','risk_exits_enabled':True})
+
     def update_marks(self,t,*,terminal=False):
         for symbol in sorted({p['symbol'] for p in self.s['positions'].values()}|{'USDTTMN'}):
             price=self.h.open(symbol,t)

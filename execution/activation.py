@@ -25,6 +25,8 @@ def timestamp(value):
     return int(d.timestamp())
 
 def validate_binding(binding,key,markets,cfg):
+    if 'trx_trend_exit_hold' in cfg and type(cfg['trx_trend_exit_hold']) is not bool:
+        raise ContractError('TRX trend exit policy must be an explicit boolean')
     if cfg.get('runtime_policy') not in {None,'guarded_breakout_ai','hourly_opportunity_ai'}:
         raise ContractError('Unknown runtime policy')
     if cfg.get('runtime_policy') in {'guarded_breakout_ai','hourly_opportunity_ai'}:

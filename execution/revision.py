@@ -15,6 +15,23 @@ def read_identity(directory):
 
 
 def receipt_origin(identity,receipt):
+    if receipt.get('version')==6 and receipt.get('policy')=='native-cancel-reconciliation-v1':
+        prior=receipt.get('previous_revision',{})
+        if prior.get('version')!=5 or digest(prior)!=receipt.get('previous_revision_sha256'):
+            raise ContractError('Native cancellation previous receipt differs')
+        original=receipt_origin(identity,prior)
+        if prior.get('new_binding_sha256')!=receipt.get('old_binding_sha256') or prior.get('new_source_sha256')!=receipt.get('old_source_sha256'):
+            raise ContractError('Native cancellation source chain differs')
+        changes=receipt.get('config_changes')
+        if changes not in ({},{'trx_trend_exit_hold':True}) or receipt.get('old_config_sha256')!=prior.get('new_config_sha256'):
+            raise ContractError('Native cancellation cannot change risk configuration')
+        if changes=={} and receipt.get('new_config_sha256')!=receipt.get('old_config_sha256'):
+            raise ContractError('Unreviewed cancellation configuration change')
+        if changes and receipt.get('trx_trend_exit_hold_approved') is not True:
+            raise ContractError('TRX trend hold was not explicitly reviewed')
+        if receipt.get('execution_resumed') is not False or receipt.get('exchange_orders_sent')!=0 or receipt.get('ledger_changed') is not False or receipt.get('algorithmic_exit_preserved') is not True:
+            raise ContractError('Native cancellation review cannot trade or change the ledger/exit')
+        return original
     if receipt.get('version')==5 and receipt.get('policy')=='native-null-reconciliation-v1':
         prior=receipt.get('previous_revision',{})
         if prior.get('version')!=4 or digest(prior)!=receipt.get('previous_revision_sha256'):
@@ -71,7 +88,7 @@ def checked_identity(directory,receipt,current_cfg,binding):
     identity,state=read_identity(directory)
     if not state:raise ContractError('Explicit history revision receipt missing')
     original_binding=receipt_origin(identity,receipt)
-    if receipt.get('version') in {2,3,4,5} and binding and binding.get('risk_config_sha256')!=receipt.get('new_config_sha256'):
+    if receipt.get('version') in {2,3,4,5,6} and binding and binding.get('risk_config_sha256')!=receipt.get('new_config_sha256'):
         raise ContractError('Policy risk configuration differs')
     if digest(identity)!=receipt.get('prior_identity_sha256'):
         raise ContractError('Revision does not match original journal identity')
