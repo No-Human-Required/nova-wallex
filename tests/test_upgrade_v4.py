@@ -107,6 +107,42 @@ class UpgradeTests(unittest.TestCase):
             live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)
         self.assertEqual(read_identity(self.directory)[1], self.state6)
 
+    def halt_on_rounded_wallet(self, cash):
+        from execution.wallet_precision import POLICY
+        j = open_journal(self.directory, self.h.markets, session_binding=self.v6['binding'], revision=self.v6['revision'])
+        s = deepcopy(j.s)
+        from decimal import Decimal
+        # Keep cost-basis conservation: the synthetic cash difference is realized PnL.
+        s['ledger']['realized'] = str(Decimal(s['ledger']['realized'])+Decimal(cash)-Decimal(s['ledger']['cash']))
+        s['ledger']['cash'] = cash
+        s['wallet_observation_policy'] = POLICY
+        s['halt'] = 'wallet_ledger_mismatch'
+        j.checkpoint('synthetic_wallet_rounding_halt', {}, s)
+        j.audit.close()
+        self.app.state.live.stopped('blocked', 'Wallet differs from ledger; no silent resync')
+        return s
+
+    def test_upgrade_clears_a_halt_caused_by_wallet_rounding_up_without_touching_the_ledger(self):
+        self.prepare()
+        before = self.halt_on_rounded_wallet('4856061.6165')  # Wallex reports 4856062
+        r = live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)
+        self.assertTrue(r['ok'])
+        self.assertFalse(r['execution_resumed'])
+        _, s = read_identity(self.directory)
+        self.assertIsNone(s['halt'])
+        self.assertEqual(s['ledger'], before['ledger'])
+        self.assertEqual(s['balance_precision']['rounding'], 'up')
+        self.assertEqual(s['balance_precision']['spending_cash_tmn'], '4856061.6165')
+
+    def test_upgrade_keeps_a_real_wallet_mismatch_halted(self):
+        self.prepare()
+        before = self.halt_on_rounded_wallet('4856060.6165')
+        with self.assertRaises(ValueError):
+            live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)
+        _, s = read_identity(self.directory)
+        self.assertEqual(s['halt'], 'wallet_ledger_mismatch')
+        self.assertEqual(s['ledger'], before['ledger'])
+
     def test_tampered_receipt_is_rejected_by_journal(self):
         self.prepare()
         live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)

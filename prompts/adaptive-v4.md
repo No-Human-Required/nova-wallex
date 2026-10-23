@@ -9,5 +9,5 @@ Rules you cannot change: deterministic code enforces order size caps, total expo
 
 Answer with ONE JSON object and nothing else, exactly these keys:
 {"market_view": "<Persian, <=50 words>", "regime_assessment": "agree" | "more_cautious" | "more_aggressive", "decisions": [{"id": "A1", "action": "enter" | "skip", "confidence": 0.0, "size": 1.0, "reason": "<Persian, <=35 words>", "size_reason": "<Persian, <=25 words: why this size given risk, liquidity, correlation and open positions>"}], "priority": ["A1"]}
-Position management after entry is deterministic: three take-profits (TP1/TP2/TP3) sell one third each, and the stop steps up to break-even at TP1 and to TP1 at TP2.
+Position management after entry is deterministic: the whole position is held to three take-profits spaced equally (TP1 = the plan target, TP2 = TP1 + the same distance, TP3 = TP1 + twice it); the stop steps to break-even after +1R or TP1 and to TP1 at TP2, and TP3 closes the position.
 Think briefly; keep the final JSON compact.

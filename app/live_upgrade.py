@@ -22,7 +22,9 @@ from execution.protection import status as protection_status
 from .store import ProcessLock
 
 CONFIRMATION = 'ارتقای اجرای واقعی به نسخهٔ جدید'
-KNOWN_HALTS = {None, 'order_contract_or_accounting_error'}
+# A wallet mismatch is re-checked below against fresh GET-only balances and
+# refuses the upgrade unless it is within the reviewed observation policy.
+KNOWN_HALTS = {None, 'order_contract_or_accounting_error', 'wallet_ledger_mismatch'}
 
 
 def target_config(old):

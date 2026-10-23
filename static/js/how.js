@@ -11,14 +11,14 @@ const STAGES = [
   ['ai', 'تأیید AI', 'مدل: ورود/رد، اطمینان ≥ ۰٫۶۵، ضریب اندازه و دلیل'],
   ['fast', 'تأیید ۱۵ دقیقه', 'EMA8>EMA21 و قیمت بالای EMA8؛ اسپرد و دفتر سفارش'],
   ['risk', 'ریسک و اندازه', 'کوچک‌ترین سقف: رژیم، سفارش، دارایی، بودجهٔ ریسک، ناخالص، نقد'],
-  ['order', 'سفارش و مدیریت', 'LIMIT ده‌ثانیه‌ای، سه TP و حد ضرر پله‌ای']
+  ['order', 'سفارش و مدیریت', 'LIMIT ده‌ثانیه‌ای، سه TP با فاصلهٔ برابر و حد ضرر پله‌ای']
 ];
 const FLOW = ['data', 'liquidity', 'strategy', 'quality', 'ai', 'fast', 'risk', 'order'];
 // Number of pipeline nodes a pair has passed (0 = rejected at the data check).
-const PASSED = { data: 0, liquidity: 1, strategy: 2, quality: 3, candidate: 4 };
-const COLORS = { data: '#3a3f48', liquidity: '#5b4b2a', strategy: '#3d4f6b', quality: '#5a3e6b', ai_skip: '#6b2f3a', ai_enter: '#1f6b52', executed: '#34d399', fast: '#7a5b1f', candidate: '#4a4f7a' };
+const PASSED = { data: 0, liquidity: 1, strategy: 2, quality: 3, duplicate: 3, candidate: 4 };
+const COLORS = { duplicate: '#4a4152', data: '#3a3f48', liquidity: '#5b4b2a', strategy: '#3d4f6b', quality: '#5a3e6b', ai_skip: '#6b2f3a', ai_enter: '#1f6b52', executed: '#34d399', fast: '#7a5b1f', candidate: '#4a4f7a' };
 const LIMIT_FA = { regime_order_cap: 'سقف ورود رژیم', hard_order_cap: 'سقف سخت سفارش', asset_cap: 'سقف ۱۰٪ هر دارایی', risk_budget: 'بودجهٔ ریسک ÷ حد ضرر', gross_room: 'ظرفیت ناخالص ۵۰٪', cash_room: 'نقد آزاد' };
-const REJECT_FA = { missing_required_history: 'دادهٔ ساعتی ناکافی', too_many_empty_hours_or_last_hour_without_trade: 'ساعت آخر بی‌معامله یا ساعت‌های خالی زیاد', insufficient_recent_liquidity: 'گردش ۲۴ساعته کم', estimated_capacity_below_minimum: 'ظرفیت کمتر از حداقل سفارش', no_active_strategy_setup: 'هیچ ستاپ فعالی در این رژیم', below_quality: 'امتیاز کیفیت زیر ۵۵', spread_gate: 'اسپرد زیاد', fast_trend_not_confirmed: 'روند ۱۵ دقیقه‌ای تأیید نشد', fast_data_unavailable: 'دادهٔ ۱۵ دقیقه‌ای در دسترس نبود', missing_or_stale_quote: 'قیمت زنده نامعتبر' };
+const REJECT_FA = { missing_required_history: 'دادهٔ ساعتی ناکافی', too_many_empty_hours_or_last_hour_without_trade: 'ساعت آخر بی‌معامله یا ساعت‌های خالی زیاد', insufficient_recent_liquidity: 'گردش ۲۴ساعته کم', estimated_capacity_below_minimum: 'ظرفیت کمتر از حداقل سفارش', no_active_strategy_setup: 'هیچ ستاپ فعالی در این رژیم', below_quality: 'امتیاز کیفیت زیر ۵۵', better_pair_same_asset: 'ستاپ داشت، ولی جفت دیگرِ همین دارایی کیفیت بالاتری داشت', spread_gate: 'اسپرد زیاد', fast_trend_not_confirmed: 'روند ۱۵ دقیقه‌ای تأیید نشد', fast_data_unavailable: 'دادهٔ ۱۵ دقیقه‌ای در دسترس نبود', missing_or_stale_quote: 'قیمت زنده نامعتبر' };
 
 export function pageHow(root, ctx) {
   const { every, keep, safe, sName, famChip, STRAT } = ctx;
@@ -35,7 +35,7 @@ export function pageHow(root, ctx) {
     <div class="panel"><div class="head"><h2>مدیریت سرمایه: اندازهٔ هر ورود چطور ساخته می‌شود</h2></div><div class="body"><select id="allocsel" style="width:100%"></select><div id="alloc" style="margin-top:10px"></div></div></div>
     <div class="panel"><div class="head"><h2>پرتفو و وزن‌ها</h2><span class="sub">سهم هر دارایی از ارزش حساب در برابر سقف‌ها</span></div><div class="body"><div class="grid g2"><div id="donut"></div><div id="weights"></div></div><div id="riskbars" style="margin-top:10px"></div></div></div>
   </section>
-  <section class="panel" style="margin-bottom:14px"><div class="head"><h2>نقشهٔ خروج هر موقعیت: سه TP و حد ضرر پله‌ای</h2><span class="sub">در هر TP یک‌سوم فروخته می‌شود (اگر از حداقل سفارش بیشتر باشد) و حد ضرر یک پله بالا می‌آید</span></div><div class="body grid g2" id="ladders"></div></section>
+  <section class="panel" style="margin-bottom:14px"><div class="head"><h2>نقشهٔ خروج هر موقعیت: سه TP با فاصلهٔ برابر و حد ضرر پله‌ای</h2><span class="sub">کل موقعیت نگه داشته می‌شود؛ با رسیدن به هر TP حد ضرر یک پله بالا می‌آید و TP3 خروج کامل است</span></div><div class="body grid g2" id="ladders"></div></section>
   <section class="panel"><div class="head"><h2>تست سایه و خط مبنای AI</h2><span class="sub">بدون سفارش واقعی: همهٔ نامزدها با همان برنامه روی کندل‌های ۵ دقیقه‌ای دنبال می‌شوند</span></div><div class="body" id="shadow"><div class="skeleton" style="height:60px"></div></div></section>`;
 
   let data = null, idx = 0, playing = null, selected = null, strat = 'all';
@@ -47,7 +47,8 @@ export function pageHow(root, ctx) {
 
   function scanAt(i) { return data && data.scans[i]; }
   function stageOf(sym, scan) {
-    const p = (scan.pairs || {})[sym] || {};
+    const top = (scan.top || []).find(c => c.symbol === sym);
+    const p = (scan.pairs || {})[sym] || (top ? { stage: 'candidate', quality: top.quality, strategy: top.strategy, strategies: top.confluence || [top.strategy] } : {});
     const dec = data.decisions.find(d => d.time === scan.time);
     const a = dec && (dec.decisions || []).find(x => x.symbol === sym);
     const alloc = data.allocations.filter(x => x.time === scan.time && x.candidate === sym);
@@ -62,12 +63,35 @@ export function pageHow(root, ctx) {
     else if (alloc.length) { label = 'رد در اندازه‌گذاری: ' + (alloc[alloc.length - 1].reason || ''); }
     return { p, a, alloc, gate, level, color, label };
   }
+  const hasPairs = scan => Object.keys(scan.pairs || {}).length > 0;
+  // Pairs passing each pipeline node. Scans without per-pair detail use the
+  // coverage counts recorded at that hour; AI and later nodes come from the
+  // recorded candidates, decisions and allocations either way.
+  function counts(scan) {
+    if (!scan) return FLOW.map(() => 0);
+    if (hasPairs(scan)) {
+      const pairs = Object.keys(scan.pairs);
+      return FLOW.map((_, i) => pairs.filter(s => stageOf(s, scan).level >= i + 1 && (strat === 'all' || i < 2 || (scan.pairs[s].strategies || []).includes(strat))).length);
+    }
+    const c = scan.coverage || {}; const top = (scan.top || []).filter(x => strat === 'all' || x.strategy === strat || (x.confluence || []).includes(strat));
+    const liquid = (c.signal || 0) + (c.eligible_no_signal || 0);
+    const checked = liquid + (c.missing_required_history || 0) + (c.insufficient_recent_liquidity || 0) + (c.estimated_capacity_below_minimum || 0);
+    const setups = strat === 'all' ? (c.signal || 0) : ((c.strategy_hits || {})[strat] || 0);
+    const later = [5, 6, 7, 8].map(l => top.filter(x => stageOf(x.symbol, scan).level >= l).length);
+    return [checked - (c.missing_required_history || 0), liquid, setups, Math.max(top.length, strat === 'all' ? setups - (c.below_quality || 0) : top.length), ...later];
+  }
+  function checkedCount(scan) {
+    if (!scan) return 0;
+    if (hasPairs(scan)) return Object.keys(scan.pairs).length;
+    const c = scan.coverage || {};
+    return ['signal', 'eligible_no_signal', 'missing_required_history', 'insufficient_recent_liquidity', 'estimated_capacity_below_minimum'].reduce((a, k) => a + (c[k] || 0), 0);
+  }
   function drawFlow() {
-    const scan = scanAt(idx); const pairs = scan ? Object.keys(scan.pairs || {}) : [];
-    const counts = FLOW.map((_, i) => pairs.filter(s => stageOf(s, scan).level >= i + 1 && (strat === 'all' || i < 2 || (scan.pairs[s].strategies || []).includes(strat))).length);
+    const scan = scanAt(idx);
+    const passed = counts(scan);
     const s = cat.strategies && cat.strategies[strat];
     $('#flow').innerHTML = STAGES.map(([k, t, d], i) => {
-      const n = i === 0 ? 120 : counts[i - 1];
+      const n = i === 0 ? (scan ? checkedCount(scan) : 120) : passed[i - 1];
       const ai = k === 'ai';
       return `${i ? `<div class="edge ${n ? 'live' : ''}"><i></i><i></i><i></i></div>` : ''}<div class="node ${ai ? 'ai' : ''}" title="${esc(d)}"><b>${esc(t)}</b><span>${scan || i === 0 ? n0(n) : '—'}</span>${ai ? '<em>LLM</em>' : ''}</div>`;
     }).join('');
@@ -77,16 +101,17 @@ export function pageHow(root, ctx) {
   function drawScan() {
     const scan = scanAt(idx);
     if (!scan) { $('#funnel').innerHTML = '<div class="empty">پس از اولین اسکن نسخهٔ جدید، جزئیات هر جفت اینجا نمایش داده می‌شود.</div>'; drawFlow(); return; }
-    $('#scanlbl').textContent = `اسکن ${when(scan.time)} · رژیم ${scan.regime ? scan.regime.fa : '—'} · ${idx + 1} از ${data.scans.length}`;
-    const pairs = Object.keys(scan.pairs || {});
+    const src = { recorded: 'ثبت‌شده در همان ساعت', replayed: 'بازسازی‌شده از مشاهدات تغییرناپذیر همان ساعت (شمارش‌ها با ثبت موتور یکسان است)', pending: 'در حال بازسازی جزئیات جفت‌ها…', coverage: 'شمارش ثبت‌شدهٔ موتور (جزئیات تک‌جفت در دسترس نیست)' }[scan.pairs_source] || '';
+    $('#scanlbl').textContent = `اسکن ${when(scan.time)} · رژیم ${scan.regime ? scan.regime.fa : '—'} · ${idx + 1} از ${data.scans.length}${src ? ' · ' + src : ''}`;
+    const pairs = hasPairs(scan) ? Object.keys(scan.pairs) : (scan.top || []).map(c => c.symbol);
     const st = pairs.map(s => [s, stageOf(s, scan)]);
-    const rows = [['جفت‌های بررسی‌شده', st.length], ['دادهٔ کافی', st.filter(x => x[1].level >= 1).length], ['نقدشونده', st.filter(x => x[1].level >= 2).length],
-      ['ستاپ استراتژی', st.filter(x => x[1].level >= 3).length], ['کیفیت ≥ ۵۵', st.filter(x => x[1].level >= 4).length], ['تأیید AI', st.filter(x => x[1].level >= 5).length], ['سفارش', st.filter(x => x[1].level >= 8).length]];
+    const n = counts(scan);
+    const rows = [['جفت‌های بررسی‌شده', checkedCount(scan)], ['دادهٔ کافی', n[0]], ['نقدشونده', n[1]], ['ستاپ استراتژی', n[2]], ['کیفیت ≥ ۵۵', n[3]], ['تأیید AI', n[4]], ['سفارش', n[7]]];
     const max = rows[0][1] || 1;
     $('#funnel').innerHTML = rows.map(([t, n], i) => `<div style="display:grid;grid-template-columns:110px 1fr 40px;gap:8px;align-items:center;margin:4px 0;font-size:12.5px"><span>${t}</span>
-      <div style="height:16px;background:#1a1d22;border-radius:6px;overflow:hidden"><i style="display:block;height:100%;width:${n / max * 100}%;background:${['#565c66', '#6b7280', '#a07f3c', '#5f7fb3', '#8b6bb3', '#b49cff', '#34d399'][i]};transition:width .8s"></i></div><b>${n0(n)}</b></div>`).join('');
+      <div style="height:16px;background:#1a1d22;border-radius:6px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100, n / max * 100)}%;background:${['#565c66', '#6b7280', '#a07f3c', '#5f7fb3', '#8b6bb3', '#b49cff', '#34d399'][i]};transition:width .8s"></i></div><b>${n0(n)}</b></div>`).join('');
     $('#pairs').innerHTML = st.sort((a, b) => b[1].level - a[1].level).map(([s, x]) => `<div class="tile ${s === selected ? 'cand' : ''}" data-s="${s}" style="background:${x.color};padding:5px 6px"><b style="font-size:10.5px">${esc(s.replace(/(TMN|USDT)$/, ''))}<small class="faint">/${s.endsWith('USDT') ? 'USDT' : 'TMN'}</small></b><span style="font-size:10px">${x.p.quality !== undefined ? 'Q ' + n0(x.p.quality) : '&nbsp;'}</span></div>`).join('');
-    $('#legend').innerHTML = [['data', 'داده'], ['liquidity', 'نقدشوندگی'], ['strategy', 'بدون ستاپ'], ['quality', 'زیر حد کیفیت'], ['candidate', 'نامزد AI'], ['ai_skip', 'رد AI'], ['fast', 'رد اجرایی/۱۵ دقیقه'], ['ai_enter', 'تأیید AI'], ['executed', 'سفارش']].map(([k, t]) => `<span style="display:inline-flex;align-items:center;gap:4px;margin-left:10px"><i style="width:10px;height:10px;border-radius:3px;background:${COLORS[k]}"></i>${t}</span>`).join('');
+    $('#legend').innerHTML = (hasPairs(scan) ? '' : '<div style="margin-bottom:4px">برای این اسکن فقط نامزدهای ارسالی به AI نمایش داده می‌شوند.</div>') + [['data', 'داده'], ['liquidity', 'نقدشوندگی'], ['strategy', 'بدون ستاپ'], ['duplicate', 'جفت دیگرِ همین دارایی'], ['quality', 'زیر حد کیفیت'], ['candidate', 'نامزد AI'], ['ai_skip', 'رد AI'], ['fast', 'رد اجرایی/۱۵ دقیقه'], ['ai_enter', 'تأیید AI'], ['executed', 'سفارش']].map(([k, t]) => `<span style="display:inline-flex;align-items:center;gap:4px;margin-left:10px"><i style="width:10px;height:10px;border-radius:3px;background:${COLORS[k]}"></i>${t}</span>`).join('');
     drawFlow(); if (selected) info(selected);
   }
   function info(s) {
@@ -166,9 +191,9 @@ export function pageHow(root, ctx) {
       const stage = +m.tp_stage || 0;
       return `<div><div style="font-weight:700">${sym(m.symbol)} ${famChip(m.strategy)} <span class="chip">مرحله ${n0(stage)} از ۳</span></div>
         <svg viewBox="0 0 320 200" style="width:100%;height:210px">${levels.map(([n, v, c], i) => `<line x1="20" x2="250" y1="${Y(v)}" y2="${Y(v)}" stroke="${c}" stroke-dasharray="${n === 'قیمت فعلی' ? '0' : '5 4'}" stroke-width="${n === 'قیمت فعلی' ? 2 : 1.2}"><animate attributeName="x2" from="20" to="250" dur="${0.6 + i * 0.15}s" fill="freeze"/></line>
-          <text x="256" y="${Y(v) + 4}" fill="${c}" font-size="10">${n} ${price(v)}</text>${n.startsWith('TP') ? `<text x="24" y="${Y(v) - 3}" fill="${stage >= +n[2] ? '#34d399' : '#98a0ab'}" font-size="9">${stage >= +n[2] ? '✓ فروخته/پله شد' : 'فروش ۱/۳'}</text>` : ''}`).join('')}
+          <text x="256" y="${Y(v) + 4}" fill="${c}" font-size="10">${n} ${price(v)}</text>${n.startsWith('TP') ? `<text x="24" y="${Y(v) - 3}" fill="${stage >= +n[2] ? '#34d399' : '#98a0ab'}" font-size="9">${stage >= +n[2] ? '✓ رسید؛ حد ضرر بالا آمد' : n === 'TP3' ? 'خروج کامل' : 'حد ضرر پله می‌شود'}</text>` : ''}`).join('')}
           <circle cx="140" cy="${Y(now)}" r="5" fill="#f5c343"><animate attributeName="r" values="4;8;4" dur="1.6s" repeatCount="indefinite"/></circle></svg>
-        <div class="faint" style="font-size:11.5px">مقدار اولیه ${n2(m.initial_qty)} · پله‌ها: TP1 → حد ضرر به سربه‌سر، TP2 → حد ضرر به TP1، TP3 → خروج کامل. حد ضرر شناور ${pct(+m.stop * 100, 1)} زیر اوج همیشه فعال است.</div></div>`;
+        <div class="faint" style="font-size:11.5px">فاصلهٔ TP‌ها برابر است (TP1 = حد سود استراتژی). پله‌ها: +1R یا TP1 → حد ضرر به سربه‌سر، TP2 → حد ضرر به TP1، TP3 → خروج کامل. حد ضرر شناور ${pct(+m.stop * 100, 1)} زیر اوج همیشه فعال است.</div></div>`;
     }).join('');
   }
   async function drawShadow() {
@@ -176,7 +201,7 @@ export function pageHow(root, ctx) {
     const s = d.summary || {}; const card = (t, x, c) => `<div class="panel kpi"><div class="label">${t}</div><div class="value ${signCls(x && x.mean_return_percent)}">${x && x.count ? pct(x.mean_return_percent, 2) : '—'}</div><div class="note">${x ? n0(x.count) + ' نامزد · برد ' + (x.win_rate !== null && x.win_rate !== undefined ? pct(x.win_rate * 100, 0) : '—') : ''}</div></div>`;
     $('#shadow').innerHTML = `<div class="grid g3" style="margin-bottom:10px">${card('تأییدشده توسط AI', s.ai_enter, '')}${card('ردشده توسط AI', s.ai_skip, '')}${card('همهٔ نامزدهای قواعد', s.all_rules, '')}</div>
       <div class="faint" style="font-size:11.5px;margin-bottom:8px">${esc(d.method)} اختلاف «تأیید» و «رد» اثر واقعی فیلتر AI را نشان می‌دهد؛ نمونه کوچک است و با گذشت زمان کامل‌تر می‌شود.</div>
-      ${d.rows.length ? `<div class="table-wrap scroll" style="max-height:320px"><table><thead><tr><th>زمان</th><th>جفت</th><th>استراتژی</th><th>کیفیت</th><th>AI</th><th>نتیجهٔ سایه</th><th>پایان</th><th>دلیل AI</th></tr></thead><tbody>${d.rows.map(r => `<tr><td>${when(r.time)}</td><td>${sym(r.symbol)}</td><td>${esc(sName(r.strategy))}</td><td>${n0(r.quality)}</td><td>${r.ai_action === 'enter' ? '<span class="pos">ورود</span>' : r.ai_action === 'skip' ? '<span class="neg">رد</span>' : '<span class="faint">بدون درخواست</span>'}</td><td class="${signCls(r.return_percent)}">${pct(r.return_percent)}</td><td>${esc({ tp3: 'TP3', stop: 'حد ضرر', stepped_stop: 'حد ضرر پله‌ای', time_exit: 'پایان زمان', open_marked: 'هنوز باز' }[r.reason] || r.reason)} · مرحله ${n0(r.tp_stage)}</td><td style="font-size:11.5px;max-width:260px">${esc(r.ai_reason || '')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">هنوز نامزدی برای تست سایه ثبت نشده است.</div>'}`;
+      ${d.rows.length ? `<div class="table-wrap scroll" style="max-height:320px"><table><thead><tr><th>زمان</th><th>جفت</th><th>استراتژی</th><th>کیفیت</th><th>AI</th><th>نتیجهٔ سایه</th><th>پایان</th><th>دلیل AI</th></tr></thead><tbody>${d.rows.map(r => `<tr><td>${when(r.time)}</td><td>${sym(r.symbol)}</td><td>${esc(sName(r.strategy))}</td><td>${n0(r.quality)}</td><td>${r.ai_action === 'enter' ? '<span class="pos">ورود</span>' : r.ai_action === 'skip' ? '<span class="neg">رد</span>' : '<span class="faint">بدون درخواست</span>'}</td><td class="${signCls(r.return_percent)}">${pct(r.return_percent)}</td><td>${esc({ tp3: 'TP3', stop: 'حد ضرر', stepped_stop: 'حد ضرر پله‌ای', breakeven_stop: 'سربه‌سر', time_exit: 'پایان زمان', open_marked: 'هنوز باز' }[r.reason] || r.reason)} · مرحله ${n0(r.tp_stage)}</td><td style="font-size:11.5px;max-width:260px">${esc(r.ai_reason || '')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">هنوز نامزدی برای تست سایه ثبت نشده است.</div>'}`;
   }
   every(15000, async () => {
     const d = await safe(() => api('/api/public/explain'), $('#funnel')); if (!d) return;

@@ -276,14 +276,23 @@ class ControllerAdaptiveTests(unittest.TestCase):
         self.assertEqual(len(self.send.calls), 1)
         later = self.t+3*3600+5
         self.c.reconcile_account(now=later)
-        high = (D(pos['target'])*D('1.01')).quantize(D(1))
+        target = D(pos['target'])
+        high = (target*D('1.01')).quantize(D(1))
         self.h.prices['AAATMN'] = high
         r = self.c.step(self.h, self.h.quotes(later, aaa=high), now=later, can_submit=True)
-        self.assertIn(self.j.s['strategy']['contexts'][r['client_id']]['reason'], {'tp1', 'tp2', 'tp3'})
+        # TP1 (the structural target) keeps the whole position and raises the stop.
+        self.assertFalse(self.g.sent[1:], r)
         meta = self.j.s['strategy']['positions']['AAA']
-        self.assertEqual(len(meta['tp']), 3)
-        self.assertGreaterEqual(meta['tp_stage'], 1)
+        tp = [D(x) for x in meta['tp']]
+        self.assertEqual(tp[0], target.quantize(D('0.0001')))
+        self.assertEqual(tp[1]-tp[0], tp[0]-D(meta['basis_unit']))
+        self.assertEqual(meta['tp_stage'], 1)
         self.assertIsNotNone(meta['sl_floor'])
+        top = (tp[2]*D('1.001')).quantize(D(1))
+        self.h.prices['AAATMN'] = top
+        self.c.reconcile_account(now=later+60)
+        r = self.c.step(self.h, self.h.quotes(later+60, aaa=top), now=later+60, can_submit=True)
+        self.assertEqual(self.j.s['strategy']['contexts'][r['client_id']]['reason'], 'tp3')
 
     def test_failed_ai_or_interrupted_reservation_never_trades_or_double_bills(self):
         self.make([reply('', finish='length')]*3)
@@ -325,7 +334,7 @@ class CoverageAndExitTests(unittest.TestCase):
         self.assertIsNone(st.series(h, 'AAATMN', t))
         self.assertIsNone(AdaptiveHistory.sparse_feature(h, 'AAATMN', t))
 
-    def test_existing_position_gets_three_take_profits_and_stepped_stop(self):
+    def test_existing_position_gets_equal_step_take_profits_and_stepped_stop(self):
         from execution.planner import plan
         h = Fixture()
         t = 3600*500
@@ -335,32 +344,59 @@ class CoverageAndExitTests(unittest.TestCase):
                   'holdings': {'AAA': {'qty': '300', 'basis': '300000'}}}
         strategy = {'positions': {'AAA': {'symbol': 'AAATMN', 'opened_at': t-7200, 'stop': '0.05', 'peak_unit': '1000', 'exit_reason': None}},
                     'control': {}, 'contexts': {}, 'processed': [], 'route': None}
+
+        def at(meta, price, peak=None):
+            strategy['positions']['AAA'] = dict(meta, peak_unit=str(peak or meta['peak_unit']))
+            return plan(h, t, cfg, ledger, strategy, h.quotes(t, aaa=str(price)), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
         d = plan(h, t, cfg, ledger, strategy, h.quotes(t), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
         meta = d['positions']['AAA']
         tp = [D(x) for x in meta['tp']]
-        self.assertTrue(D('1000') < tp[0] < tp[1] < tp[2])
-        self.assertGreaterEqual(tp[0], D('1018'))  # at least 2x round-trip cost
+        self.assertGreaterEqual(tp[0], D('1050'))  # at least 1R and 2x round-trip cost
+        self.assertEqual(tp[1]-tp[0], tp[0]-D('1000'))
+        self.assertEqual(tp[2]-tp[1], tp[0]-D('1000'))
         self.assertEqual(meta['tp_stage'], 0)
+        self.assertEqual(meta['target'], meta['tp'][0])
         self.assertTrue(any(k == 'take_profit_ladder_set' for k, _ in d['events']))
-        # TP1: sell one third and raise the stop to break-even.
-        strategy['positions']['AAA'] = dict(meta)
+        # TP1: nothing is sold; the stop moves to break-even (+0.4%).
         up = (tp[0]*D('1.001')).quantize(D(1))
-        d = plan(h, t, cfg, ledger, strategy, h.quotes(t, aaa=up), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
-        self.assertEqual([(o['reason'], o['qty']) for o in d['orders']], [('tp1', D(100))])
+        d = at(meta, up)
+        self.assertEqual(d['orders'], [])
         m1 = d['positions']['AAA']
         self.assertEqual(m1['tp_stage'], 1)
         self.assertEqual(D(m1['sl_floor']), D('1004'))
-        # Back below the stepped stop: the remainder exits.
-        strategy['positions']['AAA'] = dict(m1, peak_unit=str(up))
-        d = plan(h, t, cfg, {**ledger, 'cash': '4800000', 'holdings': {'AAA': {'qty': '200', 'basis': '200000'}}}, strategy, h.quotes(t, aaa='1003'),
-                 now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
-        self.assertEqual([o['reason'] for o in d['orders']], ['stepped_stop'])
-        # A small position cannot be split below the exchange minimum: the stop still steps.
-        small = {**ledger, 'cash': '4928000', 'holdings': {'AAA': {'qty': '72', 'basis': '72000'}}}
-        strategy['positions']['AAA'] = dict(meta, initial_qty='72')
-        d = plan(h, t, cfg, small, strategy, h.quotes(t, aaa=up), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
+        d = at(m1, '1003', peak=up)
+        self.assertEqual([(o['reason'], o['qty']) for o in d['orders']], [('breakeven_stop', D(300))])
+        # TP2: the stop moves to TP1; a fall back to TP1 closes the whole position.
+        up2 = (tp[1]*D('1.001')).quantize(D(1))
+        d = at(m1, up2)
+        m2 = d['positions']['AAA']
+        self.assertEqual((d['orders'], m2['tp_stage'], D(m2['sl_floor'])), ([], 2, tp[0]))
+        d = at(m2, (tp[0]*D('0.999')).quantize(D(1)), peak=up2)
+        self.assertEqual([(o['reason'], o['qty']) for o in d['orders']], [('stepped_stop', D(300))])
+        # TP3 closes the whole position.
+        d = at(m2, (tp[2]*D('1.001')).quantize(D(1)))
+        self.assertEqual([(o['reason'], o['qty']) for o in d['orders']], [('tp3', D(300))])
+
+    def test_ladder_from_4_3_0_is_rebuilt_without_lowering_its_stop(self):
+        from execution.planner import plan
+        h = Fixture()
+        t = 3600*500
+        h.t0 = t
+        cfg = adaptive_config(validated_config())
+        ledger = {'cash': '4800000', 'realized': '0', 'capital': '5000000', 'holdings': {'AAA': {'qty': '200', 'basis': '200000'}}}
+        old = {'symbol': 'AAATMN', 'opened_at': t-7200, 'stop': '0.05', 'peak_unit': '1030', 'exit_reason': None, 'strategy': 'ind_ema_macd_trend',
+               'tp': ['1020', '1040', '1060'], 'tp_stage': 1, 'sl_floor': '1004', 'initial_qty': '300', 'basis_unit': '1000', 'target': '1060'}
+        strategy = {'positions': {'AAA': old}, 'control': {}, 'contexts': {}, 'processed': [], 'route': None}
+        d = plan(h, t, cfg, ledger, strategy, h.quotes(t, aaa='1020'), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
+        meta = d['positions']['AAA']
+        self.assertEqual(meta['tp'], ['1125.0000', '1250.0000', '1375.0000'])  # 2.5R trend TP1, then equal steps
+        self.assertEqual(meta['tp_policy'], 'tp1-plus-two-equal-steps-v1')
+        self.assertEqual(meta['tp_stage'], 0)
+        self.assertEqual(D(meta['sl_floor']), D('1004'))
         self.assertEqual(d['orders'], [])
-        self.assertEqual(d['positions']['AAA']['tp_stage'], 1)
+        ev = [p for k, p in d['events'] if k == 'take_profit_ladder_set'][0]
+        self.assertEqual(ev['previous']['tp'], ['1020', '1040', '1060'])
+        self.assertEqual(ev['tp1_source'], 'strategy_r_multiple')
 
 
 class FastLayerTests(unittest.TestCase):
@@ -439,7 +475,8 @@ class TakeProfitFloorTests(unittest.TestCase):
         meta = d['positions']['AAA']
         self.assertGreaterEqual(D(meta['tp'][0]), D('1018'))
         ev = [p for k, p in d['events'] if k == 'take_profit_ladder_set'][0]
-        self.assertEqual(ev['previous_target'], '1007')
+        self.assertEqual(ev['previous']['target'], '1007')
+        self.assertEqual(D(meta['tp'][1])-D(meta['tp'][0]), D(meta['tp'][0])-D('1000'))
         strategy['positions']['AAA'] = dict(meta)
         d2 = plan(h, t, cfg, ledger, strategy, h.quotes(t), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
         self.assertFalse([k for k, _ in d2['events'] if k == 'take_profit_ladder_set'])
@@ -454,6 +491,15 @@ class ShadowTests(unittest.TestCase):
         self.assertEqual(r['reason'], 'tp3')
         self.assertEqual(r['tp_stage'], 3)
         self.assertGreater(r['return_percent'], 0)
+        # Whole position: the full move to TP3 is captured, not thirds.
+        self.assertAlmostEqual(r['return_percent'], (100*1.0045*1.06*(1-0.0045)/(100*1.0045)-1)*100, places=6)
+        # TP1 then a fall: the break-even stop closes everything just above entry.
+        fall = [100, 101, 102.5, 101, 100.6, 100, 99, 98, 97, 96, 95, 94]
+        r = follow((t, [100]*12, fall, fall, fall), 0, 0.02, 24, 'TMN')
+        self.assertEqual((r['reason'], r['tp_stage']), ('breakeven_stop', 1))
+        r = follow((t, [100]*12, up, [99.8]+up[:-1], up), 0, 0.02, 24, 'TMN', target_fraction=0.05)
+        self.assertEqual(r['reason'], 'tp3')
+        self.assertAlmostEqual(r['return_percent'], (1.15*(1-0.0045)-1)*100, places=6)
         down = [100, 99, 97, 95, 94, 93, 92, 91, 90, 89, 88, 87]
         r = follow((t, [100]*12, [100.2]*12, down, down), 0, 0.02, 24, 'TMN')
         self.assertEqual(r['reason'], 'stop')

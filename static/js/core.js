@@ -67,7 +67,7 @@ export const STATUS_FA = {
   activation_pending: 'در انتظار شروع', not_configured: 'پیکربندی نشده', stopping: 'در حال توقف', reduce_only: 'فقط کاهش'
 };
 export const REASON_FA = {
-  trailing_stop: 'حد ضرر شناور', target_reached: 'رسیدن به هدف', tp1: 'TP1 (فروش یک‌سوم)', tp2: 'TP2 (فروش یک‌سوم)', tp3: 'TP3 (خروج کامل)', stepped_stop: 'حد ضرر پله‌ای', breakeven_stop: 'سربه‌سر', fast_trend_break: 'شکست روند ۱۵ دقیقه‌ای', time_exit: 'پایان زمان نگهداری', trend_reversed: 'برگشت روند',
+  trailing_stop: 'حد ضرر شناور', target_reached: 'رسیدن به هدف', tp1: 'TP1 (فروش یک‌سوم، نسخهٔ ۴٫۳)', tp2: 'TP2 (فروش یک‌سوم، نسخهٔ ۴٫۳)', tp3: 'TP3 (خروج کامل)', stepped_stop: 'حد ضرر پله‌ای', breakeven_stop: 'سربه‌سر', fast_trend_break: 'شکست روند ۱۵ دقیقه‌ای', time_exit: 'پایان زمان نگهداری', trend_reversed: 'برگشت روند',
   portfolio_halt: 'توقف ریسک پرتفوی', reversion_complete: 'بازگشت کامل', funded_usdt_leg: 'پای دوم تتر', fund_usdt_route: 'تأمین تتر',
   confirmed_funding: 'خرید پس از تأمین', residual_fx_to_tmn: 'تبدیل ماندهٔ تتر', sale_proceeds_to_tmn: 'تبدیل فروش به تومان',
   native_stop_protection: 'محافظ حد ضرر صرافی', signal: 'سیگنال', spread_gate: 'اسپرد زیاد', regime_position_capacity_full: 'ظرفیت رژیم پر است',

@@ -1,14 +1,14 @@
 {
-  "version": "4.3.0",
-  "source_sha256": "74143696c6f243b0e54ad44b81b2c5afd5b495d4c533f88086e636755c38e840",
+  "version": "4.4.0",
+  "source_sha256": "4f886bd7658e34b4c011189fa9845545d31fa26dd841f4ae3f6909ec04d441d6",
   "offline_fault_tests_passed": true,
-  "sqlite_tests_passed": 264,
-  "postgres_tests_passed": 109,
-  "tests_passed": 373,
+  "sqlite_tests_passed": 271,
+  "postgres_tests_passed": 112,
+  "tests_passed": 383,
   "test_evidence": {
-    "tests-v4.txt": "8c234462c2d968b914a25b7f5660ede2f878025752978501cb93605915b29e17",
-    "execution-tests-v4.txt": "f5c03665ccc2a6e12258fc29e365da89af7cc92e3c3e4c3dd21294da391dacf2",
-    "postgres-v4.txt": "daa7196f0beb4a091d37c1002cbbadd420b2ad53ed5c68dd68b190c240de96ef"
+    "tests-v4.txt": "2acbbe017feae9e8ab17d57bfd08d720b714f9697ac4c59fa7fc13a15a106186",
+    "execution-tests-v4.txt": "2d9a3776112b593f58941d263f17412d8f3c33a894ade14385736260df73744c",
+    "postgres-v4.txt": "04eaa32b6e74351a57f755ef67936b8feb905bd4a41c9b1a7e9c46125e343471"
   },
   "test_runtime": "CPython 3.13 offline container; production image is CPython 3.12",
   "private_challenge_account_tested": false,
@@ -21,8 +21,10 @@
   "end_policy": "adaptive exit capacity, no fixed hour entry cutoff",
   "native_protection_separate_approval": true,
   "coverage_policy": "hours without trades carried at last trade price with zero volume; latest hour must trade; <=12/49 and <=18/72 empty hours",
-  "take_profit_policy": "three take-profits at basis+u, +2u, max(+3u, structural); u=max(2x round-trip cost, min(stop, 3x hourly ATR)); one third sold at TP1 and TP2 when above the exchange minimum; stop steps to break-even+0.4% at TP1 and to TP1 at TP2; full exit at TP3",
+  "take_profit_policy": "TP1 = strategy take-profit (structural target, 2.5R for trend strategies or 48h swing high), at least max(1R, 2x round-trip cost) above basis; d = TP1-basis, TP2 = TP1+d, TP3 = TP1+2d; whole position held, no partial sells; stop to break-even+0.4% after +1R or TP1, to TP1 at TP2; full exit at TP3; a 4.3.0 ladder on an open position is rebuilt without lowering its stop",
   "quality_policy": "min quality 55/100 before AI; AI min confidence 0.65",
   "fast_layer_policy": "15-minute closed buckets from public 1-minute candles: entry needs EMA8>EMA21 and close>EMA8; exit on close below 2h swing low with EMA8<EMA21 after 30 minutes; TRX trend hold respected",
-  "shadow_test": "all screened candidates followed on public 5-minute candles without orders; AI-approved vs AI-skipped comparison"
+  "shadow_test": "all screened candidates followed on public 5-minute candles without orders; AI-approved vs AI-skipped comparison",
+  "wallet_observation_policy": "balances-detail TMN accepted only as the nearest integer of the exact ledger (observed rounding down and up); spending uses the lower of reported and ledger cash; the operator upgrade clears wallet_ledger_mismatch only after a fresh GET-only recheck passes",
+  "decision_page_history": "scans recorded before 4.3.0 get per-pair stages by replaying the screener on the immutable hourly observations, used only when counts equal the recorded coverage; otherwise recorded coverage counts"
 }

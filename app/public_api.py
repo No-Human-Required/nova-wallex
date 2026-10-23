@@ -546,7 +546,17 @@ def explain(request: Request):
                 elif kind in {'take_profit_ladder_set', 'take_profit_reached', 'take_profit_partial'}:
                     ladders.append({'kind': kind, 'observed_at': p.get('observed_at'), **payload})
         s = j.state or {}
-        return {'scans': [j.scans[k] for k in sorted(j.scans, key=int)][-72:], 'decisions': j.decisions[-120:],
+        from .screener import pairs_for
+        scans = [j.scans[k] for k in sorted(j.scans, key=int)][-72:]
+        found = pairs_for(app.state.store.directory/'live'/'runs'/run['id'], run['id'], run['config'], scans)
+        rows = []
+        for scan in scans:
+            source, pairs = found.get(scan.get('time'), ('coverage', None))
+            # A pair with a setup whose asset is better served by its other quote
+            # market carries no stage of its own.
+            pairs = {k: v if v.get('stage') else {**v, 'stage': 'duplicate', 'reason': 'better_pair_same_asset'} for k, v in (pairs or {}).items()}
+            rows.append({**scan, 'pairs': pairs, 'pairs_source': source})
+        return {'scans': rows, 'decisions': j.decisions[-120:],
                 'allocations': allocations[-200:], 'gates': gates[-200:], 'ladders': ladders[-100:],
                 'positions': s.get('strategy', {}).get('positions', {}), 'fast': j.fast,
                 'limits': {k: run['config'].get(k) for k in ('capital_tmn', 'max_order_tmn', 'max_asset_fraction', 'max_gross_fraction',

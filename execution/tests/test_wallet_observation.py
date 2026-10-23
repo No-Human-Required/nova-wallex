@@ -51,6 +51,18 @@ class WalletObservationTests(unittest.TestCase):
             with self.assertRaises(ContractError):check_wallet(actual,expected,allow_integer_tmn=True)
         with self.assertRaises(ContractError):check_wallet({'TMN':'4999999'},{'TMN':'5000000'},allow_integer_tmn=True)
 
+    def test_integer_reporting_rounds_to_nearest_in_either_direction(self):
+        # Live 1405/08/01: ledger 4239671.6165, balances-detail 4239672.
+        expected={'ADA':'4.985','TMN':'4239671.6165','TRX':'0.7976','USOON':'0.0084745'}
+        r=check_wallet({**expected,'TMN':'4239672'},expected,allow_integer_tmn=True)
+        self.assertEqual((r['rounding'],r['tmn_difference'],r['spending_cash_tmn']),('up','-0.3835','4239671.6165'))
+        for wrong in ('4239671','4239673','4239672.5'):
+            with self.assertRaises(ContractError):check_wallet({**expected,'TMN':wrong},expected,allow_integer_tmn=True)
+        with self.assertRaises(ContractError):check_wallet({**expected,'TMN':'4239672'},expected)
+        with self.assertRaises(ContractError):check_wallet({**expected,'TMN':'4239672','USOON':'0.0085'},expected,allow_integer_tmn=True)
+        self.assertEqual(check_wallet({'TMN':'10'},{'TMN':'10.5'},allow_integer_tmn=True)['rounding'],'down')
+        self.assertEqual(check_wallet({'TMN':'11'},{'TMN':'10.5'},allow_integer_tmn=True)['rounding'],'up')
+
     def test_mismatch_evidence_keeps_both_values(self):
         with self.assertRaises(ContractError):self.j.confirm_balances({'TMN':'4999999'},{},set(),observed_at=100,now=100)
         self.assertEqual(self.j.s['ledger']['cash'],'5000000')

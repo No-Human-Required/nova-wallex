@@ -19,7 +19,7 @@ from .opportunity import OpportunityRules, PROTOCOL_V1
 from .adaptive import AdaptiveRules
 
 CONTROL=['peak','day_nav','day','halt','daily_halt','max_dd','cooldowns','stale_hours','order_sequence']
-ADAPTIVE_KEYS=('strategy','target','tp','tp_stage','sl_floor','initial_qty','basis_unit')
+ADAPTIVE_KEYS=('strategy','target','tp','tp_stage','sl_floor','initial_qty','basis_unit','tp_policy')
 
 class QuoteView:
     def __init__(self,history,t,quotes,now,max_age=10):

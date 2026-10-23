@@ -152,7 +152,7 @@ function pageLive(root) {
           <tr><td class="muted">سود/زیان باز</td><td class="${signCls(pnl)}">${pnl === null ? '—' : toman(pnl) + ' (' + pct(pnl / +x.basis * 100) + ')'}</td></tr>
           <tr><td class="muted">حد ضرر شناور</td><td>${stop ? price(stop) + ' <span class="faint">(' + pct(+m.stop * 100, 1) + ' زیر اوج)</span>' : '—'}</td></tr>
           <tr><td class="muted">سه حد سود</td><td>${m.tp ? m.tp.map((v, i) => `<span class="${(+m.tp_stage || 0) > i ? 'pos' : ''}">TP${i + 1} ${price(v)} <span class="faint">(${pct((+v / unit - 1) * 100, 1)})</span></span>`).join('<br>') : 'در چرخهٔ بعدی تعیین می‌شود'}</td></tr>
-          <tr><td class="muted">حد ضرر پله‌ای</td><td>${m.sl_floor ? '<span class="pos">' + price(m.sl_floor) + '</span> <span class="faint">(مرحله ' + n0(m.tp_stage) + ')</span>' : 'پس از TP1 به سربه‌سر می‌رود'}</td></tr>
+          <tr><td class="muted">حد ضرر پله‌ای</td><td>${m.sl_floor ? '<span class="pos">' + price(m.sl_floor) + '</span> <span class="faint">(مرحله ' + n0(m.tp_stage) + ')</span>' : 'پس از +1R یا TP1 به سربه‌سر می‌رود'}</td></tr>
           <tr><td class="muted">روند ۱۵ دقیقه‌ای</td><td>${fastCell(d.fast, m.symbol)}</td></tr>
           <tr><td class="muted">زمان ورود</td><td>${when(m.opened_at)}</td></tr>
           <tr><td class="muted">دلیل خروج معلق</td><td>${m.exit_reason ? esc(reason(m.exit_reason)) : '—'}</td></tr></table>`;
@@ -193,7 +193,7 @@ function feedItems(j) {
       else if (k === 'trx_trend_exit_hold') parts.push('نگهداری روندی TRX: خروج برگشت روند معلق ماند');
       else if (k === 'fast_trend_break') parts.push(`شکست روند ۱۵ دقیقه‌ای ${sym(v.symbol)}: بسته شدن زیر کف ۲ ساعته`);
       else if (k === 'take_profit_set') parts.push(`TP برای ${esc(v.base)} روی ${price(v.target)} تنظیم شد`);
-      else if (k === 'take_profit_ladder_set') parts.push(`سه TP برای ${esc(v.base)}: ${(v.tp || []).map(price).join(' / ')}`);
+      else if (k === 'take_profit_ladder_set') parts.push(`سه TP${v.policy ? ' با فاصلهٔ برابر' : ''} برای ${esc(v.base)}: ${(v.tp || []).map(price).join(' / ')}`);
       else if (k === 'take_profit_reached') parts.push(`${esc(v.base)} به TP${v.level} رسید؛ حد ضرر به ${price(v.stop_raised_to)} رفت`);
       else if (k === 'take_profit_partial') parts.push(`فروش بخشی ${esc(v.base)} در ${esc(String(v.reason).toUpperCase())}`);
       else if (k === 'allocation' && v.approved) parts.push(`تخصیص ${sym(v.candidate)} ${toman(v.budget_tmn)}`);
@@ -352,7 +352,7 @@ function pageChallenge(root) {
     ${score.map(([t, p, g, e]) => `<div class="req"><span class="st ${g === 'perf' ? 'wait' : 'ok'}">${n0(p)}</span><div><b>${t}</b><div class="muted" style="font-size:12px">${e}</div></div><span class="chip">${g === 'perf' ? 'عملکرد' : 'فنی'}</span></div>`).join('')}</div></section>
   <section class="panel" style="margin-bottom:14px"><div class="head"><h2>کجا امتیاز بیشتری می‌گیریم</h2><span class="sub">جمع‌بندی بریف و کارهای انجام‌شده برای هر ردیف</span></div><div class="body">${[
     ['استفادهٔ واقعی از AI (۳۵)', 'AI نه فقط اسم: هر ورود، اولویت و اندازه را تعیین می‌کند؛ پاسخ ناقص ورود را می‌بندد؛ تست سایه اثر تأیید/رد AI را با خط مبنای قواعد مقایسه می‌کند. در دمو صفحهٔ «تصمیم‌های AI» و جریان متحرک را نشان دهید.'],
-    ['منطق استراتژی (۴۰)', 'شش استراتژی SMC و اندیکاتوری، رژیم بازار، امتیاز کیفیت، لایهٔ ۱۵ دقیقه‌ای و سه TP؛ اسکرینر تعاملی نشان می‌دهد هر جفت کجا رد یا انتخاب شد.'],
+    ['منطق استراتژی (۴۰)', 'شش استراتژی SMC و اندیکاتوری، رژیم بازار، امتیاز کیفیت، لایهٔ ۱۵ دقیقه‌ای و سه TP با فاصلهٔ برابر و حد ضرر پله‌ای؛ اسکرینر تعاملی نشان می‌دهد هر جفت کجا رد یا انتخاب شد.'],
     ['مدیریت ریسک و سرمایه (۳۰)', 'نمودار سقف‌ها و سقف تعیین‌کننده برای هر ورود، وزن‌های پرتفو، ریسک باز و حد ضرر پله‌ای؛ هرگز ورود با کل سرمایه.'],
     ['بک‌تست و تست سایه (۲۰)', 'هر دو اجرا و نمایش داده شده‌اند؛ نتایج منفی هم صادقانه گزارش شده‌اند.'],
     ['قابلیت اجرای مجدد (۲۵)', 'README، STRATEGIES.md، Docker، هش سورس در هر مجوز، آزمون‌ها (SQLite و PostgreSQL) و بازپخش آرشیو. سورس GitHub باید با نسخهٔ اجراشده یکی باشد: پس از هر استقرار push کنید.'],
