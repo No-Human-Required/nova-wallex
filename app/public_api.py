@@ -196,14 +196,15 @@ class Journal:
             self.decisions = self.decisions[-400:]
         elif kind == 'runtime_scan':
             self.scans[str(p.get('time'))] = {'time': p.get('time'), 'coverage': p.get('coverage'), 'regime': p.get('regime'),
-                'top': [{'symbol': c.get('symbol'), 'strategy': c.get('strategy'), 'score': c.get('score')} for c in (p.get('top') or [])][:12]}
+                'pairs': p.get('pairs') or {},
+                'top': [{k: c.get(k) for k in ('symbol', 'strategy', 'score', 'quality', 'confluence', 'plan', 'indicators', 'roundtrip_cost_bps')} for c in (p.get('top') or [])][:12]}
             if len(self.scans) > 96:
                 for k in sorted(self.scans, key=lambda x: int(x))[:len(self.scans)-96]:
                     del self.scans[k]
         elif kind == 'runtime_plan':
             hour = (p.get('time') or 0)
             events = p.get('events') or []
-            notable = [e for e in events if e and e[0] in {'strategy_exit', 'trx_trend_exit_hold', 'allocation', 'deadline_liquidity_gate', 'entry_quote_gate', 'route_abandoned', 'adaptive_regime', 'opportunity_context', 'fast_trend_break', 'take_profit_set'}]
+            notable = [e for e in events if e and e[0] in {'strategy_exit', 'trx_trend_exit_hold', 'allocation', 'deadline_liquidity_gate', 'entry_quote_gate', 'route_abandoned', 'adaptive_regime', 'opportunity_context', 'fast_trend_break', 'take_profit_set', 'take_profit_ladder_set', 'take_profit_reached', 'take_profit_partial'}]
             fast = next((e[1] for e in events if e and e[0] == 'fast_layer'), None)
             if fast:
                 self.fast = {'observed_at': p.get('observed_at'), 'symbols': fast}
@@ -522,3 +523,54 @@ def adaptive_report():
 def strategies(request: Request):
     from execution.strategies import catalog
     return catalog()
+
+
+@router.get('/explain')
+def explain(request: Request):
+    """Screener history per pair, AI decisions, allocations and the position plans."""
+    app = request.app
+    state = app.state.live.state()
+    if not state['run_id']:
+        return {'scans': [], 'decisions': [], 'allocations': [], 'positions': {}}
+    run = app.state.live.run(state['run_id'])
+
+    def load():
+        j = journal(app, run['id'])
+        allocations, gates, ladders = [], [], []
+        for p in j.plans:
+            for kind, payload in p.get('events') or []:
+                if kind == 'allocation':
+                    allocations.append({'time': p.get('time'), 'observed_at': p.get('observed_at'), **payload})
+                elif kind == 'entry_quote_gate':
+                    gates.append({'time': p.get('time'), 'observed_at': p.get('observed_at'), 'rejected': payload.get('rejected')})
+                elif kind in {'take_profit_ladder_set', 'take_profit_reached', 'take_profit_partial'}:
+                    ladders.append({'kind': kind, 'observed_at': p.get('observed_at'), **payload})
+        s = j.state or {}
+        return {'scans': [j.scans[k] for k in sorted(j.scans, key=int)][-72:], 'decisions': j.decisions[-120:],
+                'allocations': allocations[-200:], 'gates': gates[-200:], 'ladders': ladders[-100:],
+                'positions': s.get('strategy', {}).get('positions', {}), 'fast': j.fast,
+                'limits': {k: run['config'].get(k) for k in ('capital_tmn', 'max_order_tmn', 'max_asset_fraction', 'max_gross_fraction',
+                           'max_open_risk_fraction', 'max_positions', 'max_daily_loss_fraction', 'max_drawdown_fraction', 'min_quality',
+                           'ai_min_confidence', 'max_entry_spread_bps', 'participation', 'min_daily_turnover_tmn')},
+                'snapshot': {k: (run.get('last_snapshot') or {}).get(k) for k in ('equity_tmn', 'cash_tmn', 'holdings', 'at')}}
+    return cached('explain', 8, load)
+
+
+@router.get('/shadow')
+def shadow(request: Request):
+    """Shadow test of every screened candidate: what AI-approved and AI-rejected
+    setups would have done with the same plan, using public 5-minute candles."""
+    app = request.app
+    state = app.state.live.state()
+    if not state['run_id']:
+        return {'rows': [], 'summary': {}}
+    run = app.state.live.run(state['run_id'])
+
+    def load():
+        from .shadow import simulate
+        j = journal(app, run['id'])
+        return simulate(j.decisions, CANDLES, app.state.history.markets)
+    try:
+        return cached('shadow', 60, load)
+    except Exception as exc:
+        raise HTTPException(503, 'Shadow test unavailable ('+type(exc).__name__+')') from None

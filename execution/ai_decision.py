@@ -82,7 +82,11 @@ def validate(decision, ids):
         reason = d.get('reason')
         if not isinstance(reason, str) or not reason.strip() or len(reason) > 800:
             raise ValueError('Missing reason')
-        rows.append({'id': d['id'], 'action': d['action'], 'confidence': float(conf), 'size': float(size), 'reason': reason.strip()})
+        size_reason = d.get('size_reason')
+        if size_reason is not None and (not isinstance(size_reason, str) or len(size_reason) > 800):
+            raise ValueError('Invalid size reason')
+        rows.append({'id': d['id'], 'action': d['action'], 'confidence': float(conf), 'size': float(size), 'reason': reason.strip(),
+                     'size_reason': size_reason.strip() if size_reason else None})
     for ident in sorted(set(ids)-seen):
         rows.append({'id': ident, 'action': 'skip', 'confidence': 0.0, 'size': 0.0, 'reason': 'مدل برای این نامزد تصمیم صریحی برنگرداند؛ ورود انجام نمی‌شود.', 'implicit': True})
     priority = decision['priority']
@@ -204,6 +208,7 @@ class AdaptiveAI:
             c['ai_size'] = max(0.25, min(1.0, row['size']*caution))
             c['ai_confidence'] = row['confidence']
             c['ai_reason'] = row['reason']
+            c['ai_size_reason'] = row.get('size_reason')
             c['ai_id'] = i
             chosen.append(c)
         return chosen

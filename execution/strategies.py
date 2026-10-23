@@ -259,7 +259,7 @@ def scan(history, t, cfg):
     context = classify(history, t, cfg)
     btc = history.feature('BTCTMN', t) if 'BTCTMN' in history.markets else None
     btc24 = btc['r24_bps'] if btc else None
-    coverage, found = Counter(), []
+    coverage, found, pairs = Counter(), [], {}
     for s, m in sorted(history.markets.items()):
         if s == 'USDTTMN':
             coverage['fx_funding_market'] += 1
@@ -267,16 +267,22 @@ def scan(history, t, cfg):
         f = history.feature(s, t)
         if f is None:
             coverage['missing_required_history'] += 1
+            pairs[s] = {'stage': 'data', 'reason': 'missing_required_history'}
             continue
+        row = pairs[s] = {'turnover_m': round(f['daily_turnover_tmn']/1e6, 2), 'r24_bps': round(f['r24_bps'], 1),
+                          'missing_hours': f.get('missing_hours', 0)}
         if f['daily_turnover_tmn'] < float(cfg['min_daily_turnover_tmn']):
             coverage['insufficient_recent_liquidity'] += 1
+            row.update(stage='liquidity', reason='insufficient_recent_liquidity')
             continue
         if capacity_tmn(f, cfg)*float(cfg['participation']) < 50000:
             coverage['estimated_capacity_below_minimum'] += 1
+            row.update(stage='liquidity', reason='estimated_capacity_below_minimum')
             continue
         bars = series(history, s, t, max_missing=int(cfg.get('max_missing_hours', 18)))
         if bars is None:
             coverage['missing_required_history'] += 1
+            row.update(stage='data', reason='too_many_empty_hours_or_last_hour_without_trade')
             continue
         cost = roundtrip_bps(cfg, m.quote)
         hits = 0
@@ -287,6 +293,8 @@ def scan(history, t, cfg):
                 found.append({'symbol': s, 'base': m.base, 'quote': m.quote, 'roundtrip_cost_bps': cost,
                               'features': {k: x for k, x in f.items() if k != 'returns'}, **plan})
         coverage['signal' if hits else 'eligible_no_signal'] += 1
+        if not hits:
+            row.update(stage='strategy', reason='no_active_strategy_setup')
     groups = {}
     for c in found:
         groups.setdefault(c['base'], []).append(c)
@@ -297,12 +305,19 @@ def scan(history, t, cfg):
             c['confluence'] = names
             c['quality'] = quality(c, context['regime'], names)
         best = max(group, key=lambda x: (x['quality'], x['score']))
+        row = pairs[best['symbol']]
+        row.update(strategies=names, quality=best['quality'], strategy=best['strategy'], reward_risk=round(best['plan']['reward_risk'], 2))
         if best['quality'] < minimum:
             coverage['below_quality'] += 1
+            row.update(stage='quality', reason='below_quality')
             continue
+        row.update(stage='candidate', reason=None)
         chosen.append(best)
     chosen.sort(key=lambda x: (-x['quality'], -x['score'], x['roundtrip_cost_bps'], x['symbol']))
     coverage['strategy_hits'] = dict(Counter(c['strategy'] for c in found))
+    history_pairs = getattr(history, 'pairs', None)
+    if isinstance(history_pairs, dict):
+        history_pairs[t] = pairs
     return chosen, dict(coverage), context
 
 
@@ -311,5 +326,5 @@ def catalog():
             'ai_role': 'هر نامزد فقط با تأیید مدل وارد می‌شود؛ مدل ترتیب و ضریب اندازه (۰٫۲۵ تا ۱ برابر سقف) را تعیین می‌کند و دلیل فارسی ثبت می‌شود.',
             'quality_role': 'فقط ستاپ‌های با امتیاز کیفیت ۵۵ از ۱۰۰ یا بیشتر به مدل می‌رسند: نسبت سود به ریسک، هم‌پوشانی چند استراتژی، هم‌جهتی با روند، تأیید حجم، نقدشوندگی، تناسب با رژیم، RSI و کامل بودن داده. حداقل اطمینان مدل ۰٫۶۵ است.',
             'fast_role': 'لایهٔ سریع: کندل‌های ۱۵ دقیقه‌ای از کندل‌های یک‌دقیقه‌ای والکس ساخته می‌شوند. ورود تأییدشده توسط AI فقط وقتی ارسال می‌شود که روند ۱۵ دقیقه‌ای صعودی باشد (EMA8 بالای EMA21 و قیمت بالای EMA8)؛ تا پایان همان ساعت هر ۱۵ دقیقه دوباره بررسی می‌شود. اگر قیمت زیر کف دو ساعت اخیر بسته شود و EMA8 زیر EMA21 باشد، موقعیت بدون انتظار برای کندل ساعتی بسته می‌شود (حداقل ۳۰ دقیقه پس از ورود). حد ضرر، TP و سربه‌سر هر ۳۰ ثانیه با قیمت زندهٔ دفتر سفارش کنترل می‌شوند.',
-            'exit_role': 'همهٔ موقعیت‌ها TP دارند. پس از رسیدن سود به اندازهٔ یک برابر ریسک، حد ضرر به نقطهٔ سربه‌سر (به‌علاوهٔ ۰٫۴٪) منتقل می‌شود؛ حد ضرر شناور، حداکثر زمان نگهداری و خروج پیش از پایان مسابقه برقرارند.',
+            'exit_role': 'مدیریت خروج سه‌مرحله‌ای برای همهٔ موقعیت‌ها: فاصلهٔ پله u = بیشینهٔ (دو برابر هزینهٔ رفت‌وبرگشت، کمینهٔ (فاصلهٔ حد ضرر، سه برابر ATR ساعتی)). TP1 = ورود+u، TP2 = ورود+2u، TP3 = بیشینهٔ (ورود+3u، هدف ساختاری). در TP1 و TP2 هرکدام یک‌سوم فروخته می‌شود (اگر از حداقل سفارش والکس بیشتر باشد) و حد ضرر یک پله بالا می‌آید: TP1 → سربه‌سر+۰٫۴٪، TP2 → TP1؛ TP3 خروج کامل است. حد ضرر شناور، حداکثر زمان نگهداری، شکست روند ۱۵ دقیقه‌ای و خروج پیش از پایان مسابقه برقرارند.',
             'hard_limits_role': 'سقف سفارش، سقف هر دارایی، زیان روزانه، افت سرمایه، حد ضرر، اعتبار سفارش و خروج‌ها قطعی‌اند و مدل نمی‌تواند تغییرشان دهد.'}

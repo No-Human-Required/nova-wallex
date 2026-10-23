@@ -130,6 +130,11 @@ class UpgradeTests(unittest.TestCase):
             self.assertNotIn(secret, text)
         j = self.client.get('/api/public/journal').json()
         self.assertIn('orders', j)
+        x = self.client.get('/api/public/explain')
+        self.assertEqual(x.status_code, 200)
+        for secret in (run['binding']['subaccount_client_id'], run['binding']['key_sha256']):
+            self.assertNotIn(secret, x.text)
+        self.assertEqual(self.client.get('/api/public/shadow').status_code, 200)
 
 
 from tests.legacy_config import apply as _legacy

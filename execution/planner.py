@@ -19,6 +19,7 @@ from .opportunity import OpportunityRules, PROTOCOL_V1
 from .adaptive import AdaptiveRules
 
 CONTROL=['peak','day_nav','day','halt','daily_halt','max_dd','cooldowns','stale_hours','order_sequence']
+ADAPTIVE_KEYS=('strategy','target','tp','tp_stage','sl_floor','initial_qty','basis_unit')
 
 class QuoteView:
     def __init__(self,history,t,quotes,now,max_age=10):
@@ -127,7 +128,7 @@ def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection
             'opened_at':m['opened_at'],'stop':dec(m['stop']),'peak_unit':dec(m['peak_unit']),
             'exit_reason':m.get('exit_reason')}
         if adaptive:
-            engine.s['positions'][a].update(strategy=m.get('strategy'),target=m.get('target'))
+            engine.s['positions'][a].update({k:m.get(k) for k in ADAPTIVE_KEYS})
     required={p['symbol'] for p in engine.s['positions'].values()}
     if engine.s['fx_lots'] or any(history.markets[s].quote=='USDT' for s in required):required.add('USDTTMN')
     if any(view.quote(s) is None for s in required):raise ContractError('Fresh quotes required for every held asset and FX')
@@ -164,7 +165,7 @@ def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection
     elif allow_entries:
         engine.entries(ranked,t)
     orders=sorted(engine.s['orders'],key=lambda o:(o['side']!='SELL',o['sequence']))
-    keys=('symbol','opened_at','stop','peak_unit','exit_reason')+(('strategy','target') if adaptive else ())
+    keys=('symbol','opened_at','stop','peak_unit','exit_reason')+(ADAPTIVE_KEYS if adaptive else ())
     next_metadata={a:{k:p.get(k) for k in keys} for a,p in engine.s['positions'].items()}
     control={k:engine.s[k] for k in CONTROL}
     if guarded:

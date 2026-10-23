@@ -9,7 +9,7 @@ from statistics import mean, pstdev
 
 from starwallex.portable_math import log
 
-from starwallex.domain import D
+from starwallex.domain import D, floor_step
 from starwallex.portfolio_cost import fee_rate, roundtrip_bps
 from starwallex.portfolio_engine import PortfolioEngine
 from starwallex.portfolio_v3 import GuardedEngine
@@ -28,6 +28,7 @@ class AdaptiveHistory(OpportunityHistory):
         super().__init__(*args, **kwargs)
         self.identity = digest({'history': self.identity, 'adaptive': st.VERSION})
         self._regimes = {}
+        self.pairs = {}
 
     @lru_cache(maxsize=24000)
     def feature(self, s, t):
@@ -149,10 +150,15 @@ class AdaptiveRules:
             size = D(str(c.get('ai_size', 1)))
             if not D('0.25') <= size <= 1:
                 size = D(1)
-            budget = min(D(context['order_cap_tmn']), D(self.cfg['max_order_tmn']),
-                         equity*D(self.cfg['max_asset_fraction']), equity*D(context['risk_fraction'])/stop,
-                         max(D(0), equity*D(self.cfg['max_gross_fraction'])-self.gross()-self.reserved_cash()),
-                         max(D(0), self.s['cash']-self.reserved_cash()))*size*D('0.99')
+            caps = {'regime_order_cap': D(context['order_cap_tmn']), 'hard_order_cap': D(self.cfg['max_order_tmn']),
+                    'asset_cap': equity*D(self.cfg['max_asset_fraction']), 'risk_budget': equity*D(context['risk_fraction'])/stop,
+                    'gross_room': max(D(0), equity*D(self.cfg['max_gross_fraction'])-self.gross()-self.reserved_cash()),
+                    'cash_room': max(D(0), self.s['cash']-self.reserved_cash())}
+            binding = min(caps, key=lambda k: caps[k])
+            budget = caps[binding]*size*D('0.99')
+            sizing = {**{k: v.quantize(D('0.01')) for k, v in caps.items()}, 'binding_limit': binding, 'ai_size': size,
+                      'fee_reserve': D('0.99'), 'equity': equity.quantize(D('0.01')), 'stop_fraction': stop,
+                      'risk_fraction': D(context['risk_fraction']), 'budget': budget.quantize(D('0.01'))}
             reason = self.entry_checks(c, t, budget, stop)
             if not reason:
                 need = self.minimum_budget(c, t)
@@ -161,7 +167,8 @@ class AdaptiveRules:
                 elif budget < need:
                     reason = 'route_minimum_including_fees'
             self.event('allocation', {'candidate': c['symbol'], 'strategy': c.get('strategy'), 'score': c['score'],
-                                      'budget_tmn': budget, 'stop_fraction': stop, 'ai_size': size,
+                                      'budget_tmn': budget, 'stop_fraction': stop, 'ai_size': size, 'sizing': sizing,
+                                      'quality': c.get('quality'), 'ai_reason': c.get('ai_reason'), 'ai_size_reason': c.get('ai_size_reason'),
                                       'approved': reason is None, 'reason': reason})
             if reason:
                 continue
@@ -209,8 +216,56 @@ class AdaptiveRules:
             return True
         return False
 
+    def ladder(self, base, p, t, basis, unit):
+        """Three take-profit levels and the stepped stop for a position.
+
+        Spacing u = max(2x round-trip cost, min(stop distance, 3x hourly ATR)):
+        TP1 = basis(1+u), TP2 = basis(1+2u), TP3 = max(basis(1+3u), structural
+        target). Built once per position (also for positions opened earlier)
+        and recorded with its inputs.
+        """
+        if p.get('tp'):
+            return [D(str(x)) for x in p['tp']]
+        market = self.h.markets[p['symbol']]
+        cost = D(str(roundtrip_bps(self.execution, market.quote)))/10000
+        stop_d = D(str(p['stop']))
+        bars = st.series(self.h, p['symbol'], t)
+        atr = None
+        if bars:
+            a = ind.atr(bars[1], bars[2], bars[3])
+            atr = D(str(a/bars[3][-1])) if a and bars[3][-1] else None
+        spacing = min(stop_d, 3*atr) if atr else stop_d
+        spacing = max(spacing, 2*cost)
+        tp = [basis*(1+spacing), basis*(1+2*spacing), basis*(1+3*spacing)]
+        structural = D(str(p['target'])) if p.get('target') is not None else None
+        if structural is not None and structural > tp[1]:
+            tp[2] = max(tp[2], structural) if p.get('strategy') in {'smc_liquidity_sweep', 'smc_bos_orderblock', 'smc_fvg_continuation', 'ind_rsi_bollinger_reversion'} else tp[2]
+        p['tp'] = [str(x.quantize(D('0.0001'))) for x in tp]
+        p['tp_stage'] = int(p.get('tp_stage') or 0)
+        p['initial_qty'] = str(p['qty'])
+        p['target'] = p['tp'][2]
+        self.event('take_profit_ladder_set', {'time': t, 'base': base, 'tp': p['tp'], 'basis_unit': basis, 'spacing_fraction': spacing,
+                                              'atr_fraction': atr, 'stop_fraction': stop_d, 'round_trip_cost_fraction': cost,
+                                              'previous_target': str(structural) if structural is not None else None})
+        return tp
+
+    def partial_qty(self, p, fraction, unit):
+        market = self.h.markets[p['symbol']]
+        minimum = market.min_notional
+        if market.quote == 'USDT':
+            fx = self.bid('USDTTMN') or D(0)
+            minimum = minimum*fx
+        qty = floor_step(min(D(str(p['initial_qty']))*fraction+D('1e-12'), p['qty']), market.qty_step)
+        rest = p['qty']-qty
+        if qty*unit < minimum*D('1.2'):
+            return None  # below the exchange minimum: keep the inventory, still step the stop
+        if rest*unit < minimum*D('1.2'):
+            return p['qty']  # remainder would be unsellable dust: close fully
+        return qty
+
     def exits(self, t):
         hold_trx = self.cfg.get('trx_trend_exit_hold') is True
+        buffer = D(str(self.cfg.get('breakeven_buffer_fraction', '0.004')))
         for base, p in list(self.s['positions'].items()):
             unit = self.position_value(p)/p['qty']
             p['peak_unit'] = max(p['peak_unit'], unit)
@@ -218,43 +273,37 @@ class AdaptiveRules:
             strategy = p.get('strategy') or LEGACY
             max_hold = st.STRATEGIES.get(strategy, {}).get('max_holding_hours', self.cfg['max_holding_hours'])
             reason = p.get('exit_reason')
+            partial = None
             if reason == 'trend_reversed' and hold_trx and base == 'TRX':
                 reason = None
             if self.s['halt'] or self.s['daily_halt']:
                 reason = 'portfolio_halt'
             elif not reason:
-                basis = p['cost']/p['qty']
-                # Every position carries a take-profit that pays realistic round-trip
-                # friction and at least one stop distance (1R). A structural level
-                # (48h swing high) is used only when it is at or beyond that floor.
-                cost = D(str(roundtrip_bps(self.execution, self.h.markets[p['symbol']].quote)))/10000
-                stop_d = D(str(p['stop']))
-                minimum = basis*(1+max(stop_d, 2*cost))
-                current = D(str(p['target'])) if p.get('target') is not None else None
-                if current is None or current < minimum:
-                    bars = st.series(self.h, p['symbol'], t)
-                    swing = D(str(max(bars[1][-48:]))) if bars else None
-                    if strategy in {'ind_ema_macd_trend', 'ind_relative_strength'}:
-                        multiple = D(str(self.cfg.get('trend_tp_r_multiple', 2.5)))
-                        target, source = basis*(1+multiple*stop_d), 'strategy_r_multiple'
-                    elif swing is not None and swing >= minimum:
-                        target, source = swing, 'swing_high_48h'
+                basis = p['cost']/p['qty'] if not p.get('basis_unit') else D(str(p['basis_unit']))
+                p['basis_unit'] = str(basis.quantize(D('0.0001')))
+                tp = self.ladder(base, p, t, basis, unit)
+                stage = int(p.get('tp_stage') or 0)
+                # Each TP reached raises the stop one step: TP1 -> break-even (+buffer), TP2 -> TP1.
+                while stage < 3 and unit >= tp[stage]:
+                    stage += 1
+                    floor = basis*(1+buffer) if stage == 1 else tp[stage-2]
+                    p['sl_floor'] = str(floor.quantize(D('0.0001')))
+                    self.event('take_profit_reached', {'time': t, 'base': base, 'level': stage, 'price': tp[stage-1], 'unit': unit,
+                                                       'stop_raised_to': p['sl_floor']})
+                    if stage == 3:
+                        reason = 'tp3'
                     else:
-                        target, source = minimum, 'minimum_one_r_after_costs'
-                    target = max(target, minimum)
-                    p['target'] = str(target.quantize(D('0.0001')))
-                    self.event('take_profit_set', {'time': t, 'base': base, 'target': p['target'], 'basis_unit': basis,
-                                                   'source': source, 'previous_target': str(current) if current is not None else None,
-                                                   'minimum_target': str(minimum.quantize(D('0.0001')))})
-                target = p.get('target')
-                protected = p['peak_unit'] >= basis*(1+D(str(p['stop'])))
-                floor = basis*(1+D(str(self.cfg.get('breakeven_buffer_fraction', '0.004'))))
-                if unit <= p['peak_unit']*(1-p['stop']):
+                        q = self.partial_qty(p, D(1)/3, unit)
+                        if q is not None:
+                            partial = (q, 'tp'+str(stage)) if partial is None else (min(p['qty'], partial[0]+q), 'tp'+str(stage))
+                p['tp_stage'] = stage
+                floor = D(str(p['sl_floor'])) if p.get('sl_floor') else None
+                if reason:
+                    pass
+                elif unit <= p['peak_unit']*(1-p['stop']):
                     reason = 'trailing_stop'
-                elif protected and unit <= floor:
-                    reason = 'breakeven_stop'
-                elif target is not None and unit >= D(str(target)):
-                    reason = 'target_reached'
+                elif floor is not None and unit <= floor:
+                    reason = 'stepped_stop'
                 elif held >= max_hold:
                     reason = 'time_exit'
                 elif self.fast_exit(base, p, t):
@@ -269,6 +318,11 @@ class AdaptiveRules:
                 self.event('strategy_exit', {'time': t, 'base': base, 'strategy': strategy, 'reason': reason})
                 if not any(o['stage'] == 'SELL' and o['base'] == base for o in self.s['orders']):
                     self.order('SELL', p['symbol'], base, t, qty=p['qty'], reason=reason)
+            elif partial is not None:
+                qty, why = partial
+                self.event('take_profit_partial', {'time': t, 'base': base, 'qty': qty, 'reason': why})
+                if not any(o['stage'] == 'SELL' and o['base'] == base for o in self.s['orders']):
+                    self.order('SELL', p['symbol'], base, t, qty=qty, reason=why)
         for lot_id, lot in list(self.s['fx_lots'].items()):
             self.queue_fx_exit(lot_id, lot['base'], t, 'residual_fx_to_tmn')
 

@@ -108,7 +108,9 @@ class PortfolioController:
             scan={'time':t,'dataset_identity':history.identity,'coverage':coverage,'pair_count':len(history.markets),
                   'regime':context,'top':ranked[:cfg['ai_top_candidates']]}
             s['runtime_scans']={str(t):scan}
-            self.j.checkpoint('runtime_scan',scan,s)
+            # Per-pair screener outcome goes to the immutable event only, not the
+            # frequently copied account state.
+            self.j.checkpoint('runtime_scan',{**scan,'pairs':getattr(history,'pairs',{}).get(t,{})},s)
         if now>=self.end-self.cfg.get('entry_stop_before_end_seconds',0):return
         if str(t) in self.j.s.get('runtime_selections',{}):return
         scan=self.j.s['runtime_scans'][str(t)];context=scan['regime'];top=scan['top']

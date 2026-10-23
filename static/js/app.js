@@ -2,9 +2,10 @@ import { S, api, loadSession, n0, n2, n4, toman, pct, price, signCls, when, cloc
   STATUS_FA, REASON_FA, PHASE_FA, SIDE_FA, download, tween } from './core.js';
 import { LineChart, CandleChart } from './charts.js';
 import { background, Radar, ART } from './fx.js';
+import { pageHow } from './how.js';
 
 const PAGES = [
-  ['live', 'اجرای واقعی', '◉'], ['journal', 'ژورنال معاملات', '☰'], ['ai', 'تصمیم‌های AI', '✦'],
+  ['live', 'اجرای واقعی', '◉'], ['how', 'نحوهٔ تصمیم‌گیری', '⟲'], ['journal', 'ژورنال معاملات', '☰'], ['ai', 'تصمیم‌های AI', '✦'],
   ['strategies', 'استراتژی‌ها', '◇'], ['market', 'بازار زنده', '▦'], ['challenge', 'خواسته‌های چالش', '✓'],
   ['research', 'بک‌تست و پژوهش', '∿'], ['operator', 'کنترل اپراتور', '⚙']
 ];
@@ -38,7 +39,7 @@ function route() {
   $$('nav.tabs a').forEach(a => a.classList.toggle('active', a.dataset.p === page));
   $('#title').textContent = PAGES.find(p => p[0] === page)[1];
   const root = $('#page'); root.innerHTML = ''; root.className = 'fade-in';
-  ({ live: pageLive, journal: pageJournal, ai: pageAI, strategies: pageStrategies, market: pageMarket,
+  ({ live: pageLive, how: r => pageHow(r, { every, keep, safe, sName, famChip, STRAT }), journal: pageJournal, ai: pageAI, strategies: pageStrategies, market: pageMarket,
      challenge: pageChallenge, research: pageResearch, operator: pageOperator })[page](root);
 }
 
@@ -150,12 +151,12 @@ function pageLive(root) {
           <tr><td class="muted">ارزش فعلی</td><td>${toman(value)}</td></tr>
           <tr><td class="muted">سود/زیان باز</td><td class="${signCls(pnl)}">${pnl === null ? '—' : toman(pnl) + ' (' + pct(pnl / +x.basis * 100) + ')'}</td></tr>
           <tr><td class="muted">حد ضرر شناور</td><td>${stop ? price(stop) + ' <span class="faint">(' + pct(+m.stop * 100, 1) + ' زیر اوج)</span>' : '—'}</td></tr>
-          <tr><td class="muted">حد سود (TP)</td><td>${m.target ? price(m.target) + ' <span class="faint">(' + pct((+m.target / unit - 1) * 100, 1) + ' بالای ورود)</span>' : 'در چرخهٔ بعدی تعیین می‌شود'}</td></tr>
-          <tr><td class="muted">سربه‌سر</td><td>${m.peak_unit && m.stop && +m.peak_unit >= unit * (1 + +m.stop) ? '<span class="pos">فعال؛ کف ' + price(unit * 1.004) + '</span>' : 'پس از سود ' + pct(+m.stop * 100, 1) + ' (۱R) فعال می‌شود'}</td></tr>
+          <tr><td class="muted">سه حد سود</td><td>${m.tp ? m.tp.map((v, i) => `<span class="${(+m.tp_stage || 0) > i ? 'pos' : ''}">TP${i + 1} ${price(v)} <span class="faint">(${pct((+v / unit - 1) * 100, 1)})</span></span>`).join('<br>') : 'در چرخهٔ بعدی تعیین می‌شود'}</td></tr>
+          <tr><td class="muted">حد ضرر پله‌ای</td><td>${m.sl_floor ? '<span class="pos">' + price(m.sl_floor) + '</span> <span class="faint">(مرحله ' + n0(m.tp_stage) + ')</span>' : 'پس از TP1 به سربه‌سر می‌رود'}</td></tr>
           <tr><td class="muted">روند ۱۵ دقیقه‌ای</td><td>${fastCell(d.fast, m.symbol)}</td></tr>
           <tr><td class="muted">زمان ورود</td><td>${when(m.opened_at)}</td></tr>
           <tr><td class="muted">دلیل خروج معلق</td><td>${m.exit_reason ? esc(reason(m.exit_reason)) : '—'}</td></tr></table>`;
-        if (m.symbol) { const first = !charts[x.asset].pending; charts[x.asset].pending = { symbol: m.symbol, entry: unit, stop, target: m.target ? +m.target : null }; if (first) loadCandles(charts[x.asset]); }
+        if (m.symbol) { const first = !charts[x.asset].pending; charts[x.asset].pending = { symbol: m.symbol, entry: unit, stop: Math.max(stop || 0, m.sl_floor ? +m.sl_floor : 0) || stop, tp: (m.tp || (m.target ? [m.target] : [])).map(Number) }; if (first) loadCandles(charts[x.asset]); }
       }
     }
     // last AI + candidates
@@ -165,7 +166,7 @@ function pageLive(root) {
   });
   async function loadCandles(c) {
     const q = c.pending; const d = await safe(() => api(`/api/public/candles?symbol=${q.symbol}&resolution=1&minutes=360`));
-    if (d) c.set(d, { lines: [{ y: q.entry, label: 'ورود', color: '#f5c343' }, { y: q.stop, label: 'حد ضرر', color: '#fb7185' }, { y: q.target, label: 'هدف', color: '#34d399' }] });
+    if (d) c.set(d, { lines: [{ y: q.entry, label: 'ورود', color: '#f5c343' }, { y: q.stop, label: 'حد ضرر', color: '#fb7185' }, ...q.tp.map((y, i) => ({ y, label: 'TP' + (i + 1), color: '#34d399' }))] });
   }
   every(20000, () => { for (const c of Object.values(charts)) if (c.pending) loadCandles(c); });
   every(15000, async () => {
@@ -192,6 +193,9 @@ function feedItems(j) {
       else if (k === 'trx_trend_exit_hold') parts.push('نگهداری روندی TRX: خروج برگشت روند معلق ماند');
       else if (k === 'fast_trend_break') parts.push(`شکست روند ۱۵ دقیقه‌ای ${sym(v.symbol)}: بسته شدن زیر کف ۲ ساعته`);
       else if (k === 'take_profit_set') parts.push(`TP برای ${esc(v.base)} روی ${price(v.target)} تنظیم شد`);
+      else if (k === 'take_profit_ladder_set') parts.push(`سه TP برای ${esc(v.base)}: ${(v.tp || []).map(price).join(' / ')}`);
+      else if (k === 'take_profit_reached') parts.push(`${esc(v.base)} به TP${v.level} رسید؛ حد ضرر به ${price(v.stop_raised_to)} رفت`);
+      else if (k === 'take_profit_partial') parts.push(`فروش بخشی ${esc(v.base)} در ${esc(String(v.reason).toUpperCase())}`);
       else if (k === 'allocation' && v.approved) parts.push(`تخصیص ${sym(v.candidate)} ${toman(v.budget_tmn)}`);
       else if (k === 'allocation') parts.push(`رد تخصیص ${sym(v.candidate)}: ${esc(v.reason)}`);
       else if (k === 'entry_quote_gate') parts.push('رد اجرایی: ' + (v.rejected || []).map(x => x.symbol + ' (' + reason(x.reason) + ')').join('، '));
@@ -339,10 +343,22 @@ function pageChallenge(root) {
     ['بدون خریدوفروش دستی', 'ok', 'هیچ دکمهٔ خرید/فروش دستی وجود ندارد؛ وب سفارش ارسال نمی‌کند'], ['تسویهٔ نهایی به تومان', s.fully_realized_tmn ? 'ok' : 'wait', 'خروج تطبیقی پیش از ' + (live.contest_end_fa || 'پایان')],
     ['ثبت دلیل تک‌تک معاملات', 'ok', 'ژورنال معاملات و تصمیم‌های AI؛ خروجی CSV/JSON'], ['مهلت تمدیدشده', 'ok', live.contest_end_fa || ''],
     ['کد تحویلی همان کد اجراشده', run.upgrade_required ? 'wait' : 'ok', 'هش نسخهٔ نصب‌شده: ' + (live.installed_source_sha256 || '').slice(0, 16)],
+    ['بک‌تست با هزینه و تأخیر', 'ok', 'صفحهٔ «استراتژی‌ها» و «بک‌تست و پژوهش»؛ ۳۹ پنجره و سناریوی تنش'],
+    ['تست سایه روی بازار زنده', 'ok', 'صفحهٔ «نحوهٔ تصمیم‌گیری»: همهٔ نامزدها بدون سفارش واقعی دنبال می‌شوند'],
+    ['سنجش نقش AI با خط مبنا', 'ok', 'مقایسهٔ نتیجهٔ سایهٔ نامزدهای تأییدشده و ردشده توسط AI'],
     ['سورس روی GitHub و سند Markdown', 'wait', 'مخزن No-Human-Required/nova-wallex؛ پس از استقرار به‌روزرسانی می‌شود'], ['ویدیوی دموی حدود ۵ دقیقه با صدا', 'no', 'هنوز ضبط نشده؛ نبود ویدیو موجب حذف از داوری است']];
   root.innerHTML = `<section class="panel" style="margin-bottom:14px"><div class="head"><h2>بارم داوری ۳۰۰ امتیاز</h2><span class="sub">عملکرد معاملاتی ۱۵۰ + کیفیت فنی ۱۵۰ (طبق متن «پیشنهاد امتیازدهی» بریف)</span></div>
     <div class="body"><div class="score-bar" style="margin-bottom:12px"><i style="width:50%;background:var(--accent)"></i><i style="width:50%;background:var(--blue)"></i></div>
     ${score.map(([t, p, g, e]) => `<div class="req"><span class="st ${g === 'perf' ? 'wait' : 'ok'}">${n0(p)}</span><div><b>${t}</b><div class="muted" style="font-size:12px">${e}</div></div><span class="chip">${g === 'perf' ? 'عملکرد' : 'فنی'}</span></div>`).join('')}</div></section>
+  <section class="panel" style="margin-bottom:14px"><div class="head"><h2>کجا امتیاز بیشتری می‌گیریم</h2><span class="sub">جمع‌بندی بریف و کارهای انجام‌شده برای هر ردیف</span></div><div class="body">${[
+    ['استفادهٔ واقعی از AI (۳۵)', 'AI نه فقط اسم: هر ورود، اولویت و اندازه را تعیین می‌کند؛ پاسخ ناقص ورود را می‌بندد؛ تست سایه اثر تأیید/رد AI را با خط مبنای قواعد مقایسه می‌کند. در دمو صفحهٔ «تصمیم‌های AI» و جریان متحرک را نشان دهید.'],
+    ['منطق استراتژی (۴۰)', 'شش استراتژی SMC و اندیکاتوری، رژیم بازار، امتیاز کیفیت، لایهٔ ۱۵ دقیقه‌ای و سه TP؛ اسکرینر تعاملی نشان می‌دهد هر جفت کجا رد یا انتخاب شد.'],
+    ['مدیریت ریسک و سرمایه (۳۰)', 'نمودار سقف‌ها و سقف تعیین‌کننده برای هر ورود، وزن‌های پرتفو، ریسک باز و حد ضرر پله‌ای؛ هرگز ورود با کل سرمایه.'],
+    ['بک‌تست و تست سایه (۲۰)', 'هر دو اجرا و نمایش داده شده‌اند؛ نتایج منفی هم صادقانه گزارش شده‌اند.'],
+    ['قابلیت اجرای مجدد (۲۵)', 'README، STRATEGIES.md، Docker، هش سورس در هر مجوز، آزمون‌ها (SQLite و PostgreSQL) و بازپخش آرشیو. سورس GitHub باید با نسخهٔ اجراشده یکی باشد: پس از هر استقرار push کنید.'],
+    ['کنترل ضرر (۳۰) و پایداری (۱۵)', 'سقف زیان روزانه ۲٪ و افت ۵٪، تطبیق سفارش‌ها پس از قطع، بدون ارسال دوباره؛ افت فعلی در صفحهٔ اجرا دیده می‌شود.'],
+    ['ویدیوی دمو (الزامی)', 'حدود ۵ دقیقه با صدا: اجرای واقعی → نحوهٔ تصمیم‌گیری (جریان، اسکرینر با پخش تاریخچه، مدیریت سرمایه، TP/SL) → تصمیم‌های AI → ژورنال → تست سایه → خواسته‌های چالش.']
+  ].map(([t, e]) => `<div class="req"><span class="st ok">★</span><div><b>${t}</b><div class="muted" style="font-size:12px">${e}</div></div><span></span></div>`).join('')}</div></section>
   <section class="panel"><div class="head"><h2>قوانین و تحویلی‌ها</h2></div><div class="body">${rules.map(([t, st, e]) => `<div class="req"><span class="st ${st}">${st === 'ok' ? '✓' : st === 'wait' ? '…' : '✕'}</span><div><b>${t}</b><div class="muted" style="font-size:12px">${esc(e)}</div></div><span></span></div>`).join('')}</div></section>`;
 }
 
