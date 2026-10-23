@@ -17,6 +17,7 @@ from starwallex.util import digest
 from .opportunity import OpportunityHistory
 from . import strategies as st
 from . import indicators as ind
+from .fast import signals as fast_signals
 
 LEGACY = 'legacy_trend6'
 TREND_EXIT = {'ind_ema_macd_trend', 'ind_relative_strength', 'smc_bos_orderblock', LEGACY}
@@ -189,6 +190,25 @@ class AdaptiveRules:
                 return 'trend_reversed'
         return None
 
+    def fast_exit(self, base, p, t):
+        """15-minute structure break: close below the 2h swing low with EMA8<EMA21."""
+        if not self.cfg.get('fast_exit'):
+            return False
+        bars = getattr(self.h, 'fast', {}).get(p['symbol'])
+        sig = fast_signals(bars) if bars else None
+        if not sig:
+            return False
+        observed = getattr(self.h, 'now', t)
+        if observed-p['opened_at'] < 60*int(self.cfg.get('fast_min_hold_minutes', 30)):
+            return False
+        if sig['structure_break']:
+            if base == 'TRX' and self.cfg.get('trx_trend_exit_hold') is True:
+                self.event('trx_trend_exit_hold', {'time': t, 'reason': 'fast_trend_break_suppressed', 'fast': sig, 'risk_exits_enabled': True})
+                return False
+            self.event('fast_trend_break', {'base': base, 'symbol': p['symbol'], 'fast': sig})
+            return True
+        return False
+
     def exits(self, t):
         hold_trx = self.cfg.get('trx_trend_exit_hold') is True
         for base, p in list(self.s['positions'].items()):
@@ -231,6 +251,8 @@ class AdaptiveRules:
                     reason = 'target_reached'
                 elif held >= max_hold:
                     reason = 'time_exit'
+                elif self.fast_exit(base, p, t):
+                    reason = 'fast_trend_break'
                 elif held >= self.cfg['min_holding_hours']:
                     reason = self.strategy_exit(p, t, held)
                     if reason == 'trend_reversed' and hold_trx and base == 'TRX':
@@ -279,6 +301,7 @@ OVERRIDES = {
     'ai_top_candidates': 10, 'ai_min_confidence': 0.65, 'ai_reasoning_effort': 'low',
     'min_quality': 55, 'max_missing_hours': 18, 'capacity_basis': 'max_prior_or_avg24',
     'trend_tp_r_multiple': 2.5, 'breakeven_buffer_fraction': '0.004',
+    'fast_layer': True, 'fast_entry_confirmation': True, 'fast_exit': True, 'fast_min_hold_minutes': 30,
 }
 
 

@@ -152,6 +152,7 @@ function pageLive(root) {
           <tr><td class="muted">حد ضرر شناور</td><td>${stop ? price(stop) + ' <span class="faint">(' + pct(+m.stop * 100, 1) + ' زیر اوج)</span>' : '—'}</td></tr>
           <tr><td class="muted">حد سود (TP)</td><td>${m.target ? price(m.target) + ' <span class="faint">(' + pct((+m.target / unit - 1) * 100, 1) + ' بالای ورود)</span>' : 'در چرخهٔ بعدی تعیین می‌شود'}</td></tr>
           <tr><td class="muted">سربه‌سر</td><td>${m.peak_unit && m.stop && +m.peak_unit >= unit * (1 + +m.stop) ? '<span class="pos">فعال؛ کف ' + price(unit * 1.004) + '</span>' : 'پس از سود ' + pct(+m.stop * 100, 1) + ' (۱R) فعال می‌شود'}</td></tr>
+          <tr><td class="muted">روند ۱۵ دقیقه‌ای</td><td>${fastCell(d.fast, m.symbol)}</td></tr>
           <tr><td class="muted">زمان ورود</td><td>${when(m.opened_at)}</td></tr>
           <tr><td class="muted">دلیل خروج معلق</td><td>${m.exit_reason ? esc(reason(m.exit_reason)) : '—'}</td></tr></table>`;
         if (m.symbol) { const first = !charts[x.asset].pending; charts[x.asset].pending = { symbol: m.symbol, entry: unit, stop, target: m.target ? +m.target : null }; if (first) loadCandles(charts[x.asset]); }
@@ -160,7 +161,7 @@ function pageLive(root) {
     // last AI + candidates
     $('#lastai').innerHTML = d.latest_decision ? decisionCard(d.latest_decision, true) : '<div class="empty">هنوز تصمیمی ثبت نشده است.</div>';
     const cov = (sc && sc.coverage) || {}; const scanned = (cov.signal || 0) + (cov.eligible_no_signal || 0);
-    $('#cands').innerHTML = (sc ? `<div class="faint" style="font-size:11px;margin-bottom:6px">${n0(scanned)} جفت با دادهٔ کافی ارزیابی شد · ${n0(cov.missing_required_history || 0)} بدون معاملهٔ ساعت آخر یا دادهٔ کافی · ${n0((cov.insufficient_recent_liquidity || 0) + (cov.estimated_capacity_below_minimum || 0))} کم‌نقدشونده · ${n0(cov.below_quality || 0)} زیر حد کیفیت</div>` : '') + (sc && sc.top && sc.top.length ? `<table><thead><tr><th>جفت</th><th>استراتژی</th><th>کیفیت</th><th>R/R</th><th>حد ضرر</th><th>TP</th><th>RSI</th></tr></thead><tbody>${sc.top.map(c => `<tr><td>${sym(c.symbol)}</td><td>${famChip(c.strategy)} ${esc(sName(c.strategy))}${c.confluence && c.confluence.length > 1 ? `<div class="faint" style="font-size:11px">هم‌پوشانی: ${c.confluence.map(sName).join('، ')}</div>` : ''}</td><td><b>${n0(c.quality)}</b></td><td>${n2(c.plan && c.plan.reward_risk)}</td><td>${pct(c.plan && c.plan.stop_fraction * 100, 1)}</td><td>${c.plan && c.plan.target_price_tmn ? price(c.plan.target_price_tmn) : '—'}</td><td>${n0(c.indicators && c.indicators.rsi14)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">در اسکن آخر هیچ ستاپ باکیفیتی پیدا نشد؛ نبود معامله تصمیم معتبر است.</div>');
+    $('#cands').innerHTML = (sc ? `<div class="faint" style="font-size:11px;margin-bottom:6px">${n0(scanned)} جفت با دادهٔ کافی ارزیابی شد · ${n0(cov.missing_required_history || 0)} بدون معاملهٔ ساعت آخر یا دادهٔ کافی · ${n0((cov.insufficient_recent_liquidity || 0) + (cov.estimated_capacity_below_minimum || 0))} کم‌نقدشونده · ${n0(cov.below_quality || 0)} زیر حد کیفیت</div>` : '') + (sc && sc.top && sc.top.length ? `<table><thead><tr><th>جفت</th><th>استراتژی</th><th>کیفیت</th><th>R/R</th><th>حد ضرر</th><th>TP</th><th>RSI</th><th>۱۵ دقیقه</th></tr></thead><tbody>${sc.top.map(c => `<tr><td>${sym(c.symbol)}</td><td>${famChip(c.strategy)} ${esc(sName(c.strategy))}${c.confluence && c.confluence.length > 1 ? `<div class="faint" style="font-size:11px">هم‌پوشانی: ${c.confluence.map(sName).join('، ')}</div>` : ''}</td><td><b>${n0(c.quality)}</b></td><td>${n2(c.plan && c.plan.reward_risk)}</td><td>${pct(c.plan && c.plan.stop_fraction * 100, 1)}</td><td>${c.plan && c.plan.target_price_tmn ? price(c.plan.target_price_tmn) : '—'}</td><td>${n0(c.indicators && c.indicators.rsi14)}</td><td style="font-size:11px">${d.fast && d.fast.symbols && d.fast.symbols[c.symbol] ? (d.fast.symbols[c.symbol].trend_up ? '<span class="pos">تأیید</span>' : '<span class="warn">منتظر</span>') : '—'}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">در اسکن آخر هیچ ستاپ باکیفیتی پیدا نشد؛ نبود معامله تصمیم معتبر است.</div>');
   });
   async function loadCandles(c) {
     const q = c.pending; const d = await safe(() => api(`/api/public/candles?symbol=${q.symbol}&resolution=1&minutes=360`));
@@ -174,6 +175,13 @@ function pageLive(root) {
   });
 }
 
+function fastCell(fast, symbol) {
+  const x = fast && fast.symbols && fast.symbols[symbol];
+  if (!x) return '<span class="faint">در انتظار کندل ۱۵ دقیقه‌ای</span>';
+  const st = x.structure_break ? '<span class="neg">شکست ساختار</span>' : x.trend_up ? '<span class="pos">صعودی</span>' : '<span class="warn">خنثی/ضعیف</span>';
+  return `${st} <span class="faint" style="font-size:11px">EMA8 ${price(x.ema8)} · EMA21 ${price(x.ema21)} · کف ۲س ${price(x.swing_low)} · ${hm(x.bucket_end)}</span>`;
+}
+
 function feedItems(j) {
   const rows = [];
   for (const p of j.plans || []) {
@@ -182,6 +190,8 @@ function feedItems(j) {
     for (const [k, v] of p.events || []) {
       if (k === 'strategy_exit') parts.push(`خروج ${esc(v.base)}: ${esc(reason(v.reason))}`);
       else if (k === 'trx_trend_exit_hold') parts.push('نگهداری روندی TRX: خروج برگشت روند معلق ماند');
+      else if (k === 'fast_trend_break') parts.push(`شکست روند ۱۵ دقیقه‌ای ${sym(v.symbol)}: بسته شدن زیر کف ۲ ساعته`);
+      else if (k === 'take_profit_set') parts.push(`TP برای ${esc(v.base)} روی ${price(v.target)} تنظیم شد`);
       else if (k === 'allocation' && v.approved) parts.push(`تخصیص ${sym(v.candidate)} ${toman(v.budget_tmn)}`);
       else if (k === 'allocation') parts.push(`رد تخصیص ${sym(v.candidate)}: ${esc(v.reason)}`);
       else if (k === 'entry_quote_gate') parts.push('رد اجرایی: ' + (v.rejected || []).map(x => x.symbol + ' (' + reason(x.reason) + ')').join('، '));
@@ -271,7 +281,7 @@ function pageStrategies(root) {
   (async () => {
     const live = CTX.live || await safe(pollLive); const cat = live ? live.strategies : await api('/api/public/strategies');
     const cur = live && live.latest_scan && live.latest_scan.regime ? live.latest_scan.regime.regime : null;
-    $('#sintro').innerHTML = `<div class="notice green" style="margin-bottom:14px">${esc(cat.ai_role)}<br>${esc(cat.quality_role || '')}<br>${esc(cat.exit_role || '')}<br>${esc(cat.hard_limits_role)}</div>`;
+    $('#sintro').innerHTML = `<div class="notice green" style="margin-bottom:14px">${esc(cat.ai_role)}<br>${esc(cat.quality_role || '')}<br>${esc(cat.fast_role || '')}<br>${esc(cat.exit_role || '')}<br>${esc(cat.hard_limits_role)}</div>`;
     $('#regimes').innerHTML = Object.entries(cat.regimes).map(([k, r]) => `<div class="regime ${k === cur ? 'current' : ''}"><b style="font-size:15px">${esc(r.fa)}</b><div class="muted" style="font-size:12px;margin:4px 0 8px">${esc(r.description)}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="chip">حداکثر ${n0(r.max_positions)} موقعیت</span><span class="chip">سقف ورود ${toman(r.order_cap_tmn)}</span><span class="chip">ریسک هر ورود ${pct(r.risk_fraction * 100, 1)}</span></div>
       ${r.strategies.map(s => `<div style="font-size:12.5px">${famChip(s)} ${esc(cat.strategies[s].fa)}</div>`).join('')}</div>`).join('');

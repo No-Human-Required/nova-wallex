@@ -153,6 +153,7 @@ class Journal:
         self.run_id, self.seq, self.lock = run_id, 0, threading.Lock()
         self.orders, self.contexts, self.decisions, self.plans, self.system, self.scans = {}, {}, [], [], [], {}
         self.last_plan_hour = None
+        self.fast = None
 
     def update(self, directory):
         with self.lock:
@@ -202,7 +203,10 @@ class Journal:
         elif kind == 'runtime_plan':
             hour = (p.get('time') or 0)
             events = p.get('events') or []
-            notable = [e for e in events if e and e[0] in {'strategy_exit', 'trx_trend_exit_hold', 'allocation', 'deadline_liquidity_gate', 'entry_quote_gate', 'route_abandoned', 'adaptive_regime', 'opportunity_context'}]
+            notable = [e for e in events if e and e[0] in {'strategy_exit', 'trx_trend_exit_hold', 'allocation', 'deadline_liquidity_gate', 'entry_quote_gate', 'route_abandoned', 'adaptive_regime', 'opportunity_context', 'fast_trend_break', 'take_profit_set'}]
+            fast = next((e[1] for e in events if e and e[0] == 'fast_layer'), None)
+            if fast:
+                self.fast = {'observed_at': p.get('observed_at'), 'symbols': fast}
             orders = [{k: o.get(k) for k in ('stage', 'symbol', 'side', 'reason', 'strategy')} for o in (p.get('orders') or [])]
             if orders or hour != self.last_plan_hour or any(e[0] == 'strategy_exit' for e in notable):
                 self.plans.append({'seq': seq, 'time': hour, 'observed_at': p.get('observed_at'), 'orders': orders,
@@ -395,6 +399,7 @@ def live_view(app):
             out['ai_calls_used'] = s.get('runtime_ai_calls', 0)
             out['positions_meta'] = s.get('strategy', {}).get('positions', {})
             out['journal_seq'] = j.seq
+            out['fast'] = j.fast
         except Exception as exc:
             out['journal_error'] = type(exc).__name__
     return out

@@ -1,14 +1,14 @@
 {
-  "version": "4.1.1",
-  "source_sha256": "b1d570876ff486206e1e3e59ffb678a754a89d0e3c0ff3ce5bbc75d84c20828f",
+  "version": "4.2.0",
+  "source_sha256": "75d52997a2a381df60918ed334568cc4c7b78d5ddbdff4a4f4eaf92c63147c81",
   "offline_fault_tests_passed": true,
-  "sqlite_tests_passed": 256,
+  "sqlite_tests_passed": 262,
   "postgres_tests_passed": 109,
-  "tests_passed": 365,
+  "tests_passed": 371,
   "test_evidence": {
-    "tests-v4.txt": "6351cfb9ffd9c1273f969fb3bd694b93b7de1618ceff58fff64ec66034e3d8e3",
-    "execution-tests-v4.txt": "ff8011dbcb72ae8e798966df9985190a31defc96822691026f113c76c1e57b55",
-    "postgres-v4.txt": "6381e0ea703a17f6ec6fa5e00ddaf8d6bf934e94e578ebc9013923d03fa8c99a"
+    "tests-v4.txt": "b3890b1e4dd7c0b3e55c74c66b630956e4bd9d994989f95b8bad839dd5534aee",
+    "execution-tests-v4.txt": "2565336a5f880dc750b638afd80936618b7099ebce73e20d8a881b24b8186cd1",
+    "postgres-v4.txt": "124f9f37722132153635522540afeeea7850b5ff58ac392f1cade3a69659bada"
   },
   "test_runtime": "CPython 3.13 offline container; production image is CPython 3.12",
   "private_challenge_account_tested": false,
@@ -22,5 +22,6 @@
   "native_protection_separate_approval": true,
   "coverage_policy": "hours without trades carried at last trade price with zero volume; latest hour must trade; <=12/49 and <=18/72 empty hours",
   "take_profit_policy": "every position has a TP: structural target or 2.5R; trend positions without a target get 2.5R; other legacy positions the 48h swing high or 1R; break-even floor after +1R",
-  "quality_policy": "min quality 55/100 before AI; AI min confidence 0.65"
+  "quality_policy": "min quality 55/100 before AI; AI min confidence 0.65",
+  "fast_layer_policy": "15-minute closed buckets from public 1-minute candles: entry needs EMA8>EMA21 and close>EMA8; exit on close below 2h swing low with EMA8<EMA21 after 30 minutes; TRX trend hold respected"
 }

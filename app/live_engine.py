@@ -74,6 +74,8 @@ class Engine:
             from execution.ai_decision import AdaptiveAI
             ai=AdaptiveAI(directory/'ai-cache-adaptive')
         else:ai=PortfolioAI(directory/'ai-cache')
+        from execution.fast import FastFeed
+        self.fast_feed=FastFeed(self.feed.markets,directory/'fast-observations',api_factory=getattr(self.feed,'api_factory',None) or __import__('starwallex.data',fromlist=['WallexPublic']).WallexPublic) if cfg.get('fast_layer') else None
         self.controller=PortfolioController(self.j,self.gateway,cfg,start=start,end=end,ai=ai,settlement_rule='flatten_to_tmn')
         self.live.heartbeat('reconciling')
         # Resolve old SUBMITTING/UNKNOWN first, with GET only. No new client ID
@@ -192,12 +194,19 @@ class Engine:
                 j.checkpoint('native_approval_rejected',{'request_id':approval['request_id'],'reason':str(exc)},saved)
         symbols={'USDTTMN'}|{x['symbol'] for x in selected}|{x['symbol'] for x in strategy['positions'].values()}
         if strategy['route']:symbols.add(strategy['route']['symbol'])
+        fast=None
+        if getattr(self,'fast_feed',None):
+            # Closed 15-minute buckets are fetched before the executable quotes,
+            # so slow public candle requests cannot age the order-book snapshot.
+            wanted={x['symbol'] for x in selected}|{x['symbol'] for x in strategy['positions'].values()}
+            try:fast=self.fast_feed.bars(wanted,int(time.time())) if wanted else {}
+            except Exception:fast={}
         self.last_quotes=self.feed.quotes(symbols);current=int(time.time())
         if current//3600*3600!=t:return
         state=self.live.state()
         if state['desired'] not in {'running','reduce_only'}:return
         try:
-            result=self.controller.step(history,self.last_quotes,now=current,can_submit=True,entries_enabled=state['desired']=='running')
+            result=self.controller.step(history,self.last_quotes,now=current,can_submit=True,entries_enabled=state['desired']=='running',fast=fast)
         except ContractError as exc:
             if j.s['halt']:raise
             j.checkpoint('runtime_observation_rejected',{'reason':str(exc),'time':current},deepcopy(j.s))

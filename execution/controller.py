@@ -222,7 +222,7 @@ class PortfolioController:
         s['runtime_selections']={str(t):{'ranked':ranked,'selection':selection}}
         self.j.checkpoint('runtime_selection',selection,s)
 
-    def step(self,history,quotes,*,now,can_submit=False,entries_enabled=True):
+    def step(self,history,quotes,*,now,can_submit=False,entries_enabled=True,fast=None):
         # Default is a hard stop BEFORE network or journal writes, not a flag that
         # could silently activate the gateway from a stored credential.
         if not can_submit:raise PermissionError('Controller submission mode not enabled')
@@ -254,6 +254,11 @@ class PortfolioController:
                     quote=view.quote(symbol)
                     if not quote:reason='missing_or_stale_quote';break
                     if (quote[1]/quote[0]-1)*10000>limit:reason='spread_gate';break
+                if not reason and self.cfg.get('fast_entry_confirmation'):
+                    from .fast import signals as fast_signals
+                    sig=fast_signals((fast or {}).get(candidate['symbol']))
+                    if not sig:reason='fast_data_unavailable'
+                    elif not sig['trend_up']:reason='fast_trend_not_confirmed'
                 if reason:executable_rejections.append({'symbol':candidate['symbol'],'reason':reason})
                 else:eligible.append(candidate)
             ranked=eligible
@@ -265,7 +270,10 @@ class PortfolioController:
                 entries_enabled=False
             if deadline.get('route_blocked'):entries_enabled=False
         decision=plan(history,t,self.cfg,self.j.s['ledger'],strategy,quotes,now=now,
-                      ranked=ranked,selection=selection,allow_entries=entries_enabled and now<self.end-self.cfg.get('entry_stop_before_end_seconds',3600) and (entry_slot or bool(strategy['route'])),end=self.end)
+                      ranked=ranked,selection=selection,allow_entries=entries_enabled and now<self.end-self.cfg.get('entry_stop_before_end_seconds',3600) and (entry_slot or bool(strategy['route'])),end=self.end,fast=fast)
+        if fast:
+            from .fast import signals as fast_signals
+            decision['events'].append(('fast_layer',{s:fast_signals(b) for s,b in sorted(fast.items())}))
         if deadline is not None:decision['events'].append(('deadline_liquidity_gate',deadline))
         if executable_rejections:decision['events'].append(('entry_quote_gate',{'rejected':executable_rejections}))
         s=deepcopy(self.j.s);strategy['control']=decision['control'];strategy['positions']=decision['positions']

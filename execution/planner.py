@@ -89,11 +89,12 @@ def select(history,t,cfg,ai):
     return selected,{'time':t,'dataset_identity':history.identity,'coverage':coverage,
                      'original_candidates':original,'ai':record,'selected_symbols':[x['symbol'] for x in selected]}
 
-def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection,allow_entries,end=None):
+def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection,allow_entries,end=None,fast=None):
     if cfg.get('runtime_policy') not in {None,'guarded_breakout_ai','hourly_opportunity_ai','adaptive_ai'}:
         raise ContractError('Unknown runtime policy')
     ledger=Ledger(ledger_state)
     view=QuoteView(history,t,quotes,now)
+    view.fast=fast or {}
     identity={'ledger':ledger_state,'strategy':strategy_state,'time':t,'observed_at':now,
               'selection':selection,'quotes':quotes,'data':history.identity,'source':source_manifest()['sha256']}
     dummy=SimpleNamespace(latest=lambda:None,identity=identity)

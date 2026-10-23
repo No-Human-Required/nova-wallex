@@ -85,6 +85,15 @@ class Fixture:
         return out
 
 
+def fast_bars(direction, n=32, end=3600*500):
+    from execution.fast import aggregate
+    rows, p = {}, 1000.0
+    for m in range(end-n*900, end, 60):
+        p *= 1+direction*0.0004
+        rows[m] = (p, p*1.0005, p*0.9995, p, 10.0)
+    return aggregate(rows, end, n)
+
+
 def fake_transport(answers):
     calls = []
 
@@ -247,7 +256,10 @@ class ControllerAdaptiveTests(unittest.TestCase):
         self.c.prepare_selection(self.h, now=self.t)
         sel = self.j.s['runtime_selections'][str(self.t)]
         self.assertEqual(sel['selection']['ai']['status'], 'ok')
-        r = self.c.step(self.h, self.h.quotes(self.t), now=self.t, can_submit=True)
+        r = self.c.step(self.h, self.h.quotes(self.t), now=self.t, can_submit=True, fast={'AAATMN': fast_bars(-1)})
+        self.assertEqual(r['status'], 'no_executable_order', r)
+        self.assertFalse(self.g.sent)
+        r = self.c.step(self.h, self.h.quotes(self.t), now=self.t, can_submit=True, fast={'AAATMN': fast_bars(1)})
         self.assertEqual(r['status'], 'submitted_or_unknown', r)
         ctx = self.j.s['strategy']['contexts'][r['client_id']]
         self.assertEqual(ctx['strategy'], 'smc_liquidity_sweep')
@@ -328,3 +340,65 @@ class CoverageAndExitTests(unittest.TestCase):
         strategy['positions']['AAA'].update(peak_unit='1052', target='2000')
         d = plan(h, t, cfg, ledger, strategy, h.quotes(t, aaa='1002'), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
         self.assertEqual([o['reason'] for o in d['orders']], ['breakeven_stop'])
+
+
+class FastLayerTests(unittest.TestCase):
+    def test_aggregate_uses_only_closed_buckets_and_carries_empty_minutes(self):
+        from execution.fast import aggregate
+        end = 3600*500
+        rows = {m: (1.0, 1.0, 1.0, 1.0, 1.0) for m in range(end-32*900, end, 60) if (m//60) % 7}
+        rows[end] = (9.0, 9.0, 9.0, 9.0, 9.0)  # still-open bucket is ignored
+        b = aggregate(rows, end)
+        self.assertEqual(len(b['t']), 32)
+        self.assertEqual(b['t'][-1], end-900)
+        self.assertNotIn(9.0, b['c'])
+        self.assertGreater(b['empty_minutes'], 0)
+
+    def test_signals_detect_trend_and_structure_break(self):
+        from execution.fast import signals
+        self.assertTrue(signals(fast_bars(1))['trend_up'])
+        down = signals(fast_bars(-1))
+        self.assertFalse(down['trend_up'])
+        self.assertTrue(down['structure_break'])
+
+    def test_fast_structure_break_exits_before_hourly_bar_but_respects_trx_hold_and_grace(self):
+        from execution.planner import plan
+        h = Fixture()
+        t = 3600*500
+        h.t0 = t
+        cfg = adaptive_config(validated_config())
+        ledger = {'cash': '4900000', 'realized': '0', 'capital': '5000000', 'holdings': {'AAA': {'qty': '100', 'basis': '100000'}}}
+        meta = {'symbol': 'AAATMN', 'opened_at': t-7200, 'stop': '0.05', 'peak_unit': '1000', 'exit_reason': None, 'target': '1300', 'strategy': 'ind_ema_macd_trend'}
+        strategy = {'positions': {'AAA': dict(meta)}, 'control': {}, 'contexts': {}, 'processed': [], 'route': None}
+        d = plan(h, t, cfg, ledger, strategy, h.quotes(t), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400, fast={'AAATMN': fast_bars(-1)})
+        self.assertEqual([o['reason'] for o in d['orders']], ['fast_trend_break'])
+        strategy['positions']['AAA'] = dict(meta, opened_at=t-600)
+        d = plan(h, t, cfg, ledger, strategy, h.quotes(t), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400, fast={'AAATMN': fast_bars(-1)})
+        self.assertEqual(d['orders'], [])
+        strategy['positions']['AAA'] = dict(meta)
+        d = plan(h, t, cfg, ledger, strategy, h.quotes(t), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400, fast={'AAATMN': fast_bars(1)})
+        self.assertEqual(d['orders'], [])
+
+
+class FastFeedTests(unittest.TestCase):
+    def test_feed_fetches_once_per_bucket_and_persists_observation(self):
+        from execution.fast import FastFeed
+        calls = []
+
+        class API:
+            def get(self, path, params):
+                calls.append(params)
+                ts = list(range(params['from']//60*60, params['to'], 60))
+                return {'s': 'ok', 't': ts, 'o': [1]*len(ts), 'h': [1]*len(ts), 'l': [1]*len(ts), 'c': [1]*len(ts), 'v': [1]*len(ts)}, {'source': 'fixture', 'received_at': 0}
+        with tempfile.TemporaryDirectory() as d:
+            feed = FastFeed(Fixture().markets, Path(d), api_factory=API)
+            now = 3600*500+123
+            a = feed.bars({'AAATMN', 'UNKNOWN'}, now)
+            b = feed.bars({'AAATMN'}, now+60)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0]['resolution'], '1')
+            self.assertEqual(a['AAATMN']['end'], 3600*500)
+            self.assertEqual(a, b)
+            again = FastFeed(Fixture().markets, Path(d), api_factory=API).bars({'AAATMN'}, now)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(again['AAATMN']['t'], a['AAATMN']['t'])
