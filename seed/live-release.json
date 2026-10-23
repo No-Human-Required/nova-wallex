@@ -1,14 +1,14 @@
 {
-  "version": "4.2.0",
-  "source_sha256": "75d52997a2a381df60918ed334568cc4c7b78d5ddbdff4a4f4eaf92c63147c81",
+  "version": "4.2.1",
+  "source_sha256": "fed63d05d963086bbab81177bfb4fb385bf6e5972102a7cde6e07af1014ea6c8",
   "offline_fault_tests_passed": true,
-  "sqlite_tests_passed": 262,
+  "sqlite_tests_passed": 263,
   "postgres_tests_passed": 109,
-  "tests_passed": 371,
+  "tests_passed": 372,
   "test_evidence": {
-    "tests-v4.txt": "b3890b1e4dd7c0b3e55c74c66b630956e4bd9d994989f95b8bad839dd5534aee",
-    "execution-tests-v4.txt": "2565336a5f880dc750b638afd80936618b7099ebce73e20d8a881b24b8186cd1",
-    "postgres-v4.txt": "124f9f37722132153635522540afeeea7850b5ff58ac392f1cade3a69659bada"
+    "tests-v4.txt": "e92f0f96ac027370eff718559e15d79d753b45c06db599ed3e9b17bb6524d485",
+    "execution-tests-v4.txt": "68958e377c49138a80862d6b84be90ba3aff4e07a209109ea0b2fdb1b552c8b5",
+    "postgres-v4.txt": "d882137620647f9656324372347be6c9b1a9e9e4ba7c36cdfe306cc6cd6d2368"
   },
   "test_runtime": "CPython 3.13 offline container; production image is CPython 3.12",
   "private_challenge_account_tested": false,
@@ -21,7 +21,7 @@
   "end_policy": "adaptive exit capacity, no fixed hour entry cutoff",
   "native_protection_separate_approval": true,
   "coverage_policy": "hours without trades carried at last trade price with zero volume; latest hour must trade; <=12/49 and <=18/72 empty hours",
-  "take_profit_policy": "every position has a TP: structural target or 2.5R; trend positions without a target get 2.5R; other legacy positions the 48h swing high or 1R; break-even floor after +1R",
+  "take_profit_policy": "every position has a TP of at least max(1R, 2x round-trip cost) above basis: structural target, 2.5R for trend strategies, or the 48h swing high only when it clears that floor; break-even floor after +1R",
   "quality_policy": "min quality 55/100 before AI; AI min confidence 0.65",
   "fast_layer_policy": "15-minute closed buckets from public 1-minute candles: entry needs EMA8>EMA21 and close>EMA8; exit on close below 2h swing low with EMA8<EMA21 after 30 minutes; TRX trend hold respected"
 }

@@ -10,7 +10,7 @@ from statistics import mean, pstdev
 from starwallex.portable_math import log
 
 from starwallex.domain import D
-from starwallex.portfolio_cost import fee_rate
+from starwallex.portfolio_cost import fee_rate, roundtrip_bps
 from starwallex.portfolio_engine import PortfolioEngine
 from starwallex.portfolio_v3 import GuardedEngine
 from starwallex.util import digest
@@ -224,22 +224,28 @@ class AdaptiveRules:
                 reason = 'portfolio_halt'
             elif not reason:
                 basis = p['cost']/p['qty']
-                if p.get('target') is None:
-                    # Every position carries a take-profit. A legacy entry had none:
-                    # target the 48h swing high (resting buy-side liquidity) when it
-                    # is above the market, otherwise one stop distance above basis.
+                # Every position carries a take-profit that pays realistic round-trip
+                # friction and at least one stop distance (1R). A structural level
+                # (48h swing high) is used only when it is at or beyond that floor.
+                cost = D(str(roundtrip_bps(self.execution, self.h.markets[p['symbol']].quote)))/10000
+                stop_d = D(str(p['stop']))
+                minimum = basis*(1+max(stop_d, 2*cost))
+                current = D(str(p['target'])) if p.get('target') is not None else None
+                if current is None or current < minimum:
                     bars = st.series(self.h, p['symbol'], t)
                     swing = D(str(max(bars[1][-48:]))) if bars else None
                     if strategy in {'ind_ema_macd_trend', 'ind_relative_strength'}:
                         multiple = D(str(self.cfg.get('trend_tp_r_multiple', 2.5)))
-                        target, source = basis*(1+multiple*D(str(p['stop']))), 'strategy_r_multiple'
-                    elif swing is not None and swing > unit*D('1.005') and swing > basis*D('1.006'):
+                        target, source = basis*(1+multiple*stop_d), 'strategy_r_multiple'
+                    elif swing is not None and swing >= minimum:
                         target, source = swing, 'swing_high_48h'
                     else:
-                        target, source = basis*(1+D(str(p['stop']))), 'one_r_above_basis'
+                        target, source = minimum, 'minimum_one_r_after_costs'
+                    target = max(target, minimum)
                     p['target'] = str(target.quantize(D('0.0001')))
                     self.event('take_profit_set', {'time': t, 'base': base, 'target': p['target'], 'basis_unit': basis,
-                                                   'source': source})
+                                                   'source': source, 'previous_target': str(current) if current is not None else None,
+                                                   'minimum_target': str(minimum.quantize(D('0.0001')))})
                 target = p.get('target')
                 protected = p['peak_unit'] >= basis*(1+D(str(p['stop'])))
                 floor = basis*(1+D(str(self.cfg.get('breakeven_buffer_fraction', '0.004'))))

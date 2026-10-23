@@ -402,3 +402,22 @@ class FastFeedTests(unittest.TestCase):
             again = FastFeed(Fixture().markets, Path(d), api_factory=API).bars({'AAATMN'}, now)
             self.assertEqual(len(calls), 1)
             self.assertEqual(again['AAATMN']['t'], a['AAATMN']['t'])
+
+
+class TakeProfitFloorTests(unittest.TestCase):
+    def test_target_below_costs_or_one_r_is_raised(self):
+        from execution.planner import plan
+        h = Fixture()
+        t = 3600*500
+        h.t0 = t
+        cfg = adaptive_config(validated_config())
+        ledger = {'cash': '4900000', 'realized': '0', 'capital': '5000000', 'holdings': {'AAA': {'qty': '100', 'basis': '100000'}}}
+        strategy = {'positions': {'AAA': {'symbol': 'AAATMN', 'opened_at': t-7200, 'stop': '0.06', 'peak_unit': '1000',
+                    'exit_reason': None, 'target': '1007', 'strategy': None}}, 'control': {}, 'contexts': {}, 'processed': [], 'route': None}
+        d = plan(h, t, cfg, ledger, strategy, h.quotes(t), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
+        self.assertGreaterEqual(D(d['positions']['AAA']['target']), D('1060'))
+        ev = [p for k, p in d['events'] if k == 'take_profit_set'][0]
+        self.assertEqual(ev['previous_target'], '1007')
+        strategy['positions']['AAA'].update(target=d['positions']['AAA']['target'])
+        d2 = plan(h, t, cfg, ledger, strategy, h.quotes(t), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
+        self.assertFalse([k for k, _ in d2['events'] if k == 'take_profit_set'])
