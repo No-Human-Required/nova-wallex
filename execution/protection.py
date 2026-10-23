@@ -40,7 +40,9 @@ def preview(state,market,cfg,reference,*,now):
     if not holding or not position or position['symbol']!='TRXTMN' or pending_exit:
         raise ContractError('A managed TRX/TMN position without a pending exit is required')
     trigger=(dec(position['peak_unit'])*(1-dec(position['stop']))/market.price_step).to_integral_value(rounding=ROUND_UP)*market.price_step
-    limit=floor_step(trigger*(1-dec(cfg['order_limit_bps'])/10000),market.price_step)
+    # A deep limit makes the triggered stop behave like a stop-market order
+    # (immediate fills against the bids) while keeping a worst-price floor.
+    limit=floor_step(trigger*(1-dec(cfg.get('native_stop_limit_bps',cfg['order_limit_bps']))/10000),market.price_step)
     qty=floor_step(dec(holding['qty'])/(1+dec('0.003')),market.qty_step)
     if qty<market.min_qty or qty*limit<market.min_notional or qty*trigger>dec(cfg['max_order_tmn']):
         raise ContractError('Protective order is below minimum or above the bound order cap')

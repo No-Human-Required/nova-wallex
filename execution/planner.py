@@ -187,7 +187,14 @@ def compile_intent(order,decision,history,quotes,ledger_state,cfg,*,now,max_spre
     # Refresh a planned limit only by rejecting a materially moved market; a new
     # plan must then pass the portfolio checks with the fresh observations.
     limit=dec(order['limit'])
+    fast_exit=order['side']=='SELL' and cfg.get('fast_exit_orders') is True
     if order['side']=='BUY':limit=(limit/m.price_step).to_integral_value(rounding=ROUND_UP)*m.price_step
+    elif fast_exit:
+        # Market-speed exit: a sell limit far below the best bid executes at
+        # once against the visible bids (fills at their prices, never below
+        # the floor). Unlike a raw MARKET order, the worst price is bounded and
+        # the exchange reply keeps the reviewed limit-order contract.
+        limit=floor_step(min(limit,bid*(1-dec(cfg.get('exit_limit_bps','500'))/10000)),m.price_step)
     else:limit=floor_step(limit,m.price_step)
     if limit<=0 or (order['side']=='BUY' and limit<ask) or (order['side']=='SELL' and limit>bid):
         raise ContractError('Planned limit no longer crosses the quote')
@@ -214,7 +221,10 @@ def compile_intent(order,decision,history,quotes,ledger_state,cfg,*,now,max_spre
         # Thin pairs trade in bursts; the order book depth check below remains binding.
         recent=[history.bar(m.symbol,decision['time']-i*3600) for i in range(1,25)]
         volume=max(volume,sum((b.volume for b in recent if b is not None),Decimal(0))/24)
-    quantity=min(quantity,max(Decimal(0),volume*dec(cfg['participation'])-committed))
+    if not fast_exit:
+        # Exits are not throttled by historical volume: visible bid depth above
+        # the floor (below) is the binding, observed liquidity.
+        quantity=min(quantity,max(Decimal(0),volume*dec(cfg['participation'])-committed))
     # Actual observed depth, when supplied, caps marketable quantity; future depth
     # is not inferred. This is additional live protection, absent in OHLC tests.
     levels=quotes[m.symbol].get('asks' if order['side']=='BUY' else 'bids')

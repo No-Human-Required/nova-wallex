@@ -19,9 +19,15 @@ PROVIDERS = {
                'ladder': ['reasoning_low', 'thinking_disabled', 'plain_large_budget'],
                'docs': 'https://docs.avalai.ir'},
     'metisai': {'fa': 'MetisAI', 'base_url': 'https://api.metisai.ir/openai/v1', 'hosts': ['api.metisai.ir'],
-                'models': ['gpt-4o-mini', 'gpt-4.1-mini', 'deepseek-chat'],
+                'models': ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4o', 'deepseek-v4-flash', 'deepseek-v4-pro', 'grok-4-fast', 'metis-gpt'],
                 'ladder': ['plain_large_budget', 'reasoning_low'],
-                'docs': 'https://docs.metisai.ir'},
+                # docs.metisai.ir: each vendor has its own OpenAI-compatible base path.
+                'presets': {'OpenAI (GPT)': 'https://api.metisai.ir/openai/v1', 'DeepSeek': 'https://api.metisai.ir/deepseek/v1',
+                            'Grok (xAI)': 'https://api.metisai.ir/api/v1/wrapper/grok', 'اینترنت ملی (metis-gpt)': 'https://api.metisai.ir/api/v1/wrapper/metis'},
+                'preset_models': {'https://api.metisai.ir/deepseek/v1': ['deepseek-v4-flash', 'deepseek-v4-pro'],
+                                  'https://api.metisai.ir/api/v1/wrapper/metis': ['metis-gpt'],
+                                  'https://api.metisai.ir/api/v1/wrapper/grok': ['grok-4-fast', 'grok-4', 'grok-3-mini']},
+                'docs': 'https://docs.metisai.ir/api/wrapper/openai'},
     'boxapi': {'fa': 'BoxAPI', 'base_url': 'https://ai.boxapi.ir/ai/v1', 'hosts': ['ai.boxapi.ir', 'irai.boxapi.ir'],
                'models': ['gpt-5.4-mini', 'gpt-4o-mini', 'gpt-4o'],
                'ladder': ['plain_large_budget', 'reasoning_low'],
@@ -83,6 +89,33 @@ def post_json(url, *, headers=None, body=None, timeout=60):
         raise LLMError(exc.code, parts.path) from None
     except (TimeoutError, urllib.error.URLError):
         raise LLMError(0, 'network unavailable') from None
+
+
+def get_json(url, *, headers=None, timeout=20):
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme != 'https' or parts.hostname not in hosts():
+        raise ValueError('Unapproved API origin')
+    req = urllib.request.Request(url, headers={'Accept': 'application/json', **(headers or {})})
+    try:
+        with urllib.request.build_opener(_NoRedirect).open(req, timeout=timeout) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise LLMError(exc.code, parts.path) from None
+    except (TimeoutError, urllib.error.URLError):
+        raise LLMError(0, 'network unavailable') from None
+
+
+def model_ids(raw):
+    """Model identifiers from an OpenAI-style /models listing (tolerant of variants)."""
+    rows = raw.get('data') if isinstance(raw, dict) else raw
+    if isinstance(rows, dict):
+        rows = rows.get('models') or rows.get('data')
+    out = []
+    for r in rows or []:
+        ident = (r.get('id') or r.get('name') or r.get('model')) if isinstance(r, dict) else r
+        if isinstance(ident, str) and 1 < len(ident) <= 120 and not any(c.isspace() for c in ident):
+            out.append(ident)
+    return sorted(set(out))
 
 
 def text_of(raw):

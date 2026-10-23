@@ -1,10 +1,10 @@
 {
-  "version": "4.5.0",
-  "source_sha256": "ccb5698e79658a34b9dea0a55fafcded6a83c8500bc96a6e2045df5838194354",
+  "version": "4.6.0",
+  "source_sha256": "1e32cce3a77f96da408ddaf96bb7711da8630fab0388a3b138f02c5928fbc381",
   "offline_fault_tests_passed": true,
-  "sqlite_tests_passed": 280,
-  "postgres_tests_passed": 117,
-  "tests_passed": 397,
+  "sqlite_tests_passed": 285,
+  "postgres_tests_passed": 119,
+  "tests_passed": 404,
   "test_evidence": {
     "tests-v4.txt": "2acbbe017feae9e8ab17d57bfd08d720b714f9697ac4c59fa7fc13a15a106186",
     "execution-tests-v4.txt": "2d9a3776112b593f58941d263f17412d8f3c33a894ade14385736260df73744c",
@@ -28,5 +28,6 @@
   "wallet_observation_policy": "balances-detail TMN accepted only as the nearest integer of the exact ledger (observed rounding down and up); spending uses the lower of reported and ledger cash; the operator upgrade clears wallet_ledger_mismatch only after a fresh GET-only recheck passes",
   "decision_page_history": "scans recorded before 4.3.0 get per-pair stages by replaying the screener on the immutable hourly observations, used only when counts equal the recorded coverage; otherwise recorded coverage counts",
   "llm_provider_policy": "OpenAI-compatible providers avalai/metisai/boxapi with pinned hosts; provider, model, base URL and bound keys change only through the v7 operator upgrade; replacement keys for bound credentials are staged and promoted in the rebinding transaction",
-  "strategy_studio": "agentic LLM loop (propose/backtest/tune/save) over a validated JSON strategy specification; backtests on recorded hourly data in memory without orders or AI; human full test and approval required; approved specifications enter the engine config via the operator upgrade and pass the same quality, AI, sizing and exit controls"
+  "strategy_studio": "agentic LLM loop (propose/backtest/tune/save) over a validated JSON strategy specification; backtests on recorded hourly data in memory without orders or AI; human full test and approval required; approved specifications enter the engine config via the operator upgrade and pass the same quality, AI, sizing and exit controls",
+  "exit_order_policy": "all algorithmic sells (stops, take-profit, time/trend exits, portfolio halt, final TMN conversion) use a marketable LIMIT 5% below the best bid (exit_limit_bps=500): immediate fills against visible bids with a bounded worst price; no historical-volume throttle on exits, visible bid depth and order cap bind; native TRX stop uses a 5% deep limit (stop-market behaviour) and an operator replacement path cancels the resting stop before a renewed approval; raw MARKET/STOP_MARKET avoided because their reply contract is undocumented"
 }

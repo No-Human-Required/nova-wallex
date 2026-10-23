@@ -14,6 +14,7 @@ from execution.feed import PublicFeed
 
 router=APIRouter(prefix='/api/live/native-stop')
 CONFIRMATION='فعال‌سازی محافظ TRX در والکس'
+REPLACE_CONFIRMATION='جایگزینی محافظ TRX با فروش سریع'
 
 class Approval(BaseModel):
     model_config=ConfigDict(extra='forbid')
@@ -96,3 +97,41 @@ def reconcile_native(body:Reconciliation,request:Request):
     from .live_api import problem
     try:return recover(request.app,hold_trx_trend_exit=body.hold_trx_trend_exit)
     except (ValueError,RuntimeError,KeyError) as exc:raise HTTPException(409,problem(exc)) from None
+
+
+class Replacement(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    confirmation:str
+
+
+@router.post('/replace')
+def request_replacement(body:Replacement,request:Request):
+    """Ask the engine to cancel the resting protective stop so a faster one can be approved.
+
+    The web never cancels or sends an order. The engine cancels the current
+    stop (GET-reconciled), after which «پیش‌نمایش محافظ» offers a renewal with
+    the configured deep limit (stop-market behaviour with a price floor).
+    """
+    from .live_api import problem
+    try:
+        if body.confirmation!=REPLACE_CONFIRMATION:raise ContractError('Explicit replacement confirmation required')
+        app=request.app;run,state=context(app)
+        if run['config'].get('trx_trend_exit_hold') is not True:raise ContractError('Renewal path requires the reviewed TRX hold policy')
+        p=state.get('native_protection',{});o=state.get('orders',{}).get(p.get('client_id'),{})
+        if not p.get('operator_approved') or o.get('phase') not in {'OPEN','PARTIAL'} or p.get('exit_requested'):
+            raise ContractError('No resting protective stop to replace')
+        spec=p.get('preview',{});limit_bps=run['config'].get('native_stop_limit_bps')
+        if not limit_bps:raise ContractError('Upgrade to a release with fast protective stops first')
+        with app.state.store.connect() as db:
+            db.execute('DELETE FROM live_native_replacements WHERE run_id=?',(run['id'],))
+            db.execute('INSERT INTO live_native_replacements(run_id,request_id,requested_at) VALUES(?,?,?)',(run['id'],p['request_id'],time.time()))
+        app.state.store.log('native_stop_replacement_requested',{'run_id':run['id'],'request_id':p['request_id']})
+        return {'ok':True,'request_id':p['request_id'],'current':{'stop_price':spec.get('stop_price'),'price':spec.get('price')},
+                'new_limit_bps':limit_bps,'next':'موتور در چرخهٔ بعد محافظ فعلی را لغو می‌کند؛ سپس «پیش‌نمایش محافظ» و تأیید را بزنید.',
+                'order_cancelled_by_web':False}
+    except (ValueError,RuntimeError,KeyError) as exc:raise HTTPException(409,problem(exc)) from None
+
+
+def replacement(store,run_id):
+    with store.connect() as db:row=db.execute('SELECT request_id,requested_at FROM live_native_replacements WHERE run_id=?',(run_id,)).fetchone()
+    return dict(row) if row else None

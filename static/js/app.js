@@ -1,5 +1,5 @@
 import { S, api, loadSession, n0, n2, n4, toman, pct, price, signCls, when, clock, hm, ago, esc, h, $, $$, sym,
-  STATUS_FA, REASON_FA, PHASE_FA, SIDE_FA, download, tween } from './core.js';
+  STATUS_FA, REASON_FA, PHASE_FA, SIDE_FA, download, tween, wxButton } from './core.js';
 import { LineChart, CandleChart } from './charts.js';
 import { background, Radar, ART } from './fx.js';
 import { pageHow } from './how.js';
@@ -147,7 +147,7 @@ function pageLive(root) {
         }
         const unit = +x.basis / +x.qty; const value = +(x.value_tmn || 0); const pnl = value ? value - +x.basis : null;
         const stop = m.peak_unit && m.stop ? +m.peak_unit * (1 - +m.stop) : null;
-        $('#' + id + '-i').innerHTML = `<div style="font-size:18px;font-weight:700">${sym(m.symbol || x.asset)} ${famChip(m.strategy)}</div>
+        $('#' + id + '-i').innerHTML = `<div style="font-size:18px;font-weight:700">${sym(m.symbol || x.asset)} ${famChip(m.strategy)} ${wxButton(m.symbol)}</div>
           <div class="muted" style="font-size:12px">${esc(sName(m.strategy || 'legacy_trend6'))}</div>
           <table style="margin-top:8px"><tr><td class="muted">مقدار</td><td>${n4(x.qty)} ${esc(x.asset)}</td></tr>
           <tr><td class="muted">بهای تمام‌شده</td><td>${toman(x.basis)} <span class="faint">(${price(unit)})</span></td></tr>
@@ -213,7 +213,7 @@ function feedItems(j) {
 function decisionCard(d, compact = false) {
   const ok = d.status === 'ok';
   const attempts = (d.attempts || []).map(a => `<span class="chip ${a.status === 'ok' ? 'ok' : 'bad'}">${esc(a.variant)} · ${esc(a.finish_reason || a.http_status || a.status)}${a.usage && a.usage.completion_tokens ? ' · ' + n0(a.usage.completion_tokens) + ' توکن' : ''}</span>`).join(' ');
-  const rows = (d.decisions || []).map(x => `<div class="cand"><div class="sym">${esc(x.symbol || x.id)}</div>
+  const rows = (d.decisions || []).map(x => `<div class="cand"><div class="sym">${x.symbol ? sym(x.symbol) : esc(x.id)}</div>
       <div>${x.action === 'enter' ? '<span class="chip ok">ورود</span>' : '<span class="chip">رد</span>'} <span>${esc(x.reason)}</span></div>
       <div><span class="faint" style="font-size:11px">اطمینان ${n2(x.confidence)} · اندازه ${n2(x.size)}</span><div class="conf"><i style="width:${Math.round((x.confidence || 0) * 100)}%"></i></div></div></div>`).join('');
   const legacy = d.legacy ? `<div class="view">${esc(d.legacy.reason)} <span class="faint">(اطمینان ${n2(d.legacy.confidence)})</span></div>` : '';
@@ -315,7 +315,7 @@ function pageMarket(root) {
   $('#hq').onclick = e => { const b = e.target.closest('button'); if (!b) return; q = b.dataset.q; $$('#hq button').forEach(x => x.classList.toggle('on', x === b)); paint(); };
   async function loadC() {
     const d = await safe(() => api(`/api/public/candles?symbol=${symbol}&resolution=${resn}&minutes=${minutes}`)); if (!d) return;
-    $('#mtitle').innerHTML = `نمودار ${resn === '1' ? 'دقیقه‌ای' : resn + ' دقیقه‌ای'} ${sym(symbol)}`; ch.set(d);
+    $('#mtitle').innerHTML = `نمودار ${resn === '1' ? 'دقیقه‌ای' : resn + ' دقیقه‌ای'} ${sym(symbol)} ${wxButton(symbol)}`; ch.set(d);
     const r = rows.find(x => x.symbol === symbol) || {}; const cand = ((CTX.live && CTX.live.latest_scan && CTX.live.latest_scan.top) || []).find(c => c.symbol === symbol);
     $('#mdet').innerHTML = `<table><tr><td class="muted">آخرین قیمت</td><td>${price(r.last)}</td></tr><tr><td class="muted">خرید / فروش</td><td>${price(r.bid)} / ${price(r.ask)}</td></tr>
       <tr><td class="muted">اسپرد</td><td>${r.bid && r.ask ? n0((r.ask / r.bid - 1) * 10000) + ' واحد پایه' : '—'}</td></tr><tr><td class="muted">تغییر ۲۴ساعته</td><td class="${signCls(r.change_24h)}">${pct(r.change_24h)}</td></tr>
@@ -437,8 +437,11 @@ function pageOperator(root) {
       const go = $('#upgo'); if (go) go.onclick = async () => { try { const r = await api('/api/live/upgrade', { body: { confirmation: $('#upc').value } }); $('#upmsg').textContent = r.already_applied ? 'قبلاً اعمال شده' : 'ارتقا ثبت شد؛ اکنون می‌توانید «درخواست ادامه» را بزنید.'; refresh(); } catch (e) { $('#upmsg').textContent = e.message; } };
     }
     const np = snap.native_protection || {};
-    $('#nat').innerHTML = `<div class="muted" style="font-size:12px">وضعیت: ${esc(np.status || 'ندارد')} · تأیید صرافی: ${np.exchange_confirmed ? 'بله' : 'خیر'}</div>
-      <div class="row" style="display:flex;gap:8px;margin-top:8px"><button id="npv">پیش‌نمایش محافظ</button></div><div id="npbox"></div>`;
+    $('#nat').innerHTML = `<div class="muted" style="font-size:12px">وضعیت: ${esc(np.status || 'ندارد')} · تأیید صرافی: ${np.exchange_confirmed ? 'بله' : 'خیر'}${np.stop_price ? ` · ماشه <span class="mono">${esc(np.stop_price)}</span> · کف فروش <span class="mono">${esc(np.price)}</span> (${pct((np.price / np.stop_price - 1) * 100, 1)})` : ''}${np.exit_requested ? ' · <span class="warn">در حال لغو برای جایگزینی/خروج</span>' : ''}</div>
+      <div class="faint" style="font-size:11px;margin-top:4px">محافظ فروش سریع: پس از فعال شدن ماشه، سفارش با کف ۵٪ زیر ماشه فوراً با بهترین خریدهای دفتر سفارش پر می‌شود (مثل Stop-Market، با کف قیمت).</div>
+      <div class="row" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button id="npv">پیش‌نمایش محافظ</button>${np.exchange_confirmed && !np.exit_requested ? '<button id="nprep">جایگزینی با محافظ فروش سریع</button>' : ''}</div><div id="npbox"></div>`;
+    if ($('#nprep')) $('#nprep').onclick = () => { $('#npbox').innerHTML = `<div class="form" style="margin-top:8px"><div class="muted" style="font-size:12px">موتور محافظ فعلی را لغو می‌کند (فقط با تطبیق GET)؛ سپس «پیش‌نمایش محافظ» محافظ جدید با کف عمیق‌تر را پیشنهاد می‌دهد و با تأیید شما ثبت می‌شود. در این فاصله حد ضرر نرم‌افزاری هر ۳۰ ثانیه فعال است.</div><label>تأیید: <b>جایگزینی محافظ TRX با فروش سریع</b></label><input id="nprc"><button class="primary" id="nprgo">ثبت درخواست</button><span id="nprm" class="muted"></span></div>`;
+      $('#nprgo').onclick = async () => { try { const r = await api('/api/live/native-stop/replace', { body: { confirmation: $('#nprc').value } }); $('#nprm').textContent = r.next; } catch (e) { $('#nprm').textContent = e.message; } }; };
     $('#npv').onclick = async () => { try { const p = await api('/api/live/native-stop/preview', { body: {} }); $('#npbox').innerHTML = `<pre class="reasoning">${esc(JSON.stringify(p.preview, null, 2))}</pre><div class="form"><label>تأیید: <b>${esc(p.confirmation)}</b></label><input id="npc"><button class="primary" id="npa">ثبت محافظ</button><span id="npm" class="muted"></span></div>`;
       $('#npa').onclick = async () => { try { await api('/api/live/native-stop/approve', { body: { preview_id: p.preview_id, confirmation: $('#npc').value } }); $('#npm').textContent = 'تأیید ثبت شد؛ موتور در چرخهٔ بعد ارسال می‌کند.'; } catch (e) { $('#npm').textContent = e.message; } }; } catch (e) { $('#npbox').innerHTML = `<div class="notice red">${esc(e.message)}</div>`; } };
     $('#setup').innerHTML = state.run_id ? `<div class="muted" style="font-size:12.5px">یک اجرای فعال حساب وجود دارد؛ کلیدها و حساب به آن متصل‌اند. کلید جدید، سرویس‌دهندهٔ LLM و مدل را در <a href="#settings">«تنظیمات و کلیدها»</a> ثبت کنید؛ با «ارتقای اجرای فعلی» اعمال می‌شوند. شروع اجرای تازه فقط برای حساب بدون دارایی ممکن است.</div>` :

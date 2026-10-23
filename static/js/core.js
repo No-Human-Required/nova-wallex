@@ -57,7 +57,12 @@ export function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&':
 export function h(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
-export const sym = s => `<span class="mono">${esc(s)}</span>`;
+export const wallexUrl = s => `https://wallex.ir/app/trade/${encodeURIComponent(s)}?trade-type=spot&trade-history=spot`;
+const tradable = s => typeof s === 'string' && /^[A-Z0-9]{2,20}(TMN|USDT)$/.test(s);
+// Symbol with a small link to the same market on Wallex (opens in a new tab).
+export const sym = s => `<span class="mono">${esc(s)}</span>${tradable(s) ? `<a class="wx" href="${wallexUrl(s)}" target="_blank" rel="noopener noreferrer" title="مشاهدهٔ ${esc(s)} در والکس">↗</a>` : ''}`;
+// Labelled button variant for cards.
+export const wxButton = s => tradable(s) ? `<a class="wxbtn" href="${wallexUrl(s)}" target="_blank" rel="noopener noreferrer">مشاهده در والکس ↗</a>` : '';
 
 export const STATUS_FA = {
   running: 'در حال اجرا', observing: 'رصد بازار', ai_decision: 'تصمیم AI', reconciling: 'تطبیق حساب', reconciled: 'تطبیق شد',

@@ -174,6 +174,27 @@ class StudioApiTests(unittest.TestCase):
         self.post(f'/api/studio/strategies/{ident}/retire')
         self.assertEqual(live_settings.target_overrides(self.app.state.store, {'custom_strategies': approved})['custom_strategies'], [])
 
+    def test_model_list_merges_provider_listing_and_preset_suggestions(self):
+        self.post('/api/settings/key', {'name': 'metisai', 'value': 'offline-metis-fixture-key'})
+        seen = []
+
+        def fake(url, headers=None, timeout=None):
+            seen.append((url, headers))
+            return {'object': 'list', 'data': [{'id': 'gpt-4o'}, {'id': 'deepseek-v4-pro'}, {'id': 'bad id'}]}
+        with patch('app.settings_api.llm.get_json', side_effect=fake):
+            r = self.client.get('/api/settings/models', params={'provider': 'metisai', 'base_url': 'https://api.metisai.ir/deepseek/v1'}).json()
+            self.assertEqual(seen[0][0], 'https://api.metisai.ir/deepseek/v1/models')
+            self.assertEqual(seen[0][1]['Authorization'], 'Bearer offline-metis-fixture-key')
+            self.assertEqual(r['models'][:2], ['deepseek-v4-flash', 'deepseek-v4-pro'])
+            self.assertIn('gpt-4o', r['models'])
+            self.assertNotIn('bad id', r['models'])
+            self.client.get('/api/settings/models', params={'provider': 'metisai', 'base_url': 'https://api.metisai.ir/deepseek/v1'})
+            self.assertEqual(len(seen), 1)  # cached
+        self.assertEqual(self.client.get('/api/settings/models', params={'provider': 'metisai', 'base_url': 'https://evil.example/v1'}).status_code, 409)
+        r = self.client.get('/api/settings/models', params={'provider': 'boxapi'}).json()
+        self.assertTrue(r['error'])
+        self.assertIn('gpt-5.4-mini', r['models'])
+
     def test_studio_requires_a_configured_llm_key(self):
         sid = self.post('/api/studio/sessions').json()['id']
         self.post(f'/api/studio/sessions/{sid}/message', {'text': 'سلام'})

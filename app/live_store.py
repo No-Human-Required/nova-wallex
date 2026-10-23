@@ -23,6 +23,7 @@ class LiveStore:
                 CREATE TABLE IF NOT EXISTS live_revisions(id TEXT PRIMARY KEY,body TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS live_native_previews(id TEXT PRIMARY KEY,body TEXT NOT NULL,expires REAL NOT NULL,used INTEGER NOT NULL DEFAULT 0);
                 CREATE TABLE IF NOT EXISTS live_native_requests(run_id TEXT PRIMARY KEY,body TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS live_native_replacements(run_id TEXT PRIMARY KEY,request_id TEXT NOT NULL,requested_at REAL NOT NULL);
             ''')
 
     def state(self):

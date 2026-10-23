@@ -1,5 +1,5 @@
 // Strategy Studio: chat with the LLM agent, see the draft, backtest, tune, save and approve.
-import { S, api, esc, $, $$, n0, n2, pct, when, toman } from './core.js';
+import { S, api, esc, $, $$, n0, n2, pct, when, toman, sym } from './core.js';
 
 const ROLE = { user: 'شما', assistant: 'عامل Nova', tool: 'ابزار', event: 'نتیجه', error: 'خطا' };
 const TOOL_FA = { propose: 'پیش‌نویس', backtest: 'بک‌تست', tune: 'بهینه‌سازی ضرایب', save: 'ذخیره', none: 'گفت‌وگو' };
@@ -120,7 +120,7 @@ export function pageStudio(root, ctx) {
     if (!t) { $('#test').innerHTML = '<div class="empty">بک‌تستی انجام نشده است.</div>'; return; }
     $('#test').innerHTML = kpis(t.custom, t.baseline) + bars(t.rows, t.baseline_rows) +
       (t.trades.length ? `<details><summary>${n0(t.trades.length)} معاملهٔ آخر</summary><div class="table-wrap scroll" style="max-height:220px"><table><thead><tr><th>جفت</th><th>خروج</th><th>TP</th><th>ساعت</th><th>بازده</th></tr></thead><tbody>
-      ${t.trades.slice().reverse().map(x => `<tr><td class="mono">${esc(x.symbol)}</td><td>${esc(x.reason)}</td><td>${n0(x.tp_stage)}</td><td>${n0(x.held_hours)}</td><td class="${x.pnl_tmn >= 0 ? 'pos' : 'neg'}">${pct(x.return_percent)}</td></tr>`).join('')}</tbody></table></div></details>` : '') +
+      ${t.trades.slice().reverse().map(x => `<tr><td>${sym(x.symbol)}</td><td>${esc(x.reason)}</td><td>${n0(x.tp_stage)}</td><td>${n0(x.held_hours)}</td><td class="${x.pnl_tmn >= 0 ? 'pos' : 'neg'}">${pct(x.return_percent)}</td></tr>`).join('')}</tbody></table></div></details>` : '') +
       `<div class="faint" style="font-size:11px;margin-top:6px">داده‌های ساعتی ثبت‌شدهٔ والکس، بدون AI (هر پیشنهاد با اندازهٔ کامل)، همان هزینه‌ها و نردبان سه‌TP موتور. این پنجره‌ها قبلاً دیده شده‌اند و سود آینده را تضمین نمی‌کنند.</div>`;
   }
   function library() {

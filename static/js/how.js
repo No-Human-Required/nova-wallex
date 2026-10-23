@@ -1,6 +1,6 @@
 // «نحوهٔ تصمیم‌گیری»: animated pipeline, interactive screener history, money
 // management, portfolio weights, TP/SL ladders and the shadow test.
-import { api, n0, n2, toman, pct, price, signCls, when, hm, esc, $, $$, sym } from './core.js';
+import { api, n0, n2, toman, pct, price, signCls, when, hm, esc, $, $$, sym, wxButton } from './core.js';
 
 const STAGES = [
   ['universe', 'جفت مجاز', 'همهٔ ۱۲۰ بازار مجاز والکس'],
@@ -118,7 +118,7 @@ export function pageHow(root, ctx) {
     const scan = scanAt(idx); if (!scan) return; selected = s; const x = stageOf(s, scan); const p = x.p;
     const cand = (scan.top || []).find(c => c.symbol === s);
     const al = x.alloc[x.alloc.length - 1];
-    $('#pairinfo').innerHTML = `<div class="decision"><div class="meta"><b class="mono" style="font-size:14px">${esc(s)}</b><span class="chip">${esc(x.label || 'بررسی شد')}</span>${p.strategy ? famChip(p.strategy) + ' ' + esc(sName(p.strategy)) : ''}${p.quality !== undefined ? `<span class="chip y">کیفیت ${n0(p.quality)}</span>` : ''}</div>
+    $('#pairinfo').innerHTML = `<div class="decision"><div class="meta"><b style="font-size:14px">${sym(s)}</b> ${wxButton(s)}<span class="chip">${esc(x.label || 'بررسی شد')}</span>${p.strategy ? famChip(p.strategy) + ' ' + esc(sName(p.strategy)) : ''}${p.quality !== undefined ? `<span class="chip y">کیفیت ${n0(p.quality)}</span>` : ''}</div>
       <div class="grid g3" style="margin-top:8px;font-size:12.5px">
         <div><div class="muted">اسکرینر</div>گردش ۲۴س: ${n2(p.turnover_m)} میلیون · بازده ۲۴س: ${n2((p.r24_bps || 0) / 100)}٪ · ساعت خالی: ${n0(p.missing_hours || 0)}<br>${(p.strategies || []).length ? 'استراتژی‌ها: ' + p.strategies.map(sName).join('، ') : esc(REJECT_FA[p.reason] || '')}</div>
         <div><div class="muted">تصمیم AI</div>${x.a ? `${x.a.action === 'enter' ? '<span class="pos">ورود</span>' : '<span class="neg">رد</span>'} · اطمینان ${n2(x.a.confidence)} · اندازه ${n2(x.a.size)}<br>${esc(x.a.reason)}${x.a.size_reason ? '<br><span style="color:var(--violet)">اندازه: ' + esc(x.a.size_reason) + '</span>' : ''}` : '<span class="faint">به مدل نرسید</span>'}</div>

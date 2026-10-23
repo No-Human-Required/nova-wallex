@@ -167,6 +167,15 @@ class Engine:
             self.publish('stopping' if j.unresolved() else 'operator_stopped')
             if not j.unresolved():self.live.stopped('operator_stopped');self.detach()
             return
+        from .live_protection import replacement
+        swap=replacement(self.store,self.current['id']) if j.protection_orders() else None
+        p=j.s.get('native_protection',{})
+        if swap and swap['request_id']==p.get('request_id') and not p.get('exit_requested'):
+            # Operator asked for a faster stop: cancel this one (GET-reconciled);
+            # the renewal is a separate preview and approval.
+            s=deepcopy(j.s);s['native_protection']['exit_requested']=True;s['native_protection']['replacement_requested_at']=swap['requested_at']
+            j.checkpoint('native_protection_replacement_requested',{'request_id':swap['request_id'],'time':now},s)
+            self.controller.service_protection(now=now)
         if j.protection_orders() and (now>=self.next_decision or j.unresolved()):
             self.controller.service_protection(now=now)
         if j.unresolved():

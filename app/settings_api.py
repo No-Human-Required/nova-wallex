@@ -67,7 +67,7 @@ def view(app):
         bound = {'provider': provider, 'model': cfg.get('ai_model'), 'base_url': llm.endpoint(cfg).rsplit('/chat/completions', 1)[0],
                  'ai_fingerprint': run['binding'].get('avalai_fingerprint'), 'wallex_key_sha256_prefix': run['binding'].get('key_sha256', '')[:12],
                  'custom_strategies': [c.get('id') for c in cfg.get('custom_strategies') or []]}
-    return {'providers': {k: {x: v[x] for x in ('fa', 'base_url', 'hosts', 'models', 'docs', 'presets') if x in v} for k, v in llm.PROVIDERS.items()},
+    return {'providers': {k: {x: v[x] for x in ('fa', 'base_url', 'hosts', 'models', 'docs', 'presets', 'preset_models') if x in v} for k, v in llm.PROVIDERS.items()},
             'llm': llm_settings(app.state.store, cfg), 'credentials': creds, 'vault_ready': bool(app.state.vault.cipher),
             'run_active': bool(run), 'bound': bound, 'upgrade_needed': bool(run and needed(app, run)),
             'engine': app.state.live.state()['desired']}
@@ -120,6 +120,41 @@ def discard_key(body: NameBody, request: Request):
     except ValueError as exc:
         raise HTTPException(409, problem(exc)) from None
     return view(app)
+
+
+_models = {}
+
+
+@router.get('/models')
+def models(request: Request, provider: str, base_url: str | None = None, refresh: bool = False):
+    """Searchable model list: the provider's own /models listing plus documented suggestions."""
+    app = request.app
+    try:
+        p = llm.provider(provider)
+        base = llm.base_url(provider, base_url)
+    except ValueError as exc:
+        raise HTTPException(409, problem(exc)) from None
+    suggested = list(dict.fromkeys((p.get('preset_models') or {}).get(base, [])+p['models']))
+    key = (provider, base)
+    cached = _models.get(key)
+    if cached and not refresh and time.time()-cached['at'] < 600:
+        return {**cached['view'], 'cached': True}
+    listed, error = [], None
+    slots = app.state.vault.overview()[provider]
+    name = provider if slots['present'] else (provider+'_next' if slots['staged'] else None)
+    if name:
+        try:
+            listed = llm.model_ids(llm.get_json(base+'/models', headers={'Authorization': 'Bearer '+app.state.vault.get(name)}))
+        except Exception as exc:
+            status = getattr(exc, 'status', None)
+            error = {401: 'کلید نامعتبر است', 404: 'این سرویس فهرست مدل ندارد', 0: 'اتصال برقرار نشد'}.get(status) or type(exc).__name__
+    else:
+        error = 'برای دریافت فهرست کامل، ابتدا کلید این سرویس‌دهنده را ثبت کنید'
+    view = {'provider': provider, 'base_url': base, 'suggested': suggested, 'listed': listed,
+            'models': list(dict.fromkeys(suggested+listed)), 'error': error, 'fetched_at': time.time()}
+    if listed:
+        _models[key] = {'at': time.time(), 'view': view}
+    return view
 
 
 @router.post('/test')

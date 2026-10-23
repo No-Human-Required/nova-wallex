@@ -368,6 +368,7 @@ OVERRIDES = {
     'min_quality': 55, 'max_missing_hours': 18, 'capacity_basis': 'max_prior_or_avg24',
     'trend_tp_r_multiple': 2.5, 'breakeven_buffer_fraction': '0.004',
     'fast_layer': True, 'fast_entry_confirmation': True, 'fast_exit': True, 'fast_min_hold_minutes': 30,
+    'fast_exit_orders': True, 'exit_limit_bps': '500', 'native_stop_limit_bps': '500',
 }
 
 

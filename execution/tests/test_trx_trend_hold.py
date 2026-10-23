@@ -73,4 +73,20 @@ class TrxTrendHoldTests(unittest.TestCase):
         s['strategy']['positions']['TRX']['exit_reason']='trailing_stop';self.j.checkpoint('synthetic_pending_stop',{},s)
         with self.assertRaises(ValueError):protection.preview(self.j.s,self.h.markets['TRXTMN'],cfg,self.ref(self.now+2),now=self.now+2)
 
+    def test_operator_replacement_cancels_then_renews_with_deep_limit(self):
+        cid=self.place();cfg={**self.cfg,'trx_trend_exit_hold':True,'native_stop_limit_bps':'500'}
+        old=dict(self.j.s['native_protection']['preview'])
+        # Engine side of the replacement request: flag the stop, then the normal service cancels it.
+        s=deepcopy(self.j.s);s['native_protection']['exit_requested']=True;self.j.checkpoint('native_protection_replacement_requested',{},s)
+        self.c.service_protection(now=self.now+1)
+        self.assertTrue(self.j.s['orders'][cid]['cancel_requested'])
+        self.g.orders[cid]=cancelled(self.g.orders[cid])
+        self.c.service_protection(now=self.now+2)
+        self.assertEqual(self.j.s['orders'][cid]['phase'],'CLOSED')
+        o=self.j.s['orders'][cid];self.assertTrue(protection.renewable(self.j.s),(o['phase'],o['settled'],o['cancel_requested']))
+        spec=protection.preview(self.j.s,self.h.markets['TRXTMN'],cfg,self.ref(self.now+3),now=self.now+3)
+        self.assertEqual(spec['replaces_client_id'],cid);self.assertEqual(spec['stop_price'],old['stop_price'])
+        self.assertLess(D(spec['price']),D(old['price']))
+        self.assertGreaterEqual(D(spec['price']),D(spec['stop_price'])*D('0.95')-1)
+
 if __name__=='__main__':unittest.main()
