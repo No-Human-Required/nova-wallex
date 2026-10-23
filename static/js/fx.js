@@ -68,6 +68,9 @@ function hash(s) { let x = 7; for (const ch of s) x = (x * 31 + ch.charCodeAt(0)
 
 // Schematic, animated pattern illustrations (generic, not real data).
 export const ART = {
+  custom: `<svg viewBox="0 0 150 104"><rect x="10" y="14" width="130" height="76" rx="8" fill="none" stroke="#b49cff55" stroke-dasharray="4 3"/>
+    <text x="75" y="38" text-anchor="middle" fill="#b49cffcc" font-size="10">مشخصات JSON</text><polyline class="draw" fill="none" stroke="#5eead4" stroke-width="1.6" points="18,78 40,70 58,74 78,58 98,62 118,40 134,32"/>
+    <circle class="blink" cx="118" cy="40" r="4" fill="#f5c343"/><text x="75" y="54" text-anchor="middle" fill="#98a0ab" font-size="8">ساخته‌شده با عامل LLM</text></svg>`,
   smc_liquidity_sweep: `<svg viewBox="0 0 150 104"><line x1="8" y1="70" x2="142" y2="70" stroke="#f5c34366" stroke-dasharray="4 3"/><text x="10" y="66" fill="#f5c343aa" font-size="8">کف ۲۴ساعته</text>
     <polyline class="draw" fill="none" stroke="#98a0ab" stroke-width="1.6" points="10,40 30,55 45,48 60,66 75,60 90,88 98,64 112,44 128,30 142,24"/>
     <circle class="blink" cx="90" cy="88" r="5" fill="none" stroke="#fb7185"/><path class="blink" d="M112 44 l6 -10 l6 10z" fill="#34d399"/><line class="blink" x1="8" y1="24" x2="142" y2="24" stroke="#34d39966" stroke-dasharray="3 3"/></svg>`,

@@ -86,8 +86,16 @@ class AdaptiveHistory(OpportunityHistory):
                 'breakout24_bps': (closes[-1]/max(highs[-25:-1])-1)*10000,
                 'distance_ma12_bps': (closes[-1]/mean(closes[-12:])-1)*10000}
 
+    @staticmethod
+    def regime_key(t, cfg):
+        custom = tuple(sorted(st.custom_specs(cfg)))
+        if not custom and not cfg.get('strategy_universe'):
+            return (t, cfg['min_daily_turnover_tmn'])
+        return (t, cfg['min_daily_turnover_tmn'], custom, cfg.get('strategy_universe'),
+                digest([st.custom_specs(cfg)[k]['regimes'] for k in custom]))
+
     def regime(self, t, cfg):
-        key = (t, cfg['min_daily_turnover_tmn'])
+        key = self.regime_key(t, cfg)
         if key not in self._regimes:
             self._regimes[key] = st.classify(self, t, cfg)
         return self._regimes[key]
@@ -99,7 +107,7 @@ class AdaptiveHistory(OpportunityHistory):
         if cfg.get('runtime_policy') != 'adaptive_ai' and policy != 'adaptive':
             return super().scan(t, cfg, policy)
         ranked, coverage, context = st.scan(self, t, cfg)
-        self._regimes[(t, cfg['min_daily_turnover_tmn'])] = context
+        self._regimes[self.regime_key(t, cfg)] = context
         coverage['regime'] = context['regime']
         return ranked, coverage
 
@@ -185,6 +193,19 @@ class AdaptiveRules:
 
     def strategy_exit(self, p, t, held):
         strategy = p.get('strategy') or LEGACY
+        custom = st.custom_specs(self.cfg).get(strategy)
+        if custom is not None:
+            if custom['trend_exit'] == 'ema_cross':
+                bars = st.series(self.h, p['symbol'], t)
+                if bars:
+                    e9, e21 = ind.last_ema(bars[3], 9), ind.last_ema(bars[3], 21)
+                    if e9 is not None and e21 is not None and e9 < e21:
+                        return 'trend_reversed'
+            elif custom['trend_exit'] == 'r24_negative':
+                f = self.h.feature(p['symbol'], t)
+                if f and f['r24_bps'] < 0:
+                    return 'trend_reversed'
+            return None
         if strategy in {'ind_ema_macd_trend', 'ind_relative_strength', 'smc_fvg_continuation'}:
             bars = st.series(self.h, p['symbol'], t)
             if bars:
@@ -264,7 +285,7 @@ class AdaptiveRules:
             p['peak_unit'] = max(p['peak_unit'], unit)
             held = (t-p['opened_at'])//3600
             strategy = p.get('strategy') or LEGACY
-            max_hold = st.STRATEGIES.get(strategy, {}).get('max_holding_hours', self.cfg['max_holding_hours'])
+            max_hold = st.meta(strategy, self.cfg).get('max_holding_hours', self.cfg['max_holding_hours'])
             reason = p.get('exit_reason')
             if reason == 'trend_reversed' and hold_trx and base == 'TRX':
                 reason = None

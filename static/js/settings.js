@@ -1,0 +1,56 @@
+// Settings: API keys (Wallex + LLM providers) and LLM provider/model selection.
+import { S, api, esc, $, $$, n2, ago } from './core.js';
+
+const KEY_FA = { wallex: 'والکس (Wallex)', avalai: 'AvalAI', metisai: 'MetisAI', boxapi: 'BoxAPI' };
+
+export function pageSettings(root, ctx) {
+  if (!S.authenticated) { root.innerHTML = `<section class="panel" style="max-width:520px"><div class="body"><div class="notice">برای تغییر تنظیمات ابتدا در «کنترل اپراتور» وارد شوید.</div><p><a href="#operator">ورود اپراتور ←</a></p></div></section>`; return; }
+  root.innerHTML = `<div id="setnote"></div>
+  <section class="grid g2" style="margin-bottom:14px">
+    <div class="panel glow"><div class="head"><h2>سرویس‌دهندهٔ هوش مصنوعی (LLM)</h2><span class="sub">مدل تصمیم‌گیر موتور و عامل استودیو</span></div><div class="body" id="llmbox"></div></div>
+    <div class="panel"><div class="head"><h2>کلیدهای API</h2><span class="sub">رمزنگاری‌شده در گاوصندوق سرور؛ هرگز نمایش داده نمی‌شوند</span></div><div class="body" id="keybox"></div></div>
+  </section>
+  <section class="panel"><div class="head"><h2>ایمنی تغییرات در اجرای واقعی</h2></div><div class="body muted" style="font-size:12.5px">
+    <div class="flow-steps">
+      <div class="fs"><b>۱. ذخیره</b><span>کلید یا سرویس‌دهنده ذخیره می‌شود. کلیدی که اجرای فعلی به آن متصل است «در صف» می‌ماند و موتور با کلید قبلی ادامه می‌دهد.</span></div>
+      <div class="fs"><b>۲. آزمون</b><span>دکمهٔ آزمون فقط درخواست خواندنی می‌فرستد: فهرست حساب‌های والکس یا یک پیام کوتاه به LLM. هیچ سفارشی ارسال نمی‌شود.</span></div>
+      <div class="fs"><b>۳. ارتقای ممیزی‌شده</b><span>در «کنترل اپراتور»: توقف ← ارتقا. ارتقا همهٔ سفارش‌ها و کیف پول را با GET تطبیق می‌دهد، تغییرات را در رسید v7 ثبت و کلید در صف را جایگزین می‌کند.</span></div>
+      <div class="fs"><b>۴. ادامه</b><span>«درخواست ادامه»؛ موتور با سرویس‌دهنده، مدل و کلید جدید کار می‌کند. دفتر و موقعیت‌ها دست نمی‌خورند.</span></div>
+    </div></div></section>`;
+  let D = null;
+  async function load() {
+    D = await ctx.safe(() => api('/api/settings'), $('#llmbox')); if (!D) return;
+    render();
+  }
+  function render() {
+    const L = D.llm, P = D.providers, B = D.bound;
+    $('#setnote').innerHTML = D.run_active && D.upgrade_needed ? `<div class="notice" style="margin-bottom:14px">تغییرات ذخیره‌شده هنوز روی اجرای واقعی اعمال نشده‌اند. برای اعمال: «کنترل اپراتور» ← توقف موتور ← ارتقا ← درخواست ادامه. <a href="#operator">رفتن به کنترل اپراتور ←</a></div>` : '';
+    const presets = p => P[p].presets ? Object.entries(P[p].presets).map(([k, v]) => `<option value="${esc(v)}">${esc(k)} — ${esc(v)}</option>`).join('') : `<option value="${esc(P[p].base_url)}">${esc(P[p].base_url)}</option>`;
+    $('#llmbox').innerHTML = `
+      <div class="prov">${Object.entries(P).map(([k, v]) => `<label class="pcard ${L.provider === k ? 'on' : ''}"><input type="radio" name="prov" value="${k}" ${L.provider === k ? 'checked' : ''}><b>${esc(v.fa)}</b><span class="mono faint">${esc(v.hosts.join(' · '))}</span>
+        <span class="chip ${D.credentials[k].present ? 'ok' : 'bad'}">${D.credentials[k].present ? 'کلید ✓' : 'بدون کلید'}</span></label>`).join('')}</div>
+      <div class="form" style="margin-top:12px">
+        <label class="muted">آدرس پایهٔ API</label><select id="base">${presets(L.provider)}</select>
+        <label class="muted">مدل تصمیم‌گیری موتور</label><input id="model" class="mono" list="models" value="${esc(L.model)}"><datalist id="models">${P[L.provider].models.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+        <label class="muted">مدل عامل استودیو (اختیاری؛ خالی = همان مدل)</label><input id="smodel" class="mono" list="models" value="${esc(L.studio_model || '')}">
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" id="savellm">ذخیرهٔ انتخاب</button><button id="testllm">آزمون اتصال LLM</button><span id="llmmsg" class="muted"></span></div>
+      </div>
+      <table style="margin-top:12px"><tr><td class="muted">انتخاب ذخیره‌شده</td><td>${esc(P[L.provider].fa)} · <span class="mono">${esc(L.model)}</span>${L.saved ? '' : ' <span class="chip">پیش‌فرض</span>'}</td></tr>
+      <tr><td class="muted">در حال استفادهٔ موتور</td><td>${B ? `${esc((P[B.provider] || {}).fa || B.provider)} · <span class="mono">${esc(B.model || '—')}</span> · اثر کلید <span class="mono">${esc(B.ai_fingerprint || '—')}</span>` : '<span class="faint">اجرای فعالی وجود ندارد</span>'}</td></tr></table>`;
+    const base = $('#base'); if (L.base_url) base.value = L.base_url;
+    $$('input[name=prov]').forEach(r => r.onchange = () => { D.llm = { ...D.llm, provider: r.value, base_url: P[r.value].base_url, model: P[r.value].models[0] }; render(); });
+    $('#savellm').onclick = async () => { try { D = await api('/api/settings/llm', { body: { provider: D.llm.provider, model: $('#model').value.trim(), base_url: $('#base').value, studio_model: $('#smodel').value.trim() || null } }); render(); $('#llmmsg').textContent = 'ذخیره شد'; } catch (e) { $('#llmmsg').textContent = e.message; } };
+    $('#testllm').onclick = async () => { $('#llmmsg').textContent = 'در حال آزمون…'; try { const r = await api('/api/settings/test', { body: { target: 'llm', provider: D.llm.provider } }); $('#llmmsg').innerHTML = r.ok ? `<span class="pos">پاسخ دریافت شد</span> · ${esc(r.model)} · ${n2(r.latency_seconds)} ثانیه` : `<span class="neg">${esc(r.error)}</span>`; } catch (e) { $('#llmmsg').textContent = e.message; } };
+    $('#keybox').innerHTML = Object.entries(D.credentials).map(([k, c]) => {
+      const bound = B && (k === 'wallex' || k === B.provider);
+      return `<div class="keyrow"><div><b>${esc(KEY_FA[k] || k)}</b> ${bound ? '<span class="chip y">متصل به اجرای واقعی</span>' : ''}
+        <div class="faint" style="font-size:11.5px">${c.present ? `ثبت‌شده · اثر <span class="mono">${esc(c.fingerprint)}</span>` : 'ثبت نشده'}${c.staged ? ` · <span class="warn">کلید جدید در صف ارتقا (${esc(c.staged_fingerprint)})</span>` : ''}</div></div>
+        <div class="row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="password" autocomplete="off" data-k="${k}" placeholder="${bound ? 'کلید جدید (در صف ارتقا)' : 'کلید API'}" style="width:210px">
+        <button data-save="${k}">ذخیره</button>${k === 'wallex' ? `<button data-testw="${c.staged ? 1 : 0}">آزمون خواندنی</button>` : ''}${c.staged ? `<button class="danger" data-discard="${k}">لغو صف</button>` : ''}</div>
+        <div class="muted" id="km-${k}" style="font-size:12px"></div></div>`; }).join('') + `<div class="faint" style="font-size:11px;margin-top:8px">${D.vault_ready ? 'گاوصندوق سرور فعال است.' : '<span class="neg">کلید رمزنگاری سرور (SW_VAULT_KEY) تنظیم نشده است.</span>'}</div>`;
+    $$('#keybox button[data-save]').forEach(b => b.onclick = async () => { const k = b.dataset.save; const v = $(`#keybox input[data-k=${k}]`).value.trim(); if (!v) return; try { D = await api('/api/settings/key', { body: { name: k, value: v } }); const st = D.saved && D.saved.staged; render(); $('#km-' + k).textContent = st ? 'ذخیره شد و تا ارتقای بعدی در صف می‌ماند.' : 'ذخیره شد.'; } catch (e) { $('#km-' + k).textContent = e.message; } });
+    $$('#keybox button[data-discard]').forEach(b => b.onclick = async () => { try { D = await api('/api/settings/key/discard', { body: { name: b.dataset.discard } }); render(); } catch (e) { $('#km-' + b.dataset.discard).textContent = e.message; } });
+    $$('#keybox button[data-testw]').forEach(b => b.onclick = async () => { const m = $('#km-wallex'); m.textContent = 'در حال آزمون…'; try { const r = await api('/api/settings/test', { body: { target: 'wallex', staged: b.dataset.testw === '1' } }); m.innerHTML = r.ok ? `<span class="pos">معتبر</span> · ${r.accounts} حساب (${r.eligible} فعال)${r.bound_account_visible === null ? '' : r.bound_account_visible ? ' · حساب مسابقه دیده می‌شود ✓' : ' · <span class="neg">حساب مسابقه با این کلید دیده نمی‌شود</span>'} · هیچ سفارشی ارسال نشد` : `<span class="neg">${esc(r.error)}</span>`; } catch (e) { m.textContent = e.message; } });
+  }
+  load();
+}

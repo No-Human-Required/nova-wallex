@@ -364,6 +364,14 @@ SAFE_SNAPSHOT = ('at', 'phase', 'equity_tmn', 'cash_tmn', 'reported_cash_tmn', '
                  'source_sha256', 'native_protection', 'fully_realized_tmn', 'settlement_complete', 'balance_confirmed_at')
 
 
+def upgrade_pending(app, run):
+    try:
+        from .live_upgrade import needed
+        return needed(app, run)
+    except Exception:
+        return False
+
+
 def live_view(app):
     from execution.activation import bundle_hash
     from execution.strategies import catalog
@@ -379,11 +387,13 @@ def live_view(app):
                       'heartbeat_age': time.time()-state['heartbeat'] if state['heartbeat'] else None},
            'run': None, 'snapshot': {k: snap.get(k) for k in SAFE_SNAPSHOT},
            'orders_open': [o for o in snap.get('orders', []) if o.get('phase') not in {'FILLED', 'CLOSED', 'LOCAL_REJECTED'}],
-           'strategies': catalog()}
+           'strategies': catalog(cfg)}
     if run:
         b = run['binding']
         out['run'] = {'id': run['id'][:8], 'created': run.get('created'), **{k: b.get(k) for k in SAFE_BINDING},
                       'upgrade_required': b.get('source_sha256') != bundle_hash(),
+                      'settings_upgrade_pending': upgrade_pending(app, run),
+                      'ai_provider': cfg.get('ai_provider') or 'avalai', 'custom_strategies': len(cfg.get('custom_strategies') or []),
                       'policy': cfg.get('runtime_policy'), 'strategy_version': cfg.get('strategy_version'),
                       'limits': {k: cfg.get(k) for k in ('capital_tmn', 'max_order_tmn', 'max_asset_fraction', 'max_gross_fraction',
                                  'max_positions', 'max_daily_loss_fraction', 'max_drawdown_fraction', 'max_entry_spread_bps',
@@ -522,7 +532,9 @@ def adaptive_report():
 @router.get('/strategies')
 def strategies(request: Request):
     from execution.strategies import catalog
-    return catalog()
+    state = request.app.state.live.state()
+    run = request.app.state.live.run(state['run_id']) if state['run_id'] else None
+    return catalog((run or {}).get('config'))
 
 
 @router.get('/explain')

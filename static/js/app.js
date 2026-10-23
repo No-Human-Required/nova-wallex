@@ -3,11 +3,13 @@ import { S, api, loadSession, n0, n2, n4, toman, pct, price, signCls, when, cloc
 import { LineChart, CandleChart } from './charts.js';
 import { background, Radar, ART } from './fx.js';
 import { pageHow } from './how.js';
+import { pageStudio } from './studio.js';
+import { pageSettings } from './settings.js';
 
 const PAGES = [
   ['live', 'اجرای واقعی', '◉'], ['how', 'نحوهٔ تصمیم‌گیری', '⟲'], ['journal', 'ژورنال معاملات', '☰'], ['ai', 'تصمیم‌های AI', '✦'],
   ['strategies', 'استراتژی‌ها', '◇'], ['market', 'بازار زنده', '▦'], ['challenge', 'خواسته‌های چالش', '✓'],
-  ['research', 'بک‌تست و پژوهش', '∿'], ['operator', 'کنترل اپراتور', '⚙']
+  ['studio', 'استودیوی استراتژی', '✎'], ['research', 'بک‌تست و پژوهش', '∿'], ['settings', 'تنظیمات و کلیدها', '⚿'], ['operator', 'کنترل اپراتور', '⚙']
 ];
 const CTX = { timers: [], disposables: [], live: null, journal: null };
 const STRAT = () => (CTX.live && CTX.live.strategies) || { strategies: {}, regimes: {} };
@@ -40,7 +42,8 @@ function route() {
   $('#title').textContent = PAGES.find(p => p[0] === page)[1];
   const root = $('#page'); root.innerHTML = ''; root.className = 'fade-in';
   ({ live: pageLive, how: r => pageHow(r, { every, keep, safe, sName, famChip, STRAT }), journal: pageJournal, ai: pageAI, strategies: pageStrategies, market: pageMarket,
-     challenge: pageChallenge, research: pageResearch, operator: pageOperator })[page](root);
+     challenge: pageChallenge, research: pageResearch, operator: pageOperator,
+     studio: r => pageStudio(r, { every, keep, safe }), settings: r => pageSettings(r, { every, keep, safe }) })[page](root);
 }
 
 async function pollLive() {
@@ -51,7 +54,7 @@ async function pollLive() {
   pill.innerHTML = `<span class="dot ${running ? 'on' : e.status === 'blocked' || e.last_error ? 'off' : 'warn'}"></span><span>موتور: ${esc(STATUS_FA[e.status] || e.status || '—')}</span>`;
   $('#ver').textContent = 'نسخهٔ ' + (d.version || '') + ' · ' + (d.installed_source_sha256 || '').slice(0, 10);
   CTX.end = Date.parse(d.contest_end_utc) / 1000;
-  $('#opbadge') && $('#opbadge').classList.toggle('hidden', !(d.run && d.run.upgrade_required));
+  $('#opbadge') && $('#opbadge').classList.toggle('hidden', !(d.run && (d.run.upgrade_required || d.run.settings_upgrade_pending)));
   return d;
 }
 function countdown() {
@@ -290,8 +293,8 @@ function pageStrategies(root) {
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="chip">حداکثر ${n0(r.max_positions)} موقعیت</span><span class="chip">سقف ورود ${toman(r.order_cap_tmn)}</span><span class="chip">ریسک هر ورود ${pct(r.risk_fraction * 100, 1)}</span></div>
       ${r.strategies.map(s => `<div style="font-size:12.5px">${famChip(s)} ${esc(cat.strategies[s].fa)}</div>`).join('')}</div>`).join('');
     const active = cur ? cat.regimes[cur].strategies : [];
-    $('#strats').innerHTML = Object.entries(cat.strategies).map(([k, s]) => `<div class="panel strategy ${active.includes(k) ? 'active' : ''}">${ART[k] || ''}
-      <div><h3>${esc(s.fa)} ${s.family === 'smart_money' ? '<span class="chip smc">Smart Money</span>' : '<span class="chip ind">Indicator</span>'} ${active.includes(k) ? '<span class="chip y">فعال در رژیم فعلی</span>' : ''}</h3>
+    $('#strats').innerHTML = Object.entries(cat.strategies).map(([k, s]) => `<div class="panel strategy ${active.includes(k) ? 'active' : ''}">${ART[k] || ART.custom || ''}
+      <div><h3>${esc(s.fa)} ${s.family === 'smart_money' ? '<span class="chip smc">Smart Money</span>' : s.family === 'hybrid' ? '<span class="chip smc">Hybrid</span>' : '<span class="chip ind">Indicator</span>'} ${s.custom ? '<span class="chip y">ساخت استودیو</span>' : ''} ${active.includes(k) ? '<span class="chip y">فعال در رژیم فعلی</span>' : ''}</h3>
       <div class="muted" style="font-size:12.5px">${esc(s.thesis)}</div><dl><dt>ورود</dt><dd>${esc(s.entry)}</dd><dt>حد ضرر</dt><dd>${esc(s.stop)}</dd><dt>هدف</dt><dd>${esc(s.target)}</dd><dt>خروج</dt><dd>${esc(s.exit)}</dd></dl></div></div>`).join('');
     const rep = await safe(() => api('/api/public/adaptive-report'), $('#bt .body'));
     if (rep) $('#bt .body').innerHTML = rep.pending ? '<div class="empty">گزارش هنوز تولید نشده است.</div>' : `<div class="muted" style="font-size:12px;margin-bottom:8px">همهٔ ۳۹ پنجرهٔ ۷۲ساعته قبلاً دیده شده‌اند و آزمون مستقل نیستند. هر پیشنهاد قاعده بدون فیلتر AI با اندازهٔ کامل پذیرفته شده؛ پس این عدد لایهٔ قطعی را می‌سنجد، نه تصمیم مدل. کارمزد، اسپرد، لغزش و تأخیر لحاظ شده‌اند.</div>
@@ -346,6 +349,7 @@ function pageChallenge(root) {
     ['بک‌تست با هزینه و تأخیر', 'ok', 'صفحهٔ «استراتژی‌ها» و «بک‌تست و پژوهش»؛ ۳۹ پنجره و سناریوی تنش'],
     ['تست سایه روی بازار زنده', 'ok', 'صفحهٔ «نحوهٔ تصمیم‌گیری»: همهٔ نامزدها بدون سفارش واقعی دنبال می‌شوند'],
     ['سنجش نقش AI با خط مبنا', 'ok', 'مقایسهٔ نتیجهٔ سایهٔ نامزدهای تأییدشده و ردشده توسط AI'],
+    ['تعریف استراتژی با گفت‌وگو و آزمون پیش از اجرا', 'ok', 'صفحهٔ «استودیوی استراتژی»: پیش‌نویس، بک‌تست، بهینه‌سازی، آزمون کامل، تأیید و ارتقا'],
     ['سورس روی GitHub و سند Markdown', 'wait', 'مخزن No-Human-Required/nova-wallex؛ پس از استقرار به‌روزرسانی می‌شود'], ['ویدیوی دموی حدود ۵ دقیقه با صدا', 'no', 'هنوز ضبط نشده؛ نبود ویدیو موجب حذف از داوری است']];
   root.innerHTML = `<section class="panel" style="margin-bottom:14px"><div class="head"><h2>بارم داوری ۳۰۰ امتیاز</h2><span class="sub">عملکرد معاملاتی ۱۵۰ + کیفیت فنی ۱۵۰ (طبق متن «پیشنهاد امتیازدهی» بریف)</span></div>
     <div class="body"><div class="score-bar" style="margin-bottom:12px"><i style="width:50%;background:var(--accent)"></i><i style="width:50%;background:var(--blue)"></i></div>
@@ -357,6 +361,8 @@ function pageChallenge(root) {
     ['بک‌تست و تست سایه (۲۰)', 'هر دو اجرا و نمایش داده شده‌اند؛ نتایج منفی هم صادقانه گزارش شده‌اند.'],
     ['قابلیت اجرای مجدد (۲۵)', 'README، STRATEGIES.md، Docker، هش سورس در هر مجوز، آزمون‌ها (SQLite و PostgreSQL) و بازپخش آرشیو. سورس GitHub باید با نسخهٔ اجراشده یکی باشد: پس از هر استقرار push کنید.'],
     ['کنترل ضرر (۳۰) و پایداری (۱۵)', 'سقف زیان روزانه ۲٪ و افت ۵٪، تطبیق سفارش‌ها پس از قطع، بدون ارسال دوباره؛ افت فعلی در صفحهٔ اجرا دیده می‌شود.'],
+    ['عامل هوشمند (Agentic) استودیو', 'گفت‌وگو با LLM برای طراحی استراتژی؛ عامل خودش پیش‌نویس می‌سازد، بک‌تست می‌گیرد، ضرایب حد ضرر و TP را بهینه می‌کند و ذخیره می‌کند. افزودن به اجرای واقعی فقط با تأیید انسانی و ارتقای ممیزی‌شده؛ مشخصات داده است نه کد، پس نمی‌تواند سقف‌های ریسک را دور بزند.'],
+    ['سرویس‌دهندهٔ قابل‌تعویض AI', 'AvalAI، MetisAI یا BoxAPI (اینترنت ملی/بین‌الملل) با آدرس‌های پین‌شده؛ تعویض کلید والکس یا LLM در اجرای فعال در صف می‌ماند و با ارتقای v7 ثبت می‌شود.'],
     ['ویدیوی دمو (الزامی)', 'حدود ۵ دقیقه با صدا: اجرای واقعی → نحوهٔ تصمیم‌گیری (جریان، اسکرینر با پخش تاریخچه، مدیریت سرمایه، TP/SL) → تصمیم‌های AI → ژورنال → تست سایه → خواسته‌های چالش.']
   ].map(([t, e]) => `<div class="req"><span class="st ok">★</span><div><b>${t}</b><div class="muted" style="font-size:12px">${e}</div></div><span></span></div>`).join('')}</div></section>
   <section class="panel"><div class="head"><h2>قوانین و تحویلی‌ها</h2></div><div class="body">${rules.map(([t, st, e]) => `<div class="req"><span class="st ${st}">${st === 'ok' ? '✓' : st === 'wait' ? '…' : '✕'}</span><div><b>${t}</b><div class="muted" style="font-size:12px">${esc(e)}</div></div><span></span></div>`).join('')}</div></section>`;
@@ -412,10 +418,10 @@ function pageOperator(root) {
     const st = await safe(() => api('/api/live/status'), $('#ctl')); if (!st) return;
     const state = st.state; const snap = st.last_snapshot || {};
     $('#ctl').innerHTML = `<table><tr><td class="muted">درخواست / وضعیت</td><td>${esc(state.desired)} / ${esc(STATUS_FA[state.status] || state.status)}</td></tr><tr><td class="muted">خطا</td><td>${esc(state.last_error || '—')}</td></tr>
-      <tr><td class="muted">ضربان</td><td>${ago(state.heartbeat)}</td></tr><tr><td class="muted">کلیدها</td><td>والکس ${st.credentials.wallex.present ? '✓' : '✕'} · AvalAI ${st.credentials.avalai.present ? '✓' : '✕'}</td></tr>
+      <tr><td class="muted">ضربان</td><td>${ago(state.heartbeat)}</td></tr><tr><td class="muted">کلیدها</td><td>والکس ${st.credentials.wallex.present ? '✓' : '✕'} · LLM ${esc((st.risk_config && st.risk_config.ai_provider) || 'avalai')} · <a href="#settings">تنظیمات</a></td></tr>
       <tr><td class="muted">پایان</td><td>${esc(st.contest_end_fa || '')}</td></tr><tr><td class="muted">سفارش حل‌نشده</td><td>${n0((snap.unresolved || []).length)}</td></tr></table>
-      ${st.upgrade_available ? '<div class="notice" style="margin-top:10px">نسخهٔ نصب‌شده با اجرای حساب یکسان نیست. اول «ارتقای اجرای فعلی» را تأیید کنید؛ «ادامه» پیش از آن موتور را دوباره مسدود می‌کند.</div>' : ''}
-      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="primary" data-a="resume" ${st.upgrade_available ? 'disabled' : ''}>درخواست ادامه</button><button data-a="reduce_only">فقط کاهش موقعیت</button><button class="danger" data-a="stop">توقف موتور</button></div>
+      ${st.code_upgrade_required ? '<div class="notice" style="margin-top:10px">نسخهٔ نصب‌شده با اجرای حساب یکسان نیست. اول «ارتقای اجرای فعلی» را تأیید کنید؛ «ادامه» پیش از آن موتور را دوباره مسدود می‌کند.</div>' : st.upgrade_available ? '<div class="notice" style="margin-top:10px">تغییرات تنظیمات (کلید، سرویس‌دهندهٔ LLM یا استراتژی استودیو) منتظر ارتقاست. برای اعمال: توقف ← ارتقا ← ادامه. ادامه بدون ارتقا با تنظیمات قبلی کار می‌کند.</div>' : ''}
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="primary" data-a="resume" ${st.code_upgrade_required ? 'disabled' : ''}>درخواست ادامه</button><button data-a="reduce_only">فقط کاهش موقعیت</button><button class="danger" data-a="stop">توقف موتور</button></div>
       <div class="faint" style="font-size:11px;margin-top:6px">«توقف» سفارش‌های باز خود موتور را لغو می‌کند اما موجودی را نمی‌فروشد. «ادامه» همان دفتر را باز می‌کند.</div><div id="cmsg" class="muted"></div>`;
     $$('#ctl button[data-a]').forEach(b => b.onclick = async () => { if (!confirmInline(b)) return; try { await api('/api/live/control', { body: { action: b.dataset.a } }); $('#cmsg').textContent = 'ثبت شد'; refresh(); } catch (e) { $('#cmsg').textContent = e.message; } });
     const up = await safe(() => api('/api/live/upgrade'), $('#upg'));
@@ -423,6 +429,7 @@ function pageOperator(root) {
       $('#upg').innerHTML = up.applied ? '<div class="notice green">اجرای فعلی با نسخهٔ نصب‌شده یکسان است.</div>' : `
         ${up.blockers.length ? `<div class="notice red">${up.blockers.map(esc).join('<br>')}</div>` : ''}
         <div class="muted" style="font-size:12px;margin:8px 0">نسخهٔ اجرا <span class="mono">${esc(up.run_source_sha256.slice(0, 12))}</span> → نصب‌شده <span class="mono">${esc(up.installed_source_sha256.slice(0, 12))}</span></div>
+        ${up.staged_credentials && (up.staged_credentials.wallex || up.staged_credentials.llm) ? `<div class="notice" style="font-size:12px;margin-bottom:8px">کلید در صف: ${up.staged_credentials.wallex ? 'والکس ' : ''}${up.staged_credentials.llm ? esc(up.staged_credentials.provider) : ''} — پس از تطبیق فقط‌خواندنی جایگزین می‌شود.</div>` : ''}
         <details open><summary>${n0(Object.keys(up.config_changes).length)} تغییر تنظیمات و ${n0(Object.keys(up.binding_changes).length)} تغییر مجوز</summary><div class="table-wrap"><table><thead><tr><th>کلید</th><th>قبلی</th><th>جدید</th></tr></thead><tbody>
         ${Object.entries({ ...up.binding_changes, ...up.config_changes }).map(([k, v]) => `<tr><td class="mono">${esc(k)}</td><td class="mono">${esc(JSON.stringify(v.from))}</td><td class="mono">${esc(JSON.stringify(v.to))}</td></tr>`).join('')}</tbody></table></div></details>
         <div class="form" style="margin-top:10px"><label>برای تأیید بنویسید: <b>${esc(up.confirmation)}</b></label><input id="upc"><div class="row"><button class="primary" id="upgo">تطبیق فقط‌خواندنی و ارتقا</button><span id="upmsg" class="muted"></span></div>
@@ -434,7 +441,7 @@ function pageOperator(root) {
       <div class="row" style="display:flex;gap:8px;margin-top:8px"><button id="npv">پیش‌نمایش محافظ</button></div><div id="npbox"></div>`;
     $('#npv').onclick = async () => { try { const p = await api('/api/live/native-stop/preview', { body: {} }); $('#npbox').innerHTML = `<pre class="reasoning">${esc(JSON.stringify(p.preview, null, 2))}</pre><div class="form"><label>تأیید: <b>${esc(p.confirmation)}</b></label><input id="npc"><button class="primary" id="npa">ثبت محافظ</button><span id="npm" class="muted"></span></div>`;
       $('#npa').onclick = async () => { try { await api('/api/live/native-stop/approve', { body: { preview_id: p.preview_id, confirmation: $('#npc').value } }); $('#npm').textContent = 'تأیید ثبت شد؛ موتور در چرخهٔ بعد ارسال می‌کند.'; } catch (e) { $('#npm').textContent = e.message; } }; } catch (e) { $('#npbox').innerHTML = `<div class="notice red">${esc(e.message)}</div>`; } };
-    $('#setup').innerHTML = state.run_id ? `<div class="muted" style="font-size:12.5px">یک اجرای فعال حساب وجود دارد؛ کلیدها و حساب به آن متصل‌اند و جایگزینی نیاز به مهاجرت بررسی‌شده دارد. شروع اجرای تازه فقط برای حساب بدون دارایی ممکن است.</div>` :
+    $('#setup').innerHTML = state.run_id ? `<div class="muted" style="font-size:12.5px">یک اجرای فعال حساب وجود دارد؛ کلیدها و حساب به آن متصل‌اند. کلید جدید، سرویس‌دهندهٔ LLM و مدل را در <a href="#settings">«تنظیمات و کلیدها»</a> ثبت کنید؛ با «ارتقای اجرای فعلی» اعمال می‌شوند. شروع اجرای تازه فقط برای حساب بدون دارایی ممکن است.</div>` :
       `<div class="form"><input id="kw" type="password" placeholder="کلید API والکس"><input id="ka" type="password" placeholder="کلید AvalAI"><button id="ks">ذخیرهٔ کلیدها</button><button id="kpf">بررسی فقط‌خواندنی</button><span id="kmsg" class="muted"></span></div>`;
     if ($('#ks')) { $('#ks').onclick = async () => { try { await api('/api/live/credentials', { body: { wallex: $('#kw').value || null, avalai: $('#ka').value || null } }); $('#kmsg').textContent = 'ذخیره شد'; } catch (e) { $('#kmsg').textContent = e.message; } };
       $('#kpf').onclick = async () => { try { const r = await api('/api/live/preflight', { body: {} }); $('#kmsg').textContent = r.ok ? 'بررسی موفق' : r.blocking_reasons.join('؛ '); } catch (e) { $('#kmsg').textContent = e.message; } }; }

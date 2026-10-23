@@ -101,6 +101,10 @@ def create_app(*, directory=None, history=None, development=None, start_worker=T
     app.include_router(protection_router)
     from .public_api import router as public_router
     app.include_router(public_router)
+    from .settings_api import router as settings_router
+    app.include_router(settings_router)
+    from .studio import router as studio_router
+    app.include_router(studio_router)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):

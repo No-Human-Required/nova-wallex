@@ -11,7 +11,7 @@ import time
 from copy import copy, deepcopy
 
 from starwallex.audit import Audit
-from starwallex.persistence import write_bytes
+from starwallex.persistence import write_bytes, file_exists
 from starwallex.util import ROOT, canonical, digest, read_json
 from execution.activation import bundle_hash, validate_binding, orchestrator_manifest
 from execution.contracts import ContractError, normalize_order, normalize_detail_balances, incremental_fills
@@ -20,6 +20,7 @@ from execution.revision import read_identity, checked_identity
 from execution.session import source_manifest
 from execution.protection import status as protection_status
 from .store import ProcessLock
+from .live_settings import target_overrides, provider_of
 
 CONFIRMATION = 'ارتقای اجرای واقعی به نسخهٔ جدید'
 # A wallet mismatch is re-checked below against fresh GET-only balances and
@@ -27,7 +28,7 @@ CONFIRMATION = 'ارتقای اجرای واقعی به نسخهٔ جدید'
 KNOWN_HALTS = {None, 'order_contract_or_accounting_error', 'wallet_ledger_mismatch'}
 
 
-def target_config(old):
+def target_config(old, app=None):
     from .live_api import CONTEST_END_UTC
     from execution.adaptive import adaptive_config
     cfg = adaptive_config(old)
@@ -38,14 +39,47 @@ def target_config(old):
                 'trx_trend_exit_hold', 'entry_stop_before_end_seconds', 'unwind_before_end_seconds'):
         if key in old:
             cfg[key] = old[key]
+    if app is not None:
+        # Operator settings (LLM provider/model, approved Studio strategies).
+        cfg.update(target_overrides(app.state.store, old))
     return cfg
 
 
-def target_binding(old, cfg):
+def staged(app, cfg):
+    """Bound credentials with a staged replacement: {'wallex': bool, 'ai': bool}."""
+    view = app.state.vault.overview()
+    provider = provider_of(cfg)
+    return {'wallex': view['wallex']['staged'], 'ai': view[provider]['staged'], 'provider': provider}
+
+
+def target_binding(old, cfg, app=None):
     from .live_api import CONTEST_END_UTC
     new = {**old, 'source_sha256': bundle_hash(), 'risk_config_sha256': digest(cfg), 'end_utc': CONTEST_END_UTC,
            'organizer_time_reference': 'User relayed organizer extension: challenge ends Monday 1405/08/04 end of day Asia/Tehran'}
+    if app is not None:
+        s = staged(app, cfg)
+        view = app.state.vault.overview()
+        if s['wallex']:
+            new['key_sha256'] = hashlib.sha256(app.state.vault.get('wallex_next').encode()).hexdigest()
+        provider = s['provider']
+        fp = view[provider]['staged_fingerprint'] if s['ai'] else view[provider]['fingerprint']
+        if fp:
+            new['avalai_fingerprint'] = fp
     return new
+
+
+def targets(app, run):
+    cfg = target_config(run['config'], app)
+    return cfg, target_binding(run['binding'], cfg, app)
+
+
+def needed(app, run):
+    """True when the installed code or operator settings differ from the run."""
+    try:
+        cfg, new = targets(app, run)
+    except Exception:
+        return run['binding']['source_sha256'] != bundle_hash()
+    return digest(cfg) != digest(run['config']) or digest(new) != digest(run['binding'])
 
 
 def changes(old, new):
@@ -58,8 +92,9 @@ def context(app):
         raise ContractError('No account run exists')
     run = app.state.live.run(control['run_id'])
     receipt = run.get('revision')
-    pending = bool(receipt and receipt.get('version') == 7 and receipt.get('new_source_sha256') == bundle_hash()
-                   and run['binding']['source_sha256'] != bundle_hash())
+    # A v7 receipt written for the CURRENT binding/config but not yet committed.
+    pending = bool(receipt and receipt.get('version') == 7 and receipt.get('old_binding_sha256') == digest(run['binding'])
+                   and receipt.get('old_config_sha256') == digest(run['config']) and receipt.get('new_binding_sha256') != digest(run['binding']))
     return control, run, receipt, pending
 
 
@@ -67,18 +102,21 @@ def preview(app):
     from .live_api import release_ready
     control, run, receipt, pending = context(app)
     old_cfg, old = run['config'], run['binding']
-    applied = old['source_sha256'] == bundle_hash()
-    cfg = old_cfg if applied else target_config(old_cfg)
-    new = old if applied else target_binding(old, cfg)
+    cfg, new = targets(app, run)
+    applied = digest(cfg) == digest(old_cfg) and digest(new) == digest(old)
     blockers = []
     if not release_ready():
         blockers.append('آزمون نهایی همین نسخه تأیید نشده است')
     if control['desired'] != 'stopped':
         blockers.append('ابتدا موتور را متوقف کنید')
+    s = staged(app, cfg)
+    if not app.state.vault.overview()[s['provider']]['present'] and not s['ai']:
+        blockers.append('کلید سرویس‌دهندهٔ انتخاب‌شدهٔ LLM ثبت نشده است')
     return {'available': not applied, 'applied': applied, 'pending': pending, 'confirmation': CONFIRMATION,
             'run_id': run['id'], 'installed_source_sha256': bundle_hash(), 'run_source_sha256': old['source_sha256'],
             'config_changes': {} if applied else changes(old_cfg, cfg),
             'binding_changes': {} if applied else {k: v for k, v in changes(old, new).items() if k not in {'source_sha256', 'risk_config_sha256'}},
+            'staged_credentials': {'wallex': s['wallex'], 'llm': s['ai'], 'provider': s['provider']},
             'blockers': blockers, 'execution_resumed': False, 'orders_sent': 0}
 
 
@@ -95,7 +133,8 @@ def apply(app, confirmation):
         if control['desired'] != 'stopped':
             raise ContractError('Stop execution before the upgrade review')
         old, old_cfg = run['binding'], run['config']
-        if old['source_sha256'] == bundle_hash():
+        cfg, new = targets(app, run)
+        if digest(cfg) == digest(old_cfg) and digest(new) == digest(old):
             return {'ok': True, 'already_applied': True, 'execution_resumed': False}
         directory = app.state.store.directory/'live'/'runs'/run['id']
         identity, latest = read_identity(directory)
@@ -103,16 +142,21 @@ def apply(app, confirmation):
         if prior is not None:
             if latest.get('runtime_revision_sha256') == digest(prior):
                 checked_identity(directory, prior, identity['config'], old)
+                pending = False  # written but never committed to the chain: rebuild it
             elif not pending or latest.get('runtime_revision_sha256') != digest(receipt):
                 raise ContractError('Existing revision receipt differs from the audit chain')
-        cfg = target_config(old_cfg)
-        new = target_binding(old, cfg)
+        elif pending and latest.get('runtime_revision_sha256') != digest(receipt):
+            pending = False
+        stage = staged(app, cfg)
+        key = app.state.vault.get('wallex_next' if stage['wallex'] else 'wallex')
         feed = PublicFeed(read_json(ROOT/'data/portfolio/universe.json'), app.state.store.directory/'upgrade-review')
-        validate_binding(new, app.state.vault.get('wallex'), feed.markets, cfg)
+        validate_binding(new, key, feed.markets, cfg)
         selected = selection(app.state.store)
-        if not selected or selected['client_id'] != new['subaccount_client_id'] or app.state.vault.status()['avalai']['fingerprint'] != new['avalai_fingerprint']:
+        view = app.state.vault.overview()[stage['provider']]
+        bound_fp = view['staged_fingerprint'] if stage['ai'] else view['fingerprint']
+        if not selected or selected['client_id'] != new['subaccount_client_id'] or not bound_fp or bound_fp != new['avalai_fingerprint']:
             raise ContractError('Bound account or credential changed')
-        g = gateway(app)
+        g = gateway(app, key=key) if stage['wallex'] else gateway(app)
         if g._authorizer is not None:
             raise ContractError('Upgrade gateway must be read-only')
         if not any(a['client_id'] == new['subaccount_client_id'] and a['eligible'] for a in accounts(g.accounts())):
@@ -168,7 +212,12 @@ def apply(app, confirmation):
         if receipt['new_source_sha256'] != bundle_hash() or receipt['new_binding_sha256'] != digest(new) or receipt['new_config_sha256'] != digest(cfg) or receipt['ledger_sha256'] != digest(j.s['ledger']):
             raise ContractError('Pending upgrade source/account differs')
         archive = directory/'revisions'/new['source_sha256']
-        write_bytes(archive/'approval.json', canonical(receipt).encode())
+        # Durable artifacts are immutable: a settings-only upgrade of the same
+        # source keeps the first approval.json and adds one file per receipt.
+        if not file_exists(archive/'approval.json'):
+            write_bytes(archive/'approval.json', canonical(receipt).encode())
+        if not file_exists(archive/'approvals'/(digest(receipt)+'.json')):
+            write_bytes(archive/'approvals'/(digest(receipt)+'.json'), canonical(receipt).encode())
         for folder, manifest, base in [('runtime_source', source_manifest()['files'], ROOT/'execution'), ('orchestrator_source', orchestrator_manifest(), ROOT)]:
             for name, sha in manifest.items():
                 value = (base/name).read_bytes()
@@ -193,6 +242,11 @@ def apply(app, confirmation):
                             balance_confirmed_at=observed, source_sha256=new['source_sha256'], chain_hash=chain,
                             native_protection=protection_status(updated))
             db.execute('UPDATE live_runs SET binding=?,config=?,last_snapshot=? WHERE id=?', (canonical(new), canonical(cfg), canonical(snapshot), run['id']))
+            if stage['wallex']:
+                app.state.vault.promote('wallex', db)
+                db.execute('UPDATE live_account SET key_sha256=? WHERE id=1', (new['key_sha256'],))
+            if stage['ai']:
+                app.state.vault.promote(stage['provider'], db)
             db.execute("UPDATE live_control SET status='upgrade_reviewed_stopped',last_error=NULL WHERE id=1")
         app.state.store.log('live_operator_upgrade', {'run_id': run['id'], 'source_sha256': new['source_sha256']})
         return {'ok': True, 'execution_resumed': False, 'exchange_orders_sent': 0,

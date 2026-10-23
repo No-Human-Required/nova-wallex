@@ -143,6 +143,57 @@ class UpgradeTests(unittest.TestCase):
         self.assertEqual(s['halt'], 'wallet_ledger_mismatch')
         self.assertEqual(s['ledger'], before['ledger'])
 
+    def test_settings_upgrade_switches_provider_stages_keys_and_adds_studio_strategy(self):
+        import hashlib, time as _t
+        from app import live_settings
+        from app.live_api import selection
+        from app.live_engine import Engine
+        from tests.test_studio import SPEC
+        from execution.custom_strategy import validate
+        self.prepare()
+        live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)
+        self.assertTrue(live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)['already_applied'])
+        h = self.headers
+        # The bound Wallex key is staged, the unbound MetisAI key is saved directly.
+        r = self.client.post('/api/settings/key', json={'name': 'wallex', 'value': 'offline-rotated-wallex-key'}, headers=h).json()
+        self.assertTrue(r['saved']['staged'])
+        self.assertEqual(self.app.state.vault.get('wallex'), 'offline-only-wallex-fixture')
+        r = self.client.post('/api/settings/key', json={'name': 'metisai', 'value': 'offline-metis-fixture-key'}, headers=h).json()
+        self.assertFalse(r['saved']['staged'])
+        self.client.post('/api/settings/llm', json={'provider': 'metisai', 'model': 'gpt-4o-mini'}, headers=h)
+        spec = validate({**SPEC, 'id': 'custom_fixture1'})
+        with self.app.state.store.connect() as db:
+            live_settings.ensure(db)
+            db.execute('INSERT INTO studio_strategies(id,name,spec,status,report,session_id,created,updated,approved_at) VALUES(?,?,?,?,?,?,?,?,?)',
+                       ('custom_fixture1', spec['name_fa'], json.dumps(spec), 'approved', None, None, _t.time(), _t.time(), _t.time()))
+        self.assertTrue(self.client.get('/api/live/status').json()['upgrade_available'])
+        view = live_upgrade.preview(self.app)
+        self.assertTrue(view['available'])
+        self.assertEqual(view['config_changes']['ai_provider']['to'], 'metisai')
+        self.assertEqual(view['config_changes']['custom_strategies']['to'][0]['id'], 'custom_fixture1')
+        self.assertIn('key_sha256', view['binding_changes'])
+        self.assertIn('avalai_fingerprint', view['binding_changes'])
+        r = live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)
+        self.assertTrue(r['ok'])
+        run = self.app.state.live.run(self.ident)
+        self.assertEqual(run['config']['ai_provider'], 'metisai')
+        self.assertEqual(run['config']['custom_strategies'][0]['id'], 'custom_fixture1')
+        self.assertEqual(self.app.state.vault.get('wallex'), 'offline-rotated-wallex-key')
+        self.assertFalse(self.app.state.vault.overview()['wallex']['staged'])
+        self.assertEqual(selection(self.app.state.store)['key_sha256'], hashlib.sha256(b'offline-rotated-wallex-key').hexdigest())
+        self.assertEqual(run['binding']['key_sha256'], hashlib.sha256(b'offline-rotated-wallex-key').hexdigest())
+        self.assertEqual(run['binding']['avalai_fingerprint'], self.app.state.vault.fingerprint('metisai'))
+        self.assertEqual(run['revision']['config_changes']['ai_provider']['to'], 'metisai')
+        self.assertEqual(read_identity(self.directory)[1]['ledger'], self.state6['ledger'])
+        j = open_journal(self.directory, self.h.markets, session_binding=run['binding'], revision=run['revision'])
+        self.assertTrue(j.audit.verify())
+        j.audit.close()
+        self.assertTrue(live_upgrade.preview(self.app)['applied'])
+        self.assertFalse(self.client.get('/api/live/status').json()['upgrade_available'])
+        cat = self.client.get('/api/public/strategies').json()
+        self.assertEqual(cat['strategies']['custom_fixture1']['fa'], SPEC['name_fa'])
+        self.assertIn('custom_fixture1', cat['regimes']['bull']['strategies'])
+
     def test_tampered_receipt_is_rejected_by_journal(self):
         self.prepare()
         live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)

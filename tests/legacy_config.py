@@ -10,7 +10,7 @@ def apply(namespace):
             original = value.setUp
 
             def setUp(self, _original=original):
-                patcher = mock.patch.object(live_api, 'risk_config', live_api.legacy_risk_config)
+                patcher = mock.patch.object(live_api, 'risk_config', lambda app=None: live_api.legacy_risk_config())
                 patcher.start()
                 self.addCleanup(patcher.stop)
                 _original(self)

@@ -29,7 +29,7 @@ def legacy_risk_config():
                risk_limits_status='requires explicit activation preview approval')
     return cfg
 
-def risk_config():
+def risk_config(app=None):
     from execution.adaptive import adaptive_config
     cfg=adaptive_config(configuration(validated_config(),'guarded_breakout_ai'))
     cfg.update(mode='account_bound_algorithm',
@@ -37,6 +37,9 @@ def risk_config():
                adaptive_deadline=True,exit_network_buffer_seconds=120,
                contest_end_utc=CONTEST_END_UTC,
                risk_limits_status='requires explicit activation preview approval')
+    if app is not None:
+        from .live_settings import target_overrides
+        cfg.update(target_overrides(app.state.store,cfg))
     return cfg
 
 def release_ready():
@@ -68,8 +71,13 @@ def selection(store):
         row=db.execute('SELECT * FROM live_account WHERE id=1').fetchone()
     return dict(row) if row else None
 
-def gateway(app, *, selected=True):
-    key=app.state.vault.get('wallex');account=selection(app.state.store)
+def gateway(app, *, selected=True, key=None):
+    account=selection(app.state.store)
+    if key is not None:
+        # Staged key rotation: the bound credit account must be visible to the new key.
+        if not account:raise ContractError('Select the dedicated credit account first')
+        return WallexGateway(key,subaccount_id=account['client_id'])
+    key=app.state.vault.get('wallex')
     if selected:
         if not account or account['key_sha256']!=hashlib.sha256(key.encode()).hexdigest():
             raise ContractError('Select the dedicated credit account first')
@@ -143,6 +151,10 @@ def upgrade_apply(body:Upgrade,request:Request):
     try:return apply(request.app,body.confirmation)
     except Exception as exc:raise HTTPException(409,problem(exc)) from None
 
+def upgrade_needed(app,run):
+    from .live_upgrade import needed
+    return needed(app,run)
+
 @router.get('/status')
 def status(request:Request):
     from execution.history import POLICY
@@ -163,7 +175,8 @@ def status(request:Request):
                 'applied':bool(run and run['config'].get('runtime_policy')=='hourly_opportunity_ai'),
                 'historical_edge_confirmed':False,'requires_operator_resume':True},
             'contest_end_utc':CONTEST_END_UTC,'contest_end_fa':CONTEST_END_FA,
-            'upgrade_available':bool(run and run['binding']['source_sha256']!=bundle_hash()),
+            'upgrade_available':bool(run and upgrade_needed(app,run)),
+            'code_upgrade_required':bool(run and run['binding']['source_sha256']!=bundle_hash()),
             'history_policy':POLICY,'history_revision_applied':bool(run and run.get('revision') and
                 run['binding']['source_sha256']==run['revision']['new_source_sha256'])}
 
@@ -219,7 +232,7 @@ def preflight(request:Request):
         proof.update(account_client_id=g.subaccount_id,key_sha256=hashlib.sha256(g._key.encode()).hexdigest(),
                      balances={k:str(v) for k,v in totals.items() if dec(v)!=0},open_orders=len(ids),
                      fees_verified=True,market_count=len(feed.markets),market_proof=markets,fee_proof=fees,
-                     source_sha256=bundle_hash(),risk_config_sha256=digest(risk_config()))
+                     source_sha256=bundle_hash(),risk_config_sha256=digest(risk_config(app)))
         if ids or any(dec(v)!=0 for v in locked.values()):raise ContractError('Dedicated account has open orders or locked balances')
         if {k:dec(v) for k,v in totals.items() if dec(v)!=0}!={'TMN':dec('5000000')}:
             raise ContractError('New challenge journal requires exactly 5,000,000 TMN and no other inventory')
@@ -232,7 +245,9 @@ def blockers(app,binding,cfg):
     reasons=[];state=app.state.live.state();proof=state['preflight'];account=selection(app.state.store)
     if not release_ready():reasons.append('آزمون نهایی همین نسخهٔ موتور هنوز تأیید نشده است')
     if not app.state.vault.cipher:reasons.append('Server encryption key is missing')
-    if not all(x['present'] for x in app.state.vault.status().values()):reasons.append('Wallex and AvalAI keys are required')
+    from .live_settings import provider_of
+    provider=provider_of(cfg)
+    if not all(x['present'] for x in app.state.vault.status(('wallex',provider)).values()):reasons.append('Wallex and LLM provider keys are required')
     if not state['heartbeat'] or time.time()-state['heartbeat']>20:reasons.append('Independent engine heartbeat is unavailable')
     if not account or binding.get('subaccount_client_id')!=account['client_id']:reasons.append('Credit account identity is missing or changed')
     if not proof or not proof['ok'] or not 0<=time.time()-proof['checked_at']<=300:
@@ -244,7 +259,7 @@ def blockers(app,binding,cfg):
     try:
         key=app.state.vault.get('wallex')
         validate_binding({**binding,'human_approval_recorded':True},key,app.state.history.markets,cfg)
-        if app.state.vault.status()['avalai']['fingerprint']!=binding.get('avalai_fingerprint'):reasons.append('AI credential changed')
+        if app.state.vault.fingerprint(provider)!=binding.get('avalai_fingerprint'):reasons.append('AI credential changed')
         if timestamp(binding['end_utc'])<=time.time():reasons.append('Official contest window has ended')
         if timestamp(binding['end_utc'])>timestamp(CONTEST_END_UTC):reasons.append('پایان مجاز: '+CONTEST_END_FA)
     except Exception as exc:reasons.append(problem(exc))
@@ -252,13 +267,14 @@ def blockers(app,binding,cfg):
 
 @router.post('/preview')
 def preview(body:Preview,request:Request):
-    app=request.app;account=selection(app.state.store);cfg=risk_config()
+    app=request.app;account=selection(app.state.store);cfg=risk_config(app)
+    from .live_settings import provider_of
     try:key=app.state.vault.get('wallex')
     except ValueError:key=''
     binding={'enabled':True,'human_approval_recorded':False, # proposed; activate records the actual approval
              'approval_reference':'authenticated_panel_explicit_activation',
              'account_label':body.account_label[:120], 'key_sha256':hashlib.sha256(key.encode()).hexdigest(),
-             'avalai_fingerprint':app.state.vault.status()['avalai']['fingerprint'],
+             'avalai_fingerprint':app.state.vault.fingerprint(provider_of(cfg)),
              'subaccount_client_id':account['client_id'] if account else None,
              'start_utc':body.start_utc,'end_utc':body.end_utc,
              'organizer_time_reference':'User relayed organizer extension: final deadline end of 1405/08/04 Asia/Tehran; engine starts on approved activation',

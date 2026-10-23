@@ -69,6 +69,25 @@ STRATEGIES = {
 }
 
 
+def custom_specs(cfg):
+    """Operator-approved Strategy Studio specifications carried in the approved config."""
+    return {c['id']: c for c in (cfg or {}).get('custom_strategies') or [] if isinstance(c, dict) and c.get('id')}
+
+
+def meta(name, cfg=None):
+    if name in STRATEGIES:
+        return STRATEGIES[name]
+    c = custom_specs(cfg).get(name)
+    if c:
+        from .custom_strategy import summary
+        sm = summary(c)
+        return {'family': c['family'], 'fa': c['name_fa'], 'thesis': c.get('thesis_fa', ''), 'custom': True,
+                'entry': ' و '.join(sm['all'])+((' و یکی از: '+' یا '.join(sm['any'])) if sm['any'] else ''),
+                'stop': sm['stop'], 'target': sm['tp1'], 'exit': 'نردبان سه‌TP، حد ضرر پله‌ای، حداکثر '+str(c['max_holding_hours'])+' ساعت',
+                'max_holding_hours': c['max_holding_hours'], 'trend_exit': c['trend_exit'], 'regimes': c['regimes'], 'spec': c}
+    return {}
+
+
 def series(history, symbol, t, hours=72, max_missing=18):
     """Closed bars ending at t-3600, valued in TMN.
 
@@ -132,9 +151,12 @@ def classify(history, t, cfg):
     else:
         name = 'range'
     spec = REGIMES[name]
+    active = list(spec['strategies'])
+    custom = [k for k, c in custom_specs(cfg).items() if name in c['regimes']]
+    active = custom if cfg.get('strategy_universe') == 'custom_only' else active+custom
     return {'regime': name, 'fa': spec['fa'], 'breadth': breadth, 'btc_r24_bps': btc24,
             'median_vol24_bps': vol, 'underlyings': len(assets), 'asof': t,
-            'strategies': list(spec['strategies']), 'max_positions': spec['max_positions'],
+            'strategies': active, 'max_positions': spec['max_positions'],
             'order_cap_tmn': spec['order_cap_tmn'], 'risk_fraction': spec['risk_fraction'],
             'allowed': True, 'normal': name == 'bull'}
 
@@ -145,6 +167,7 @@ def _clip(x, lo, hi):
 
 def evaluate(strategy, bars, f, cost_bps, btc24, cfg, regime):
     """Return a candidate plan for one strategy or None. Prices are TMN units."""
+    custom = custom_specs(cfg).get(strategy) if strategy not in STRATEGIES else None
     o, h, l, c, v = bars[:5]
     close = c[-1]
     a = ind.atr(h, l, c) or 0.0
@@ -157,7 +180,13 @@ def evaluate(strategy, bars, f, cost_bps, btc24, cfg, regime):
     lo_stop = max(lo_stop, float(cfg.get('stop_atr_multiple', 2.5))*a/close if close else lo_stop)
     lo_stop = min(lo_stop, hi_stop)
     evidence, target = {}, None
-    if strategy == 'smc_liquidity_sweep':
+    if custom is not None:
+        from .custom_strategy import evaluate as custom_evaluate
+        found = custom_evaluate(custom, bars, f, btc24, lo_stop, hi_stop)
+        if not found:
+            return None
+        stop, target, evidence = found
+    elif strategy == 'smc_liquidity_sweep':
         sw = ind.liquidity_sweep(o, h, l, c)
         if not sw:
             return None
@@ -217,18 +246,24 @@ def evaluate(strategy, bars, f, cost_bps, btc24, cfg, regime):
     if target is not None and reward_bps < 1.5*cost_bps:
         return None  # target does not pay realistic friction
     rr = (reward_bps-cost_bps)/(stop*10000)
-    if target is not None and rr < float(cfg.get('min_reward_risk', 1.2)):
+    minimum_rr = float(custom['min_reward_risk']) if custom and custom.get('min_reward_risk') else float(cfg.get('min_reward_risk', 1.2))
+    if target is not None and rr < minimum_rr:
         return None
-    return {'strategy': strategy, 'family': STRATEGIES[strategy]['family'],
+    info = meta(strategy, cfg)
+    out = {'strategy': strategy, 'family': info['family'],
             'score': rr, 'plan': {'entry_ref_tmn': close, 'stop_fraction': stop,
             'stop_price_tmn': close*(1-stop), 'target_price_tmn': target, 'reward_bps': reward_bps,
-            'reward_risk': rr, 'max_holding_hours': STRATEGIES[strategy]['max_holding_hours']},
+            'reward_risk': rr, 'max_holding_hours': info['max_holding_hours']},
             'indicators': {'rsi14': r, 'atr_pct': a/close*100 if close else None,
                            'ema9_above_ema21': (e9 > e21) if e9 and e21 else None,
                            'trend_aligned': bool(e21 and e50 and e21 > e50 and close > e50),
                            'volume_ratio': (v[-1]/median(v[-25:-1])) if median(v[-25:-1]) > 0 else None,
                            'missing_hours': bars[5] if len(bars) > 5 else 0},
             'evidence': {k: (round(x, 8) if isinstance(x, float) else x) for k, x in evidence.items()}}
+    if custom is not None:
+        out['strategy_name'] = custom['name_fa']
+        out['custom'] = True
+    return out
 
 
 def quality(c, regime, confluence):
@@ -321,8 +356,14 @@ def scan(history, t, cfg):
     return chosen, dict(coverage), context
 
 
-def catalog():
-    return {'version': VERSION, 'regimes': REGIMES, 'strategies': STRATEGIES,
+def catalog(cfg=None):
+    strategies = dict(STRATEGIES)
+    regimes = {k: dict(v, strategies=list(v['strategies'])) for k, v in REGIMES.items()}
+    for k in custom_specs(cfg):
+        strategies[k] = {x: y for x, y in meta(k, cfg).items() if x != 'spec'}
+        for r in strategies[k]['regimes']:
+            regimes[r]['strategies'].append(k)
+    return {'version': VERSION, 'regimes': regimes, 'strategies': strategies,
             'ai_role': 'هر نامزد فقط با تأیید مدل وارد می‌شود؛ مدل ترتیب و ضریب اندازه (۰٫۲۵ تا ۱ برابر سقف) را تعیین می‌کند و دلیل فارسی ثبت می‌شود.',
             'quality_role': 'فقط ستاپ‌های با امتیاز کیفیت ۵۵ از ۱۰۰ یا بیشتر به مدل می‌رسند: نسبت سود به ریسک، هم‌پوشانی چند استراتژی، هم‌جهتی با روند، تأیید حجم، نقدشوندگی، تناسب با رژیم، RSI و کامل بودن داده. حداقل اطمینان مدل ۰٫۶۵ است.',
             'fast_role': 'لایهٔ سریع: کندل‌های ۱۵ دقیقه‌ای از کندل‌های یک‌دقیقه‌ای والکس ساخته می‌شوند. ورود تأییدشده توسط AI فقط وقتی ارسال می‌شود که روند ۱۵ دقیقه‌ای صعودی باشد (EMA8 بالای EMA21 و قیمت بالای EMA8)؛ تا پایان همان ساعت هر ۱۵ دقیقه دوباره بررسی می‌شود. اگر قیمت زیر کف دو ساعت اخیر بسته شود و EMA8 زیر EMA21 باشد، موقعیت بدون انتظار برای کندل ساعتی بسته می‌شود (حداقل ۳۰ دقیقه پس از ورود). حد ضرر، TP و سربه‌سر هر ۳۰ ثانیه با قیمت زندهٔ دفتر سفارش کنترل می‌شوند.',

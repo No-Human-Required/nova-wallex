@@ -9,9 +9,11 @@ request ladder instead of silently retrying the same request.
 import json
 import time
 
-from starwallex.net import request_json
+import os
+
 from starwallex.persistence import file_exists
 from starwallex.util import ROOT, canonical, credential, digest, read_json, redact, write_json
+from . import llm
 
 ENDPOINT = 'https://api.avalai.ir/v1/chat/completions'
 ASSESSMENTS = {'agree', 'more_cautious', 'more_aggressive'}
@@ -19,11 +21,18 @@ ASSESSMENTS = {'agree', 'more_cautious', 'more_aggressive'}
 
 def ladder(cfg):
     limit = int(cfg.get('ai_max_output_tokens', 12000))
-    return [
-        {'name': 'reasoning_low', 'extra': {'reasoning_effort': cfg.get('ai_reasoning_effort', 'low')}, 'max_tokens': limit},
-        {'name': 'thinking_disabled', 'extra': {'thinking': {'type': 'disabled'}}, 'max_tokens': min(limit, 4000)},
-        {'name': 'plain_large_budget', 'extra': {}, 'max_tokens': max(limit, 16000)},
-    ]
+    steps = {
+        'reasoning_low': {'name': 'reasoning_low', 'extra': {'reasoning_effort': cfg.get('ai_reasoning_effort', 'low')}, 'max_tokens': limit},
+        'thinking_disabled': {'name': 'thinking_disabled', 'extra': {'thinking': {'type': 'disabled'}}, 'max_tokens': min(limit, 4000)},
+        'plain_large_budget': {'name': 'plain_large_budget', 'extra': {}, 'max_tokens': max(limit, 16000)},
+    }
+    names = llm.provider(cfg.get('ai_provider') or llm.DEFAULT)['ladder']
+    return [steps[n] for n in names]
+
+
+def api_key():
+    """Key of the provider bound in the approved config (set by the engine)."""
+    return os.environ.get('NOVA_LLM_API_KEY') or credential('AVALAI_API_KEY')
 
 
 def _num(x, nd=2):
@@ -39,7 +48,7 @@ def candidate_items(candidates):
         f, p = c['features'], c['plan']
         entry = p['entry_ref_tmn']
         items.append({
-            'id': ident, 'pair': c['symbol'], 'strategy': c['strategy'], 'strategy_name': STRATEGIES[c['strategy']]['fa'],
+            'id': ident, 'pair': c['symbol'], 'strategy': c['strategy'], 'strategy_name': c.get('strategy_name') or STRATEGIES[c['strategy']]['fa'],
             'family': c['family'],
             'stop_pct': _num(p['stop_fraction']*100), 'target_pct': _num((p['target_price_tmn']/entry-1)*100) if p.get('target_price_tmn') else None,
             'reward_risk_after_cost': _num(p['reward_risk']), 'max_holding_hours': p['max_holding_hours'],
@@ -97,7 +106,7 @@ def validate(decision, ids):
 
 
 class AdaptiveAI:
-    def __init__(self, cache, *, replay_only=False, transport=request_json):
+    def __init__(self, cache, *, replay_only=False, transport=llm.post_json):
         self.cache, self.replay_only, self.calls, self.transport = cache, replay_only, 0, transport
         self.prompt = (ROOT/'prompts/adaptive-v4.md').read_text(encoding='utf-8')
 
@@ -136,6 +145,7 @@ class AdaptiveAI:
 
     def request(self, base, key, cfg, mapping):
         record = {'request': base, 'request_hash': key, 'requested_at': time.time(), 'attempts': [],
+                  'provider': cfg.get('ai_provider') or llm.DEFAULT,
                   'documented_backend': cfg.get('ai_model_documented_backend'), 'status': 'unavailable'}
         steps = ladder(cfg)
         start = min(self.preferred(), len(steps)-1)
@@ -149,7 +159,7 @@ class AdaptiveAI:
             attempt = {'variant': step['name'], 'max_tokens': step['max_tokens'], 'started_at': time.time()}
             self.calls += 1
             try:
-                raw, meta = self.transport(ENDPOINT, headers={'Authorization': 'Bearer '+credential('AVALAI_API_KEY')},
+                raw, meta = self.transport(llm.endpoint(cfg), headers={'Authorization': 'Bearer '+api_key()},
                                            body=payload, timeout=cfg['ai_timeout_seconds'])
                 choice = raw['choices'][0]
                 message = choice.get('message') or {}

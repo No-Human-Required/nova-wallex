@@ -35,12 +35,13 @@ class API:
 
 
 class AdaptiveEngineTests(unittest.TestCase):
-    def run_engine(self, direction):
+    def run_engine(self, direction, extra=None, provider='avalai'):
         h = Fixture()
         g = Exchange(h)
         now = int(time.time())//3600*3600
         g.accounts = lambda: {'success': True, 'result': [{'clientId': 'fixture-credit', 'isActive': True, 'isSuspend': False}]}
         cfg = risk_config()
+        cfg.update(extra or {})
         g.fees = lambda: {'success': True, 'result': {s: {'takerFeeRate': cfg['fee_rates'][m.quote]} for s, m in h.markets.items()}}
 
         class Feed:
@@ -58,7 +59,15 @@ class AdaptiveEngineTests(unittest.TestCase):
             def quotes(self, symbols):
                 return h.quotes(int(time.time()))
         good = json.dumps({'market_view': 'رنج', 'regime_assessment': 'agree', 'decisions': [{'id': 'A1', 'action': 'enter', 'confidence': .9, 'size': 1, 'reason': 'ستاپ معتبر'}], 'priority': ['A1']})
-        send = fake_transport([reply(good)]*5)
+        base = fake_transport([reply(good)]*5)
+        urls = []
+
+        def send(url, **kw):
+            urls.append(url)
+            return base(url, **kw)
+        send.calls = base.calls
+        self.urls = urls
+        self._requests = base.calls
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {'SW_VAULT_KEY': Fernet.generate_key().decode()}), \
                 patch('app.live_engine.release_ready', return_value=True), \
                 patch('execution.ai_decision.AdaptiveAI', side_effect=lambda cache: AdaptiveAI(cache, transport=send)), \
@@ -67,7 +76,7 @@ class AdaptiveEngineTests(unittest.TestCase):
             try:
                 with e.store.connect() as db:
                     e.vault.put('wallex', KEY, db)
-                    e.vault.put('avalai', AIK, db)
+                    e.vault.put(provider, AIK, db)
                 selection(e.store)
                 with e.store.connect() as db:
                     db.execute('INSERT INTO live_account VALUES(1,?,?)', ('fixture-credit', hashlib.sha256(KEY.encode()).hexdigest()))
@@ -75,7 +84,7 @@ class AdaptiveEngineTests(unittest.TestCase):
                      'permitted_markets_confirmed': True, 'account_label': 'OFFLINE', 'approval_reference': 'test', 'organizer_time_reference': 'x',
                      'organizer_settlement_reference': 'x', 'key_sha256': hashlib.sha256(KEY.encode()).hexdigest(), 'source_sha256': bundle_hash(),
                      'risk_config_sha256': digest(cfg), 'symbols_sha256': digest(sorted(h.markets)), 'subaccount_client_id': 'fixture-credit',
-                     'avalai_fingerprint': e.vault.status()['avalai']['fingerprint'], 'start_utc': iso(now), 'end_utc': iso(now+4*86400),
+                     'avalai_fingerprint': e.vault.fingerprint(provider), 'start_utc': iso(now), 'end_utc': iso(now+4*86400),
                      'settlement_rule': 'flatten_to_tmn', 'entry_stop_before_end_seconds': cfg['entry_stop_before_end_seconds'],
                      'unwind_before_end_seconds': cfg['unwind_before_end_seconds']}
                 p = e.live.preview({'binding': b, 'risk_config': cfg, 'blocking_reasons': []})
@@ -92,6 +101,21 @@ class AdaptiveEngineTests(unittest.TestCase):
         self.assertEqual(len(g.sent), 1)
         ctx = next(iter(s['strategy']['contexts'].values()))
         self.assertEqual(ctx['strategy'], 'smc_liquidity_sweep')
+
+    def test_studio_strategy_and_selected_provider_reach_the_live_engine(self):
+        from execution.custom_strategy import validate
+        spec = validate({'id': 'custom_sweepfx', 'name_fa': 'شکار نقدینگی استودیو', 'family': 'smart_money', 'regimes': ['bull', 'range', 'bear', 'crash'],
+                         'entry': {'all': [{'signal': 'liquidity_sweep'}]}, 'stop': {'method': 'swing_low', 'lookback': 24, 'buffer_percent': 0.3},
+                         'take_profit': {'method': 'swing_high', 'lookback': 24}, 'max_holding_hours': 24, 'trend_exit': 'none'})
+        g, s, calls, plans = self.run_engine(1, {'custom_strategies': [spec], 'ai_provider': 'metisai', 'ai_model': 'gpt-4o-mini',
+                                                 'ai_base_url': 'https://api.metisai.ir/openai/v1'}, provider='metisai')
+        self.assertEqual(calls, 1)
+        self.assertEqual(self.urls, ['https://api.metisai.ir/openai/v1/chat/completions'])
+        self.assertIn('custom_sweepfx', json.dumps(self.last_request(), ensure_ascii=False))
+        self.assertEqual(len(g.sent), 1)
+
+    def last_request(self):
+        return self._requests[-1]
 
     def test_falling_fast_trend_delays_entry(self):
         g, s, calls, plans = self.run_engine(-1)

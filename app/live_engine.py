@@ -38,7 +38,8 @@ class Engine:
         account=selection(self.store)
         if not account or account['client_id']!=run['binding']['subaccount_client_id']:
             raise ContractError('Persisted credit account selection differs from activation')
-        if self.vault.status()['avalai']['fingerprint']!=run['binding']['avalai_fingerprint']:
+        from .live_settings import provider_of
+        if self.vault.fingerprint(provider_of(run['config']))!=run['binding']['avalai_fingerprint']:
             raise ContractError('AI credential differs from activation')
 
     def attach(self,run):
@@ -69,7 +70,9 @@ class Engine:
             p=archive_root/'orchestrator_source'/name;p.parent.mkdir(parents=True,exist_ok=True)
             if file_exists(p) and hashlib.sha256(read_bytes(p)).hexdigest()!=sha:raise ContractError('Orchestrator source snapshot mismatch')
             if not file_exists(p):write_bytes(p,(ROOT/name).read_bytes())
-        os.environ['AVALAI_API_KEY']=self.vault.get('avalai')
+        from .live_settings import provider_of
+        os.environ['NOVA_LLM_API_KEY']=self.vault.get(provider_of(cfg))
+        if provider_of(cfg)=='avalai':os.environ['AVALAI_API_KEY']=os.environ['NOVA_LLM_API_KEY']
         if cfg.get('runtime_policy')=='adaptive_ai':
             from execution.ai_decision import AdaptiveAI
             ai=AdaptiveAI(directory/'ai-cache-adaptive')

@@ -66,7 +66,7 @@ def simulate(decisions, candles, markets, now=None):
             sym, plan = c.get('symbol'), c.get('plan') or {}
             if sym not in markets or not plan.get('stop_fraction'):
                 continue
-            hours = STRATEGIES.get(c.get('strategy'), {}).get('max_holding_hours', 24)
+            hours = (c.get('plan') or {}).get('max_holding_hours') or STRATEGIES.get(c.get('strategy'), {}).get('max_holding_hours', 24)
             data = candles.get(sym, '5', t, min(now, t+hours*3600+STEP))
             ts = sorted(x for x in data if x >= t)
             if len(ts) < 2:
