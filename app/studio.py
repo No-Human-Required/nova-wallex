@@ -528,3 +528,8 @@ def job(ident: str, request: Request):
     if not j:
         raise HTTPException(404, 'Job not found')
     return j
+
+
+# Backtest lab: any timeframe/range, single symbol or portfolio (/api/studio/lab/...).
+from .lab_api import router as lab_router
+router.include_router(lab_router)

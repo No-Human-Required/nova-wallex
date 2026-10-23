@@ -208,7 +208,7 @@ class Journal:
             self.decisions = self.decisions[-400:]
         elif kind == 'runtime_scan':
             self.scans[str(p.get('time'))] = {'time': p.get('time'), 'coverage': p.get('coverage'), 'regime': p.get('regime'),
-                'pairs': p.get('pairs') or {},
+                'pairs': p.get('pairs') or {}, 'top_full': p.get('top') or [],
                 'top': [{k: c.get(k) for k in ('symbol', 'strategy', 'score', 'quality', 'confluence', 'plan', 'indicators', 'roundtrip_cost_bps')} for c in (p.get('top') or [])][:12]}
             if len(self.scans) > 96:
                 for k in sorted(self.scans, key=lambda x: int(x))[:len(self.scans)-96]:
@@ -361,6 +361,11 @@ def finalize(t, value):
 JOURNALS = {}
 
 
+def run_end(run):
+    end = (run.get('binding') or {}).get('end_utc')
+    return int(datetime.fromisoformat(end.replace('Z', '+00:00')).timestamp()) if end else None
+
+
 def journal(app, run_id):
     j = JOURNALS.get(run_id)
     if j is None:
@@ -456,6 +461,10 @@ def live_view(app):
 
 @router.get('/live')
 def live(request: Request):
+    import os
+    if os.getenv('SW_SHADOW_AI', '1') != '0':
+        from .shadow_ai import start
+        start(request.app)
     return cached('live', 3, lambda: live_view(request.app))
 
 
@@ -632,8 +641,13 @@ def shadow(request: Request):
 
     def load():
         from .shadow import simulate
+        from . import shadow_ai
         j = journal(app, run['id'])
-        return simulate(j.decisions, CANDLES, app.state.history.markets)
+        reviews = shadow_ai.rows(app.state.store, run['id'])
+        out = simulate(j.decisions, CANDLES, app.state.history.markets, shadow=reviews)
+        out['shadow_ai'] = {'reviews': len(reviews), 'ok': sum(r['status'] == 'ok' for r in reviews),
+                            'calls': sum(r['calls'] for r in reviews), 'budget': shadow_ai.MAX_CALLS}
+        return out
     try:
         return cached('shadow', 60, load)
     except Exception as exc:

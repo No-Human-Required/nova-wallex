@@ -53,15 +53,23 @@ def follow(bars, entry_index, stop, max_hours, quote, target_fraction=None):
     return {'return_percent': realized*100, 'reason': reason, 'tp_stage': stage, 'bars': i-entry_index+1}
 
 
-def simulate(decisions, candles, markets, now=None):
+def simulate(decisions, candles, markets, now=None, shadow=()):
+    """``shadow``: shadow-AI reviews of hours the engine did not ask the model about."""
     from execution.strategies import STRATEGIES
     now = now or int(time.time())
     rows = []
-    for d in decisions:
+    judged = {d.get('time') for d in decisions if d.get('status') == 'ok'}
+    reviews = {r['time']: r for r in shadow if r.get('status') == 'ok' and r['time'] not in judged}
+    hours = [dict(d) for d in decisions]
+    seen = {d.get('time') for d in hours}
+    hours += [{'time': t, 'status': 'shadow', 'candidates': r['candidates'], 'decisions': r['decisions'], 'shadow_source': r['source']}
+              for t, r in reviews.items() if t not in seen]
+    for d in sorted(hours, key=lambda x: x.get('time') or 0):
         t = d.get('time')
         if not t or not d.get('candidates'):
             continue
-        actions = {x.get('symbol'): x for x in d.get('decisions') or []}
+        source = 'engine' if d.get('status') == 'ok' else 'shadow' if t in reviews else None
+        actions = {x.get('symbol'): x for x in (d.get('decisions') if source == 'engine' else reviews[t]['decisions'] if source else [])}
         for c in d['candidates']:
             sym, plan = c.get('symbol'), c.get('plan') or {}
             if sym not in markets or not plan.get('stop_fraction'):
@@ -78,7 +86,7 @@ def simulate(decisions, candles, markets, now=None):
             r = follow(bars, 0, float(plan['stop_fraction']), hours, markets[sym].quote, fraction)
             a = actions.get(sym) or {}
             rows.append({'time': t, 'symbol': sym, 'strategy': c.get('strategy'), 'quality': c.get('quality'),
-                         'ai_action': a.get('action') or ('not_requested' if d.get('status') != 'ok' else 'skip'),
+                         'ai_action': a.get('action') or ('skip' if source else 'not_requested'), 'ai_source': source,
                          'ai_confidence': a.get('confidence'), 'ai_reason': a.get('reason'), **r})
 
     def summary(rs):
@@ -86,5 +94,7 @@ def simulate(decisions, candles, markets, now=None):
                 'win_rate': sum(x['return_percent'] > 0 for x in rs)/len(rs) if rs else None}
     return {'rows': rows[::-1], 'summary': {'ai_enter': summary([r for r in rows if r['ai_action'] == 'enter']),
             'ai_skip': summary([r for r in rows if r['ai_action'] == 'skip']),
-            'all_rules': summary(rows)},
+            'all_rules': summary(rows), 'not_reviewed': summary([r for r in rows if r['ai_action'] == 'not_requested']),
+            'engine_enter': summary([r for r in rows if r['ai_action'] == 'enter' and r['ai_source'] == 'engine']),
+            'shadow_enter': summary([r for r in rows if r['ai_action'] == 'enter' and r['ai_source'] == 'shadow'])},
             'method': 'Shadow: no orders. 5-minute bars aggregated from public 1-minute candles. Entry at the next 5-minute open plus fee, half-spread and slippage; TP1 at the plan target, at least max(1R, 2x cost), TP2/TP3 at the same distance above it; whole position held; stop steps to break-even and TP1; full exit at TP3; strategy maximum holding; unfinished trades marked at the last close. Candle gaps are not filled.'}

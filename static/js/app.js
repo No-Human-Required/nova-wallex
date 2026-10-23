@@ -3,6 +3,7 @@ import { S, api, loadSession, n0, n2, n4, toman, pct, price, signCls, when, cloc
 import { LineChart, CandleChart } from './charts.js';
 import { background, Radar, ART } from './fx.js';
 import { pageHow } from './how.js';
+import { labSection } from './lab.js';
 import { pageStudio } from './studio.js';
 import { pageSettings } from './settings.js';
 
@@ -317,9 +318,27 @@ function pageStrategies(root) {
       <div><h3>${esc(s.fa)} ${s.family === 'smart_money' ? '<span class="chip smc">Smart Money</span>' : s.family === 'hybrid' ? '<span class="chip smc">Hybrid</span>' : '<span class="chip ind">Indicator</span>'} ${s.custom ? '<span class="chip y">ساخت استودیو</span>' : ''} ${active.includes(k) ? '<span class="chip y">فعال در رژیم فعلی</span>' : ''}</h3>
       <div class="muted" style="font-size:12.5px">${esc(s.thesis)}</div><dl><dt>ورود</dt><dd>${esc(s.entry)}</dd><dt>حد ضرر</dt><dd>${esc(s.stop)}</dd><dt>هدف</dt><dd>${esc(s.target)}</dd><dt>خروج</dt><dd>${esc(s.exit)}</dd></dl></div></div>`).join('');
     const rep = await safe(() => api('/api/public/adaptive-report'), $('#bt .body'));
-    if (rep) $('#bt .body').innerHTML = rep.pending ? '<div class="empty">گزارش هنوز تولید نشده است.</div>' : `<div class="muted" style="font-size:12px;margin-bottom:8px">همهٔ ۳۹ پنجرهٔ ۷۲ساعته قبلاً دیده شده‌اند و آزمون مستقل نیستند. هر پیشنهاد قاعده بدون فیلتر AI با اندازهٔ کامل پذیرفته شده؛ پس این عدد لایهٔ قطعی را می‌سنجد، نه تصمیم مدل. کارمزد، اسپرد، لغزش و تأخیر لحاظ شده‌اند.</div>
-      <div class="table-wrap"><table><thead><tr><th>بخش</th><th>سناریو</th><th>پنجره</th><th>میانگین بازده</th><th>میانه</th><th>بهترین</th><th>بدترین</th><th>پنجرهٔ مثبت</th><th>حداکثر افت</th><th>پرشدن</th></tr></thead><tbody>
-      ${rep.aggregates.map(a => `<tr><td>${{ selection: 'انتخاب ۱–۳۰', validation: 'اعتبارسنجی ۳۱–۳۹', all: 'همه' }[a.split] || a.split}</td><td>${a.scenario === 'base' ? 'پایه' : 'تنش هزینه/تأخیر'}</td><td>${n0(a.windows)}</td><td class="${signCls(a.mean_return_percent)}">${pct(a.mean_return_percent, 3)}</td><td class="${signCls(a.median_return_percent)}">${pct(a.median_return_percent, 3)}</td><td>${pct(a.best_return_percent)}</td><td>${pct(a.worst_return_percent)}</td><td>${n0(a.positive_windows)}</td><td>${pct(a.max_drawdown_percent)}</td><td>${n0(a.fills)}</td></tr>`).join('')}</tbody></table></div>`;
+    if (!rep) return;
+    if (rep.pending) { $('#bt .body').innerHTML = '<div class="empty">گزارش هنوز تولید نشده است.</div>'; return; }
+    const agg = (split, sc) => rep.aggregates.find(a => a.split === split && a.scenario === sc) || {};
+    const all = agg('all', 'base'), val = agg('validation', 'base'), st = agg('validation', 'cost_delay_stress');
+    const base = rep.rows.filter(r => r.scenario === 'base').sort((a, b) => a.window - b.window);
+    const stress = Object.fromEntries(rep.rows.filter(r => r.scenario !== 'base').map(r => [r.window, r]));
+    $('#bt .body').innerHTML = `
+      <div class="notice" style="font-size:12.5px;line-height:1.9;margin-bottom:10px"><b>این بخش چیست؟</b> قواعد ورود و خروج موتور (همان شش استراتژی، فیلتر کیفیت ۵۵ و نردبان TP) <b>بدون AI</b> روی ۳۹ دورهٔ ۷۲ساعته از داده‌های ساعتی ضبط‌شدهٔ والکس اجرا شده‌اند؛ هر دوره با ۵ میلیون تومان شروع و در پایان به تومان تسویه می‌شود.
+        دوره‌های ۱ تا ۳۰ برای انتخاب پارامترها به کار رفتند («انتخاب») و ۹ دورهٔ آخر فقط برای سنجش («اعتبارسنجی»). «تنش» یعنی همان ۹ دوره با کارمزد دو برابر، اسپرد و لغزش بیشتر و دو کندل تأخیر.
+        چون هر پیشنهاد قاعده با اندازهٔ کامل پذیرفته شده، این عدد <b>کف</b> سیستم را نشان می‌دهد؛ کار AI و لایهٔ ۱۵ دقیقه‌ای حذف همین معاملات ضعیف است و اثرشان در «تست سایه» سنجیده می‌شود.</div>
+      <div class="grid g4" style="margin-bottom:10px">
+        <div class="panel kpi"><div class="label">دوره‌های سودده</div><div class="value">${n0(all.positive_windows)} از ${n0(all.windows)}</div><div class="note">همهٔ ۳۹ دوره، سناریوی پایه</div></div>
+        <div class="panel kpi"><div class="label">میانگین بازدهٔ هر دوره</div><div class="value ${signCls(all.mean_return_percent)}">${pct(all.mean_return_percent, 2)}</div><div class="note">میانه ${pct(all.median_return_percent, 2)} · تقریباً سربه‌سر</div></div>
+        <div class="panel kpi"><div class="label">بدترین دوره / بیشترین افت</div><div class="value neg">${pct(all.worst_return_percent, 2)}</div><div class="note">افت درون‌دوره‌ای هیچ‌گاه بیش از ${pct(Math.max(all.max_drawdown_percent || 0, st.max_drawdown_percent || 0), 1).replace('+', '')} نشد</div></div>
+        <div class="panel kpi"><div class="label">اعتبارسنجی پایه / تنش</div><div class="value ${signCls(val.mean_return_percent)}">${pct(val.mean_return_percent, 2)}</div><div class="note">با هزینهٔ سنگین‌تر ${pct(st.mean_return_percent, 2)}</div></div></div>
+      <div class="muted" style="font-size:12px;margin-bottom:4px">بازدهٔ هر دوره (٪، سناریوی پایه) — آبی سود، قرمز زیان؛ خط‌چین مرز انتخاب و اعتبارسنجی</div>
+      <div id="btbars" class="lchart" style="height:200px"></div>
+      <div class="muted" style="font-size:12px;margin:8px 0 6px">خلاصهٔ آماری: <b>جمع‌بندی سالم این است</b> که قواعد به‌تنهایی ریسک را محدود نگه می‌دارند (بدترین دوره ${pct(all.worst_return_percent, 1)}) ولی سود پایدار نمی‌سازند؛ نتایج منفی عمداً پنهان نشده‌اند. سودآوری آینده تضمین نمی‌شود.</div>
+      <details><summary>جدول کامل</summary><div class="table-wrap"><table><thead><tr><th>بخش</th><th>سناریو</th><th title="تعداد دوره‌های ۷۲ساعته">دوره</th><th title="میانگین بازدهٔ تسویه‌شدهٔ هر دوره">میانگین</th><th>میانه</th><th>بهترین</th><th>بدترین</th><th>دورهٔ مثبت</th><th title="بیشترین افت از قله در هر دوره">حداکثر افت</th><th title="تعداد سفارش‌های پرشده">پرشدن</th></tr></thead><tbody>
+      ${rep.aggregates.map(a => `<tr><td>${{ selection: 'انتخاب ۱–۳۰', validation: 'اعتبارسنجی ۳۱–۳۹', all: 'همه' }[a.split] || a.split}</td><td>${a.scenario === 'base' ? 'پایه' : 'تنش هزینه/تأخیر'}</td><td>${n0(a.windows)}</td><td class="${signCls(a.mean_return_percent)}">${pct(a.mean_return_percent, 3)}</td><td class="${signCls(a.median_return_percent)}">${pct(a.median_return_percent, 3)}</td><td>${pct(a.best_return_percent)}</td><td>${pct(a.worst_return_percent)}</td><td>${n0(a.positive_windows)}</td><td>${pct(-a.max_drawdown_percent)}</td><td>${n0(a.fills)}</td></tr>`).join('')}</tbody></table></div></details>`;
+    windowBars($('#btbars'), base, stress);
   })();
 }
 
@@ -390,7 +409,7 @@ function pageChallenge(root) {
 
 // ------------------------------------------------------------------ research
 function pageResearch(root) {
-  root.innerHTML = `<section class="grid g2" style="margin-bottom:14px"><div class="panel"><div class="head"><h2>بک‌تست جدید</h2><span class="sub">نیازمند ورود اپراتور</span></div><div class="body form">
+  root.innerHTML = `<section class="grid g2" style="margin-bottom:14px"><div class="panel"><div class="head"><h2>بازپخش موتور واقعی (دادهٔ ضبط‌شده)</h2><span class="sub">همان موتور حساب روی پنجره‌های ۷۲ساعته</span></div><div class="body form">
     <div class="row"><label>استراتژی</label><select id="bv"><option value="adaptive_smc">تطبیقی SMC + اندیکاتور (نسخهٔ ۴)</option><option value="guarded_breakout">شکست محافظت‌شده (نسخهٔ ۳)</option><option value="guarded_breakout_ai">شکست + AI آرشیوی (۳۱–۳۹)</option><option value="breakout48">شکست ۴۸ساعته</option><option value="cash">نگهداری تومان</option></select></div>
     <div class="row"><label>پنجرهٔ ۷۲ساعته</label><input id="bw" type="number" min="1" max="39" value="35" style="width:90px"><label>سناریو</label><select id="bs"><option value="base">پایه</option><option value="cost_delay_stress">تنش هزینه و تأخیر</option></select></div>
     <div class="row"><label>یا بازهٔ دلخواه UTC</label><input id="b1" placeholder="2026-09-01T00:00:00Z" class="ltr" style="width:200px"><input id="b2" placeholder="2026-09-05T00:00:00Z" class="ltr" style="width:200px"></div>
@@ -398,6 +417,7 @@ function pageResearch(root) {
     <div class="panel"><div class="head"><h2>نتیجهٔ انتخاب‌شده</h2><span class="sub" id="jsel"></span></div><div class="body"><canvas class="chart" id="jchart"></canvas><div id="jsum"></div></div></div></section>
   <section class="panel" style="margin-bottom:14px"><div class="head"><h2>صف بک‌تست‌ها</h2></div><div class="body table-wrap" id="jobs"></div></section>
   <section class="panel"><div class="head"><h2>مقایسهٔ آرشیوی نسخهٔ ۳</h2><span class="sub">۱۵۳ سناریو؛ دوره‌ها قبلاً دیده شده‌اند</span></div><div class="body table-wrap" id="agg"></div></section>`;
+  const lab = document.createElement('div'); root.prepend(lab); labSection(lab, { every, keep, safe });
   const ch = keep(new LineChart($('#jchart'), { baseline: 5000000, fmt: n0, relative: true, live: false }));
   $('#bgo').onclick = async () => {
     if (!S.authenticated) { $('#bmsg').textContent = 'برای اجرای بک‌تست وارد «کنترل اپراتور» شوید.'; return; }
@@ -483,3 +503,24 @@ function who() { const w = $('#who'); if (w) w.textContent = S.authenticated ? '
   setInterval(countdown, 1000); setInterval(() => { if (!document.hidden) safe(pollLive); }, 10000);
   addEventListener('hashchange', route); route();
 })();
+
+// 39-window returns: one bar per window, diverging colour by sign, selection/validation split.
+function windowBars(el, rows, stress) {
+  const W = el.clientWidth || 800, H = el.clientHeight || 200, P = { l: 8, r: 46, t: 24, b: 22 };
+  const vals = rows.map(r => +r.liquidation_return_percent); const lim = Math.max(1, ...vals.map(Math.abs)) * 1.1;
+  const bw = (W - P.l - P.r) / rows.length; const Y = v => P.t + (lim - v) / (2 * lim) * (H - P.t - P.b);
+  const x = i => P.l + i * bw;
+  const split = rows.findIndex(r => r.window >= 31);
+  const grid = [lim, lim / 2, 0, -lim / 2, -lim].map(v => `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === 0 ? '#353a43' : '#1e2228'}"/><text x="${W - P.r + 6}" y="${Y(v) + 4}" fill="var(--faint)" font-size="11">${v > 0 ? '+' : ''}${v.toFixed(1)}%</text>`).join('');
+  const bars = rows.map((r, i) => { const v = vals[i]; const y0 = Y(Math.max(v, 0)), y1 = Y(Math.min(v, 0));
+    return `<rect data-i="${i}" x="${x(i) + 1}" y="${y0}" width="${Math.max(1, bw - 2)}" height="${Math.max(1, y1 - y0)}" rx="2" fill="${v >= 0 ? '#3987e5' : '#e66767'}"/>`; }).join('');
+  const labels = rows.map((r, i) => (r.window % 5 === 0 || r.window === 1 || r.window === 39) ? `<text x="${x(i) + bw / 2}" y="${H - 6}" fill="var(--faint)" font-size="10.5" text-anchor="middle">${r.window}</text>` : '').join('');
+  const sep = split > 0 ? `<line x1="${x(split)}" x2="${x(split)}" y1="${P.t}" y2="${H - P.b}" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="${(P.l + x(split)) / 2}" y="${P.t - 8}" fill="var(--muted)" font-size="11" text-anchor="middle">انتخاب (دوره‌های ۱ تا ۳۰)</text><text x="${(x(split) + x(rows.length)) / 2}" y="${P.t - 8}" fill="var(--muted)" font-size="11" text-anchor="middle">اعتبارسنجی (۳۱ تا ۳۹)</text>` : '';
+  el.innerHTML = `<svg width="${W}" height="${H}" style="direction:ltr">${grid}${bars}${labels}${sep}</svg><div class="ltip tooltip" style="display:none;position:absolute"></div>`;
+  const tip = el.querySelector('.ltip');
+  el.onmousemove = e => { const r = el.getBoundingClientRect(); const i = Math.floor((e.clientX - r.left - P.l) / bw); const row = rows[i];
+    if (!row) { tip.style.display = 'none'; return; } const s = stress[row.window];
+    tip.style.display = ''; tip.style.left = Math.min(r.width - 180, Math.max(0, e.clientX - r.left + 10)) + 'px'; tip.style.top = '6px';
+    tip.innerHTML = `<div class="muted">دورهٔ ${row.window} (${row.window <= 30 ? 'انتخاب' : 'اعتبارسنجی'})</div><div>بازده: <b class="${signCls(vals[i])}">${pct(vals[i])}</b></div><div>حداکثر افت: <span class="neg">${pct(-row.max_drawdown_percent)}</span></div><div>پرشدن: ${n0(row.fill_count)}</div>${s ? `<div>در تنش: <span class="${signCls(+s.liquidation_return_percent)}">${pct(+s.liquidation_return_percent)}</span></div>` : ''}`; };
+  el.onmouseleave = () => { tip.style.display = 'none'; };
+}
