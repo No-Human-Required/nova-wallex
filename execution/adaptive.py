@@ -129,9 +129,28 @@ class AdaptiveRules:
         context = self.regime_context(t)
         if candidate.get('strategy') and candidate['strategy'] not in context['strategies']:
             return 'strategy_not_active_in_regime'
-        if len(self.active_bases()) >= context['max_positions']:
+        if len(self.active_bases()-self.dust_bases()) >= context['max_positions']:
             return 'regime_position_cap'
         return None
+
+    def dust_bases(self):
+        """Residues below the exchange minimum order: unsellable, so they hold no slot."""
+        out = set()
+        for base, p in self.s['positions'].items():
+            m = self.h.markets.get(p.get('symbol'))
+            if m is None:
+                continue
+            if p['qty'] < m.min_qty:
+                out.add(base)
+                continue
+            try:
+                value = self.position_value(p)
+                minimum = m.min_notional*(self.bid('USDTTMN') if m.quote == 'USDT' else D(1))
+            except (ValueError, TypeError):
+                continue
+            if value < minimum:
+                out.add(base)
+        return out
 
     def minimum_budget(self, c, t):
         m = self.h.markets[c['symbol']]

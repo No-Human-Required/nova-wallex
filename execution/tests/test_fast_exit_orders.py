@@ -43,3 +43,15 @@ class FastExitTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class DustTests(unittest.TestCase):
+    def test_residue_below_exchange_minimum_holds_no_slot(self):
+        from types import SimpleNamespace
+        from execution.controller import PortfolioController
+        h = SyntheticHistory('AAATMN')  # AAATMN min notional 50000, price 1000
+        c = PortfolioController.__new__(PortfolioController)
+        c.j = SimpleNamespace(s={'ledger': {'holdings': {'AAA': {'qty': '4.85', 'basis': '5000'}}}})
+        self.assertTrue(c.dust(h, 1_800_000_000, 'AAA', {'symbol': 'AAATMN'}))
+        c.j.s['ledger']['holdings']['AAA']['qty'] = '60'
+        self.assertFalse(c.dust(h, 1_800_000_000, 'AAA', {'symbol': 'AAATMN'}))

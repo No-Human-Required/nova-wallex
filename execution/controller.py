@@ -99,6 +99,16 @@ class PortfolioController:
             self.reconcile_account(now=now);self.sync_strategy()
         return self.j.unresolved()
 
+    def dust(self,history,t,base,p):
+        """A residue below the exchange minimum order (cannot be sold) holds no position slot."""
+        m=history.markets.get(p.get('symbol'));h=self.j.s['ledger']['holdings'].get(base)
+        if m is None or not h:return False
+        qty=dec(h['qty'])
+        if qty<m.min_qty:return True
+        b=history.bar(m.symbol,t-3600)
+        if b is None:return False
+        return qty*b.close<m.min_notional
+
     def prepare_adaptive(self,history,*,now):
         t=now//3600*3600;cfg=self.cfg
         if 'regime' not in self.j.s.get('runtime_scans',{}).get(str(t),{}):
@@ -114,7 +124,8 @@ class PortfolioController:
         if now>=self.end-self.cfg.get('entry_stop_before_end_seconds',0):return
         if str(t) in self.j.s.get('runtime_selections',{}):return
         scan=self.j.s['runtime_scans'][str(t)];context=scan['regime'];top=scan['top']
-        strategy=self.strategy();active=len(strategy['positions'])+(1 if strategy.get('route') else 0)
+        strategy=self.strategy()
+        active=sum(not self.dust(history,t,b,p) for b,p in strategy['positions'].items())+(1 if strategy.get('route') else 0)
         base={'time':t,'regime':context,'coverage':scan['coverage'],'policy':cfg.get('strategy_version'),
               'original_candidates':[{k:c.get(k) for k in ('symbol','strategy','score','quality','confluence','plan')} for c in top]}
         def save(ranked,selection,record=None):

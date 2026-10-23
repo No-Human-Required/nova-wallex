@@ -147,7 +147,9 @@ function pageLive(root) {
         }
         const unit = +x.basis / +x.qty; const value = +(x.value_tmn || 0); const pnl = value ? value - +x.basis : null;
         const stop = m.peak_unit && m.stop ? +m.peak_unit * (1 - +m.stop) : null;
+        const dust = (d.dust || {})[x.asset];
         $('#' + id + '-i').innerHTML = `<div style="font-size:18px;font-weight:700">${sym(m.symbol || x.asset)} ${famChip(m.strategy)} ${wxButton(m.symbol)}</div>
+          ${dust ? `<div class="notice" style="margin:8px 0;font-size:12px">ریزهٔ باقی‌مانده پس از فروش: ارزش ${toman(value)} کمتر از حداقل سفارش والکس (${toman(dust.min_notional_tmn)}، حداقل ${n4(dust.min_qty)} ${esc(x.asset)}) است و صرافی فروشش را نمی‌پذیرد. موقعیت اصلی با حد ضرر فروخته شده و این ریزه جای موقعیت جدید را نمی‌گیرد.</div>` : ''}
           <div class="muted" style="font-size:12px">${esc(sName(m.strategy || 'legacy_trend6'))}</div>
           <table style="margin-top:8px"><tr><td class="muted">مقدار</td><td>${n4(x.qty)} ${esc(x.asset)}</td></tr>
           <tr><td class="muted">بهای تمام‌شده</td><td>${toman(x.basis)} <span class="faint">(${price(unit)})</span></td></tr>
