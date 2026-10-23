@@ -23,23 +23,23 @@ export function pageSettings(root, ctx) {
     render();
   }
   function render() {
-    const L = D.llm, P = D.providers, B = D.bound;
+    if (!D.saved) D.saved = { ...D.llm };
+    const L = D.llm, P = D.providers, B = D.bound, SV = D.saved;
     $('#setnote').innerHTML = D.run_active && D.upgrade_needed ? `<div class="notice" style="margin-bottom:14px">تغییرات ذخیره‌شده هنوز روی اجرای واقعی اعمال نشده‌اند. برای اعمال: «کنترل اپراتور» ← توقف موتور ← ارتقا ← درخواست ادامه. <a href="#operator">رفتن به کنترل اپراتور ←</a></div>` : '';
-    const presets = p => P[p].presets ? Object.entries(P[p].presets).map(([k, v]) => `<option value="${esc(v)}">${esc(k)} — ${esc(v)}</option>`).join('') : `<option value="${esc(P[p].base_url)}">${esc(P[p].base_url)}</option>`;
+    const presets = p => P[p].presets ? Object.entries(P[p].presets).map(([k, v]) => `<option value="${esc(v)}">${esc(k)}</option>`).join('') : `<option value="${esc(P[p].base_url)}">`;
     $('#llmbox').innerHTML = `
       <div class="prov">${Object.entries(P).map(([k, v]) => `<label class="pcard ${L.provider === k ? 'on' : ''}"><input type="radio" name="prov" value="${k}" ${L.provider === k ? 'checked' : ''}><b>${esc(v.fa)}</b><span class="mono faint">${esc(v.hosts.join(' · '))}</span>
         <span class="chip ${D.credentials[k].present ? 'ok' : 'bad'}">${D.credentials[k].present ? 'کلید ✓' : 'بدون کلید'}</span></label>`).join('')}</div>
       <div class="form" style="margin-top:12px">
-        <label class="muted">آدرس پایهٔ API</label><select id="base">${presets(L.provider)}</select>
+        <label class="muted">آدرس پایهٔ API <span class="faint">(فقط روی ${esc(P[L.provider].hosts.join('، '))}؛ مسیر قابل ویرایش)</span></label><input id="base" class="mono" list="bases" value="${esc(L.base_url || P[L.provider].base_url)}"><datalist id="bases">${presets(L.provider)}</datalist>
         <label class="muted">مدل تصمیم‌گیری موتور</label><input id="model" class="mono" list="models" value="${esc(L.model)}"><datalist id="models">${P[L.provider].models.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
         <label class="muted">مدل عامل استودیو (اختیاری؛ خالی = همان مدل)</label><input id="smodel" class="mono" list="models" value="${esc(L.studio_model || '')}">
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" id="savellm">ذخیرهٔ انتخاب</button><button id="testllm">آزمون اتصال LLM</button><span id="llmmsg" class="muted"></span></div>
       </div>
-      <table style="margin-top:12px"><tr><td class="muted">انتخاب ذخیره‌شده</td><td>${esc(P[L.provider].fa)} · <span class="mono">${esc(L.model)}</span>${L.saved ? '' : ' <span class="chip">پیش‌فرض</span>'}</td></tr>
+      <table style="margin-top:12px"><tr><td class="muted">انتخاب ذخیره‌شده</td><td>${esc(P[SV.provider].fa)} · <span class="mono">${esc(SV.model)}</span>${SV.saved ? '' : ' <span class="chip">پیش‌فرض</span>'}${SV.provider !== L.provider ? ' <span class="chip y">تغییر ذخیره نشده</span>' : ''}</td></tr>
       <tr><td class="muted">در حال استفادهٔ موتور</td><td>${B ? `${esc((P[B.provider] || {}).fa || B.provider)} · <span class="mono">${esc(B.model || '—')}</span> · اثر کلید <span class="mono">${esc(B.ai_fingerprint || '—')}</span>` : '<span class="faint">اجرای فعالی وجود ندارد</span>'}</td></tr></table>`;
-    const base = $('#base'); if (L.base_url) base.value = L.base_url;
     $$('input[name=prov]').forEach(r => r.onchange = () => { D.llm = { ...D.llm, provider: r.value, base_url: P[r.value].base_url, model: P[r.value].models[0] }; render(); });
-    $('#savellm').onclick = async () => { try { D = await api('/api/settings/llm', { body: { provider: D.llm.provider, model: $('#model').value.trim(), base_url: $('#base').value, studio_model: $('#smodel').value.trim() || null } }); render(); $('#llmmsg').textContent = 'ذخیره شد'; } catch (e) { $('#llmmsg').textContent = e.message; } };
+    $('#savellm').onclick = async () => { try { D = await api('/api/settings/llm', { body: { provider: D.llm.provider, model: $('#model').value.trim(), base_url: $('#base').value.trim(), studio_model: $('#smodel').value.trim() || null } }); render(); $('#llmmsg').textContent = 'ذخیره شد'; } catch (e) { $('#llmmsg').textContent = e.message; } };
     $('#testllm').onclick = async () => { $('#llmmsg').textContent = 'در حال آزمون…'; try { const r = await api('/api/settings/test', { body: { target: 'llm', provider: D.llm.provider } }); $('#llmmsg').innerHTML = r.ok ? `<span class="pos">پاسخ دریافت شد</span> · ${esc(r.model)} · ${n2(r.latency_seconds)} ثانیه` : `<span class="neg">${esc(r.error)}</span>`; } catch (e) { $('#llmmsg').textContent = e.message; } };
     $('#keybox').innerHTML = Object.entries(D.credentials).map(([k, c]) => {
       const bound = B && (k === 'wallex' || k === B.provider);
