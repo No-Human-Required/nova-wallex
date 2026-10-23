@@ -78,3 +78,70 @@ def pairs_for(directory, run_id, cfg, scans):
             for t, _ in jobs:  # another replay is running; retry on the next request
                 _pending.discard((run_id, t))
     return out
+
+
+# ---------------------------------------------------------------- observer scan
+# The engine scans only while it runs. When it is stopped, blocked or waiting
+# for an upgrade, the web process runs the same deterministic screener on the
+# same public hourly data, once per hour, so "candidates of this hour" stay
+# current. It is labelled as an observer scan: no AI request, no order, nothing
+# written to the account journal. The engine's own scan replaces it as soon as
+# the engine runs again.
+import os
+import shutil
+import tempfile
+import time
+from pathlib import Path
+
+_observer = {'scan': None, 'running': False, 'error': None, 'started': None, 'started_at': 0}
+RETRY_SECONDS = 300
+_observer_lock = threading.Lock()
+
+
+def cache_root():
+    """Local, disposable cache outside SW_DATA_DIR (never the durable store)."""
+    return Path(os.getenv('SW_CACHE_DIR') or tempfile.gettempdir())/'nova-cache'
+
+
+def _observe(t, cfg):
+    from starwallex.util import ROOT, read_json
+    from execution.adaptive import AdaptiveHistory
+    from execution.feed import PublicFeed
+    try:
+        base = cache_root()/'observer'
+        feed = PublicFeed(read_json(ROOT/'data/portfolio/universe.json'), base/str(t))
+        feed.history_type = AdaptiveHistory
+        h = feed.history(t)
+        ranked, coverage = h.scan(t, cfg, 'adaptive')
+        scan = {'time': t, 'coverage': coverage, 'regime': h.regime(t, cfg), 'top': ranked[:cfg.get('ai_top_candidates', 10)],
+                'pairs': h.pairs.get(t, {}), 'source': 'observer', 'observed_at': time.time()}
+        for old in base.iterdir():
+            if old.name != str(t):
+                shutil.rmtree(old, ignore_errors=True)
+        with _observer_lock:
+            _observer.update(scan=scan, error=None)
+    except Exception as exc:
+        with _observer_lock:
+            _observer['error'] = type(exc).__name__
+    finally:
+        with _observer_lock:
+            _observer['running'] = False
+
+
+def observer_scan(cfg, engine_scan_time, now=None):
+    """Latest observer scan; starts one in the background when the engine has
+    not scanned the current hour. Returns (scan or None, status)."""
+    now = int(now or time.time())
+    t = now//3600*3600
+    if engine_scan_time is not None and int(engine_scan_time) >= t:
+        return None, 'engine_current'
+    with _observer_lock:
+        scan = _observer['scan']
+        if scan and scan['time'] >= t:
+            return scan, 'observer_current'
+        retry = not (_observer['started'] == t and _observer['error']) or time.time()-_observer['started_at'] >= RETRY_SECONDS
+        if not _observer['running'] and retry:
+            _observer.update(running=True, started=t, started_at=time.time())
+            threading.Thread(target=_observe, args=(t, dict(cfg)), daemon=True, name='observer-scan').start()
+        status = 'observer_running' if _observer['running'] else 'observer_failed'
+        return (scan if scan and (engine_scan_time is None or scan['time'] > int(engine_scan_time)) else None), status

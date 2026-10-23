@@ -434,7 +434,14 @@ def live_view(app):
             s = j.state or {}
             scans = s.get('runtime_scans', {})
             latest = scans[max(scans, key=int)] if scans else None
+            from .screener import observer_scan
+            observed, out['scan_status'] = observer_scan(cfg, latest.get('time') if latest else None)
+            if observed:
+                # Engine is not scanning (stopped, blocked or upgrading): same screener on the same public data.
+                out['engine_scan_time'] = latest.get('time') if latest else None
+                latest = observed
             out['latest_scan'] = {'time': latest.get('time'), 'coverage': latest.get('coverage'), 'regime': latest.get('regime'),
+                                  'source': latest.get('source', 'engine'),
                                   'top': [{k: c.get(k) for k in ('symbol', 'strategy', 'score', 'quality', 'confluence', 'plan', 'indicators', 'evidence', 'roundtrip_cost_bps')} for c in latest.get('top', [])][:12]} if latest else None
             out['latest_decision'] = j.decisions[-1] if j.decisions else None
             out['ai_calls_used'] = s.get('runtime_ai_calls', 0)
@@ -599,6 +606,10 @@ def explain(request: Request):
             # market carries no stage of its own.
             pairs = {k: v if v.get('stage') else {**v, 'stage': 'duplicate', 'reason': 'better_pair_same_asset'} for k, v in (pairs or {}).items()}
             rows.append({**scan, 'pairs': pairs, 'pairs_source': source})
+        from .screener import observer_scan
+        observed, _ = observer_scan(run['config'], scans[-1]['time'] if scans else None)
+        if observed:
+            rows.append({**observed, 'pairs_source': 'observer'})
         return {'scans': rows, 'decisions': j.decisions[-120:],
                 'allocations': allocations[-200:], 'gates': gates[-200:], 'ladders': ladders[-100:],
                 'positions': s.get('strategy', {}).get('positions', {}), 'fast': j.fast,

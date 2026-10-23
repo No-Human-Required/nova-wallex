@@ -101,7 +101,7 @@ export function pageHow(root, ctx) {
   function drawScan() {
     const scan = scanAt(idx);
     if (!scan) { $('#funnel').innerHTML = '<div class="empty">پس از اولین اسکن نسخهٔ جدید، جزئیات هر جفت اینجا نمایش داده می‌شود.</div>'; drawFlow(); return; }
-    const src = { recorded: 'ثبت‌شده در همان ساعت', replayed: 'بازسازی‌شده از مشاهدات تغییرناپذیر همان ساعت (شمارش‌ها با ثبت موتور یکسان است)', pending: 'در حال بازسازی جزئیات جفت‌ها…', coverage: 'شمارش ثبت‌شدهٔ موتور (جزئیات تک‌جفت در دسترس نیست)' }[scan.pairs_source] || '';
+    const src = { recorded: 'ثبت‌شده در همان ساعت', replayed: 'بازسازی‌شده از مشاهدات تغییرناپذیر همان ساعت (شمارش‌ها با ثبت موتور یکسان است)', pending: 'در حال بازسازی جزئیات جفت‌ها…', observer: 'اسکن ناظر: موتور متوقف بود؛ همان اسکرینر روی دادهٔ عمومی همین ساعت، بدون AI و سفارش', coverage: 'شمارش ثبت‌شدهٔ موتور (جزئیات تک‌جفت در دسترس نیست)' }[scan.pairs_source] || '';
     $('#scanlbl').textContent = `اسکن ${when(scan.time)} · رژیم ${scan.regime ? scan.regime.fa : '—'} · ${idx + 1} از ${data.scans.length}${src ? ' · ' + src : ''}`;
     const pairs = hasPairs(scan) ? Object.keys(scan.pairs) : (scan.top || []).map(c => c.symbol);
     const st = pairs.map(s => [s, stageOf(s, scan)]);

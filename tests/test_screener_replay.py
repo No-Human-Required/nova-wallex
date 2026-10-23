@@ -55,5 +55,34 @@ class ScreenerReplayTests(unittest.TestCase):
         self.assertEqual(again[self.t], ('replayed', self.pairs))
 
 
+    def test_observer_scans_the_current_hour_when_the_engine_did_not(self):
+        import threading
+        from unittest.mock import patch
+        h = self.h
+
+        class Feed:
+            def __init__(self, universe, directory):
+                pass
+
+            def history(self, t):
+                return h
+        screener._observer.update(scan=None, running=False, error=None, started=None, started_at=0)
+        with patch('execution.feed.PublicFeed', Feed), patch.dict(os.environ, {'SW_CACHE_DIR': self.tmp.name}):
+            (Path(self.tmp.name)/'nova-cache'/'observer').mkdir(parents=True)
+            self.assertEqual(screener.observer_scan(self.cfg, self.t, now=self.t+60), (None, 'engine_current'))
+            scan, status = screener.observer_scan(self.cfg, self.t-3600, now=self.t+60)
+            self.assertEqual((scan, status), (None, 'observer_running'))
+            for th in threading.enumerate():
+                if th.name == 'observer-scan':
+                    th.join(60)
+            scan, status = screener.observer_scan(self.cfg, self.t-3600, now=self.t+60)
+        self.assertEqual(status, 'observer_current')
+        self.assertEqual((scan['time'], scan['source']), (self.t, 'observer'))
+        self.assertEqual(scan['coverage'], self.coverage)
+        self.assertEqual(scan['pairs'], self.pairs)
+        # The engine's own scan of the hour wins again as soon as it exists.
+        self.assertEqual(screener.observer_scan(self.cfg, self.t, now=self.t+60)[1], 'engine_current')
+
+
 if __name__ == '__main__':
     unittest.main()
