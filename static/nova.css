@@ -256,3 +256,10 @@ a.wxbtn:hover { background: var(--accent-dim); }
 .presets { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 4px; }
 .presets .chip { cursor: pointer; }
 .panel:has(.combo) { overflow: visible; }
+/* unsellable residues: one compact, expandable line */
+#dustlist { margin-top: 4px; }
+.dustrow { border: 1px dashed var(--line2); border-radius: 12px; padding: 6px 12px; margin-bottom: 8px; background: #0d0f12aa; }
+.dustrow > summary { list-style: none; cursor: pointer; font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.dustrow > summary::-webkit-details-marker { display: none; }
+.dustrow > summary .arrow { color: var(--accent); width: 14px; display: inline-block; }
+.dustrow[open] > summary { margin-bottom: 10px; }

@@ -140,14 +140,29 @@ function pageLive(root) {
     else {
       for (const x of holds) {
         const m = meta[x.asset] || {}; const id = 'pos-' + x.asset;
+        const dust = (d.dust || {})[x.asset];
+        const value0 = +(x.value_tmn || 0);
+        if ($('#' + id) && !!$('#' + id).closest('.dustrow') !== !!dust) { const old = $('#' + id).closest('.dustrow') || $('#' + id); old.remove(); delete charts[x.asset]; }
         if (!$('#' + id)) {
           if (!pos.querySelector('.pos-row')) pos.innerHTML = '';
-          pos.appendChild(h(`<div class="pos-row grid g3" id="${id}" style="margin-bottom:12px"><div class="span2"><canvas class="chart" id="${id}-c"></canvas></div><div id="${id}-i"></div></div>`));
-          charts[x.asset] = keep(new CandleChart($('#' + id + '-c'), {}));
+          const row = `<div class="pos-row grid g3" id="${id}" style="margin-bottom:12px"><div class="span2"><canvas class="chart" id="${id}-c"></canvas></div><div id="${id}-i"></div></div>`;
+          if (dust) {
+            // Unsellable residue: one compact line, expanded on demand.
+            let list = $('#dustlist'); if (!list) { list = h('<div id="dustlist"></div>'); pos.appendChild(list); }
+            const box = h(`<details class="dustrow" id="dust-${x.asset}"><summary><span class="arrow">▸</span> <b>ریزهٔ ${esc(x.asset)}</b> <span class="mono">${n4(x.qty)}</span> · <span id="dustv-${x.asset}">${toman(value0)}</span> <span class="faint">· زیر حداقل سفارش والکس؛ قابل فروش نیست و جای موقعیت نمی‌گیرد</span></summary>${row}</details>`);
+            list.appendChild(box);
+            box.addEventListener('toggle', () => {
+              box.querySelector('.arrow').textContent = box.open ? '▾' : '▸';
+              if (box.open && !charts[x.asset]) { charts[x.asset] = keep(new CandleChart($('#' + id + '-c'), {})); const q = box._pending; if (q) { charts[x.asset].pending = q; loadCandles(charts[x.asset]); } }
+            });
+          } else {
+            const list = $('#dustlist'); const node = h(row); list ? pos.insertBefore(node, list) : pos.appendChild(node);
+            charts[x.asset] = keep(new CandleChart($('#' + id + '-c'), {}));
+          }
         }
-        const unit = +x.basis / +x.qty; const value = +(x.value_tmn || 0); const pnl = value ? value - +x.basis : null;
+        if (dust && $('#dustv-' + x.asset)) $('#dustv-' + x.asset).textContent = toman(value0);
+        const unit = +x.basis / +x.qty; const value = value0; const pnl = value ? value - +x.basis : null;
         const stop = m.peak_unit && m.stop ? +m.peak_unit * (1 - +m.stop) : null;
-        const dust = (d.dust || {})[x.asset];
         $('#' + id + '-i').innerHTML = `<div style="font-size:18px;font-weight:700">${sym(m.symbol || x.asset)} ${famChip(m.strategy)} ${wxButton(m.symbol)}</div>
           ${dust ? `<div class="notice" style="margin:8px 0;font-size:12px">ریزهٔ باقی‌مانده پس از فروش: ارزش ${toman(value)} کمتر از حداقل سفارش والکس (${toman(dust.min_notional_tmn)}، حداقل ${n4(dust.min_qty)} ${esc(x.asset)}) است و صرافی فروشش را نمی‌پذیرد. موقعیت اصلی با حد ضرر فروخته شده و این ریزه جای موقعیت جدید را نمی‌گیرد.</div>` : ''}
           <div class="muted" style="font-size:12px">${esc(sName(m.strategy || 'legacy_trend6'))}</div>
@@ -161,7 +176,8 @@ function pageLive(root) {
           <tr><td class="muted">روند ۱۵ دقیقه‌ای</td><td>${fastCell(d.fast, m.symbol)}</td></tr>
           <tr><td class="muted">زمان ورود</td><td>${when(m.opened_at)}</td></tr>
           <tr><td class="muted">دلیل خروج معلق</td><td>${m.exit_reason ? esc(reason(m.exit_reason)) : '—'}</td></tr></table>`;
-        if (m.symbol) { const first = !charts[x.asset].pending; charts[x.asset].pending = { symbol: m.symbol, entry: unit, stop: Math.max(stop || 0, m.sl_floor ? +m.sl_floor : 0) || stop, tp: (m.tp || (m.target ? [m.target] : [])).map(Number) }; if (first) loadCandles(charts[x.asset]); }
+        if (dust && m.symbol) { const box = $('#dust-' + x.asset); if (box) box._pending = { symbol: m.symbol, entry: unit, stop: Math.max(stop || 0, m.sl_floor ? +m.sl_floor : 0) || stop, tp: (m.tp || (m.target ? [m.target] : [])).map(Number) }; }
+        if (m.symbol && charts[x.asset]) { const first = !charts[x.asset].pending; charts[x.asset].pending = { symbol: m.symbol, entry: unit, stop: Math.max(stop || 0, m.sl_floor ? +m.sl_floor : 0) || stop, tp: (m.tp || (m.target ? [m.target] : [])).map(Number) }; if (first) loadCandles(charts[x.asset]); }
       }
     }
     // last AI + candidates
