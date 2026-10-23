@@ -320,6 +320,10 @@ class CoverageAndExitTests(unittest.TestCase):
         self.assertIsNotNone(meta['target'])
         self.assertGreater(D(meta['target']), D('1000'))
         self.assertTrue(any(k == 'take_profit_set' for k, _ in d['events']))
+        strategy['positions']['AAA'].update(strategy='ind_ema_macd_trend')
+        d = plan(h, t, cfg, ledger, strategy, h.quotes(t), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
+        self.assertEqual(D(d['positions']['AAA']['target']), D('1125'))
+        strategy['positions']['AAA'].pop('strategy')
         # After a +1R peak, a fall back to basis exits at break-even instead of the full stop.
         strategy['positions']['AAA'].update(peak_unit='1052', target='2000')
         d = plan(h, t, cfg, ledger, strategy, h.quotes(t, aaa='1002'), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)

@@ -210,7 +210,10 @@ class AdaptiveRules:
                     # is above the market, otherwise one stop distance above basis.
                     bars = st.series(self.h, p['symbol'], t)
                     swing = D(str(max(bars[1][-48:]))) if bars else None
-                    if swing is not None and swing > unit*D('1.005') and swing > basis*D('1.006'):
+                    if strategy in {'ind_ema_macd_trend', 'ind_relative_strength'}:
+                        multiple = D(str(self.cfg.get('trend_tp_r_multiple', 2.5)))
+                        target, source = basis*(1+multiple*D(str(p['stop']))), 'strategy_r_multiple'
+                    elif swing is not None and swing > unit*D('1.005') and swing > basis*D('1.006'):
                         target, source = swing, 'swing_high_48h'
                     else:
                         target, source = basis*(1+D(str(p['stop']))), 'one_r_above_basis'
