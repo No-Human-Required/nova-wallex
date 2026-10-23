@@ -47,6 +47,9 @@ def candidate_items(candidates):
             'z24': _num(f.get('z24_logclose')), 'rsi14': _num(c['indicators'].get('rsi14')), 'atr_pct': _num(c['indicators'].get('atr_pct'), 3),
             'ema9_above_ema21': c['indicators'].get('ema9_above_ema21'),
             'roundtrip_cost_bps': _num(c['roundtrip_cost_bps']),
+            'quality_score': c.get('quality'), 'confluence': c.get('confluence'),
+            'trend_aligned': c['indicators'].get('trend_aligned'), 'volume_ratio': _num(c['indicators'].get('volume_ratio')),
+            'missing_hours_of_72': c['indicators'].get('missing_hours'),
             'daily_turnover_million_tmn': _num(f['daily_turnover_tmn']/1e6),
             'setup': {k: (_num(v, 6) if isinstance(v, float) else v) for k, v in c['evidence'].items()}})
     return mapping, items

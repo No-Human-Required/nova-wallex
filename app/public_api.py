@@ -390,7 +390,7 @@ def live_view(app):
             scans = s.get('runtime_scans', {})
             latest = scans[max(scans, key=int)] if scans else None
             out['latest_scan'] = {'time': latest.get('time'), 'coverage': latest.get('coverage'), 'regime': latest.get('regime'),
-                                  'top': [{k: c.get(k) for k in ('symbol', 'strategy', 'score', 'plan', 'indicators', 'evidence', 'roundtrip_cost_bps')} for c in latest.get('top', [])][:12]} if latest else None
+                                  'top': [{k: c.get(k) for k in ('symbol', 'strategy', 'score', 'quality', 'confluence', 'plan', 'indicators', 'evidence', 'roundtrip_cost_bps')} for c in latest.get('top', [])][:12]} if latest else None
             out['latest_decision'] = j.decisions[-1] if j.decisions else None
             out['ai_calls_used'] = s.get('runtime_ai_calls', 0)
             out['positions_meta'] = s.get('strategy', {}).get('positions', {})

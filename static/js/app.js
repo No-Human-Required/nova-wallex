@@ -150,7 +150,8 @@ function pageLive(root) {
           <tr><td class="muted">ارزش فعلی</td><td>${toman(value)}</td></tr>
           <tr><td class="muted">سود/زیان باز</td><td class="${signCls(pnl)}">${pnl === null ? '—' : toman(pnl) + ' (' + pct(pnl / +x.basis * 100) + ')'}</td></tr>
           <tr><td class="muted">حد ضرر شناور</td><td>${stop ? price(stop) + ' <span class="faint">(' + pct(+m.stop * 100, 1) + ' زیر اوج)</span>' : '—'}</td></tr>
-          <tr><td class="muted">هدف</td><td>${m.target ? price(m.target) : 'بدون هدف ثابت'}</td></tr>
+          <tr><td class="muted">حد سود (TP)</td><td>${m.target ? price(m.target) + ' <span class="faint">(' + pct((+m.target / unit - 1) * 100, 1) + ' بالای ورود)</span>' : 'در چرخهٔ بعدی تعیین می‌شود'}</td></tr>
+          <tr><td class="muted">سربه‌سر</td><td>${m.peak_unit && m.stop && +m.peak_unit >= unit * (1 + +m.stop) ? '<span class="pos">فعال؛ کف ' + price(unit * 1.004) + '</span>' : 'پس از سود ' + pct(+m.stop * 100, 1) + ' (۱R) فعال می‌شود'}</td></tr>
           <tr><td class="muted">زمان ورود</td><td>${when(m.opened_at)}</td></tr>
           <tr><td class="muted">دلیل خروج معلق</td><td>${m.exit_reason ? esc(reason(m.exit_reason)) : '—'}</td></tr></table>`;
         if (m.symbol) { const first = !charts[x.asset].pending; charts[x.asset].pending = { symbol: m.symbol, entry: unit, stop, target: m.target ? +m.target : null }; if (first) loadCandles(charts[x.asset]); }
@@ -158,7 +159,8 @@ function pageLive(root) {
     }
     // last AI + candidates
     $('#lastai').innerHTML = d.latest_decision ? decisionCard(d.latest_decision, true) : '<div class="empty">هنوز تصمیمی ثبت نشده است.</div>';
-    $('#cands').innerHTML = sc && sc.top && sc.top.length ? `<table><thead><tr><th>جفت</th><th>استراتژی</th><th>R/R</th><th>حد ضرر</th><th>هدف</th><th>RSI</th></tr></thead><tbody>${sc.top.map(c => `<tr><td>${sym(c.symbol)}</td><td>${famChip(c.strategy)} ${esc(sName(c.strategy))}</td><td>${n2(c.plan && c.plan.reward_risk)}</td><td>${pct(c.plan && c.plan.stop_fraction * 100, 1)}</td><td>${c.plan && c.plan.target_price_tmn ? price(c.plan.target_price_tmn) : '—'}</td><td>${n0(c.indicators && c.indicators.rsi14)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">در اسکن آخر هیچ ستاپ معتبری پیدا نشد؛ نبود معامله تصمیم معتبر است.</div>';
+    const cov = (sc && sc.coverage) || {}; const scanned = (cov.signal || 0) + (cov.eligible_no_signal || 0);
+    $('#cands').innerHTML = (sc ? `<div class="faint" style="font-size:11px;margin-bottom:6px">${n0(scanned)} جفت با دادهٔ کافی ارزیابی شد · ${n0(cov.missing_required_history || 0)} بدون معاملهٔ ساعت آخر یا دادهٔ کافی · ${n0((cov.insufficient_recent_liquidity || 0) + (cov.estimated_capacity_below_minimum || 0))} کم‌نقدشونده · ${n0(cov.below_quality || 0)} زیر حد کیفیت</div>` : '') + (sc && sc.top && sc.top.length ? `<table><thead><tr><th>جفت</th><th>استراتژی</th><th>کیفیت</th><th>R/R</th><th>حد ضرر</th><th>TP</th><th>RSI</th></tr></thead><tbody>${sc.top.map(c => `<tr><td>${sym(c.symbol)}</td><td>${famChip(c.strategy)} ${esc(sName(c.strategy))}${c.confluence && c.confluence.length > 1 ? `<div class="faint" style="font-size:11px">هم‌پوشانی: ${c.confluence.map(sName).join('، ')}</div>` : ''}</td><td><b>${n0(c.quality)}</b></td><td>${n2(c.plan && c.plan.reward_risk)}</td><td>${pct(c.plan && c.plan.stop_fraction * 100, 1)}</td><td>${c.plan && c.plan.target_price_tmn ? price(c.plan.target_price_tmn) : '—'}</td><td>${n0(c.indicators && c.indicators.rsi14)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">در اسکن آخر هیچ ستاپ باکیفیتی پیدا نشد؛ نبود معامله تصمیم معتبر است.</div>');
   });
   async function loadCandles(c) {
     const q = c.pending; const d = await safe(() => api(`/api/public/candles?symbol=${q.symbol}&resolution=1&minutes=360`));
@@ -257,7 +259,7 @@ function pageAI(root) {
     $('#aik').innerHTML = [['تصمیم‌های ثبت‌شده', n0(ds.length), ''], ['پاسخ معتبر', n0(ok.length), ds.length ? pct(ok.length / ds.length * 100, 0) : ''], ['پیشنهاد ورود', n0(enters), 'پس از کنترل ریسک قطعی'], ['توکن خروجی', n0(tok), 'مجموع پاسخ‌ها']]
       .map(([a, b, c]) => `<div class="panel kpi"><div class="label">${a}</div><div class="value">${b}</div><div class="note">${c}</div></div>`).join('');
     $('#dlist').innerHTML = ds.length ? ds.map(d => `<div class="panel" style="margin-bottom:12px"><div class="body">${decisionCard(d)}
-      ${d.candidates && d.candidates.length ? `<details><summary>${n0(d.candidates.length)} نامزد ارسالی به مدل</summary><div class="table-wrap"><table><thead><tr><th>جفت</th><th>استراتژی</th><th>امتیاز</th><th>حد ضرر</th><th>هدف</th></tr></thead><tbody>${d.candidates.map(c => `<tr><td>${sym(c.symbol)}</td><td>${esc(sName(c.strategy))}</td><td>${n2(c.score)}</td><td>${c.plan ? pct(c.plan.stop_fraction * 100, 1) : '—'}</td><td>${c.plan && c.plan.target_price_tmn ? price(c.plan.target_price_tmn) : '—'}</td></tr>`).join('')}</tbody></table></div></details>` : ''}</div></div>`).join('') : '<div class="empty">هنوز تصمیمی ثبت نشده است.</div>';
+      ${d.candidates && d.candidates.length ? `<details><summary>${n0(d.candidates.length)} نامزد ارسالی به مدل</summary><div class="table-wrap"><table><thead><tr><th>جفت</th><th>استراتژی</th><th>کیفیت</th><th>R/R</th><th>حد ضرر</th><th>TP</th></tr></thead><tbody>${d.candidates.map(c => `<tr><td>${sym(c.symbol)}</td><td>${esc(sName(c.strategy))}</td><td>${n0(c.quality)}</td><td>${n2(c.score)}</td><td>${c.plan ? pct(c.plan.stop_fraction * 100, 1) : '—'}</td><td>${c.plan && c.plan.target_price_tmn ? price(c.plan.target_price_tmn) : '—'}</td></tr>`).join('')}</tbody></table></div></details>` : ''}</div></div>`).join('') : '<div class="empty">هنوز تصمیمی ثبت نشده است.</div>';
   });
 }
 
@@ -269,7 +271,7 @@ function pageStrategies(root) {
   (async () => {
     const live = CTX.live || await safe(pollLive); const cat = live ? live.strategies : await api('/api/public/strategies');
     const cur = live && live.latest_scan && live.latest_scan.regime ? live.latest_scan.regime.regime : null;
-    $('#sintro').innerHTML = `<div class="notice green" style="margin-bottom:14px">${esc(cat.ai_role)}<br>${esc(cat.hard_limits_role)}</div>`;
+    $('#sintro').innerHTML = `<div class="notice green" style="margin-bottom:14px">${esc(cat.ai_role)}<br>${esc(cat.quality_role || '')}<br>${esc(cat.exit_role || '')}<br>${esc(cat.hard_limits_role)}</div>`;
     $('#regimes').innerHTML = Object.entries(cat.regimes).map(([k, r]) => `<div class="regime ${k === cur ? 'current' : ''}"><b style="font-size:15px">${esc(r.fa)}</b><div class="muted" style="font-size:12px;margin:4px 0 8px">${esc(r.description)}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="chip">حداکثر ${n0(r.max_positions)} موقعیت</span><span class="chip">سقف ورود ${toman(r.order_cap_tmn)}</span><span class="chip">ریسک هر ورود ${pct(r.risk_fraction * 100, 1)}</span></div>
       ${r.strategies.map(s => `<div style="font-size:12.5px">${famChip(s)} ${esc(cat.strategies[s].fa)}</div>`).join('')}</div>`).join('');
@@ -386,7 +388,8 @@ function pageOperator(root) {
     $('#ctl').innerHTML = `<table><tr><td class="muted">درخواست / وضعیت</td><td>${esc(state.desired)} / ${esc(STATUS_FA[state.status] || state.status)}</td></tr><tr><td class="muted">خطا</td><td>${esc(state.last_error || '—')}</td></tr>
       <tr><td class="muted">ضربان</td><td>${ago(state.heartbeat)}</td></tr><tr><td class="muted">کلیدها</td><td>والکس ${st.credentials.wallex.present ? '✓' : '✕'} · AvalAI ${st.credentials.avalai.present ? '✓' : '✕'}</td></tr>
       <tr><td class="muted">پایان</td><td>${esc(st.contest_end_fa || '')}</td></tr><tr><td class="muted">سفارش حل‌نشده</td><td>${n0((snap.unresolved || []).length)}</td></tr></table>
-      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="primary" data-a="resume">درخواست ادامه</button><button data-a="reduce_only">فقط کاهش موقعیت</button><button class="danger" data-a="stop">توقف موتور</button></div>
+      ${st.upgrade_available ? '<div class="notice" style="margin-top:10px">نسخهٔ نصب‌شده با اجرای حساب یکسان نیست. اول «ارتقای اجرای فعلی» را تأیید کنید؛ «ادامه» پیش از آن موتور را دوباره مسدود می‌کند.</div>' : ''}
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="primary" data-a="resume" ${st.upgrade_available ? 'disabled' : ''}>درخواست ادامه</button><button data-a="reduce_only">فقط کاهش موقعیت</button><button class="danger" data-a="stop">توقف موتور</button></div>
       <div class="faint" style="font-size:11px;margin-top:6px">«توقف» سفارش‌های باز خود موتور را لغو می‌کند اما موجودی را نمی‌فروشد. «ادامه» همان دفتر را باز می‌کند.</div><div id="cmsg" class="muted"></div>`;
     $$('#ctl button[data-a]').forEach(b => b.onclick = async () => { if (!confirmInline(b)) return; try { await api('/api/live/control', { body: { action: b.dataset.a } }); $('#cmsg').textContent = 'ثبت شد'; refresh(); } catch (e) { $('#cmsg').textContent = e.message; } });
     const up = await safe(() => api('/api/live/upgrade'), $('#upg'));

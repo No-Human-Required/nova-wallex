@@ -48,7 +48,7 @@ class Fixture:
             k = len(self.rows)-(self.t0-t)//3600+1 if hasattr(self, 't0') else None
             if k is not None and 1 <= k <= len(self.rows):
                 o, h, l, c, v = self.rows[k-1]
-                return Bar(t, D(str(round(o, 4))), D(str(round(h, 4))), D(str(round(l, 4))), D(str(round(c, 4))), D('1000000'))
+                return Bar(t, D(str(round(o, 4))), D(str(round(h, 4))), D(str(round(l, 4))), D(str(round(c, 4))), D(str(int(v*1000))))
         p = self.prices[s]
         return Bar(t, p, p, p, p, D('1000000'))
 
@@ -284,3 +284,43 @@ class ControllerAdaptiveTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class CoverageAndExitTests(unittest.TestCase):
+    def test_hours_without_trades_keep_pair_in_scan_but_last_hour_must_trade(self):
+        from execution.adaptive import AdaptiveHistory
+        h = Fixture()
+        t = 3600*500
+        h.t0 = t
+        base = h.bar
+        gaps = {t-5*3600, t-9*3600, t-20*3600}
+        h.bar = lambda s, ts: None if (s == 'AAATMN' and ts in gaps) else base(s, ts)
+        bars = st.series(h, 'AAATMN', t)
+        self.assertEqual(bars[5], 3)
+        self.assertEqual(bars[4][-5], 0.0)
+        f = AdaptiveHistory.sparse_feature(h, 'AAATMN', t)
+        self.assertEqual(f['missing_hours'], 3)
+        self.assertEqual(len(f['returns']), 48)
+        gaps.add(t-3600)
+        self.assertIsNone(st.series(h, 'AAATMN', t))
+        self.assertIsNone(AdaptiveHistory.sparse_feature(h, 'AAATMN', t))
+
+    def test_legacy_position_receives_take_profit_and_breakeven_protection(self):
+        from execution.planner import plan
+        h = Fixture()
+        t = 3600*500
+        h.t0 = t
+        cfg = adaptive_config(validated_config())
+        ledger = {'cash': '4900000', 'realized': '0', 'capital': '5000000',
+                  'holdings': {'AAA': {'qty': '100', 'basis': '100000'}}}
+        strategy = {'positions': {'AAA': {'symbol': 'AAATMN', 'opened_at': t-7200, 'stop': '0.05', 'peak_unit': '1000', 'exit_reason': None}},
+                    'control': {}, 'contexts': {}, 'processed': [], 'route': None}
+        d = plan(h, t, cfg, ledger, strategy, h.quotes(t), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
+        meta = d['positions']['AAA']
+        self.assertIsNotNone(meta['target'])
+        self.assertGreater(D(meta['target']), D('1000'))
+        self.assertTrue(any(k == 'take_profit_set' for k, _ in d['events']))
+        # After a +1R peak, a fall back to basis exits at break-even instead of the full stop.
+        strategy['positions']['AAA'].update(peak_unit='1052', target='2000')
+        d = plan(h, t, cfg, ledger, strategy, h.quotes(t, aaa='1002'), now=t, ranked=[], selection={}, allow_entries=False, end=t+86400)
+        self.assertEqual([o['reason'] for o in d['orders']], ['breakeven_stop'])

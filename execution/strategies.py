@@ -52,7 +52,7 @@ STRATEGIES = {
         'family': 'indicator', 'fa': 'روند EMA با تأیید MACD و RSI',
         'thesis': 'میانگین‌های ۹>۲۱>۵۰ مرتب‌اند، هیستوگرام MACD مثبت و رو به افزایش است و RSI در ناحیهٔ قدرت ۵۰ تا ۷۰ قرار دارد.',
         'entry': 'EMA9>EMA21>EMA50، قیمت بالای EMA21، MACD hist مثبت و صعودی، RSI بین ۵۰ و ۷۰، بازده ۲۴ساعته بیش از دو برابر هزینه',
-        'stop': 'دو برابر ATR', 'target': 'بدون هدف ثابت؛ حد ضرر شناور',
+        'stop': 'دو برابر ATR', 'target': 'TP در ۲٫۵ برابر فاصلهٔ حد ضرر',
         'exit': 'قطع EMA9 زیر EMA21، حد ضرر شناور، حداکثر ۴۸ ساعت', 'max_holding_hours': 48},
     'ind_rsi_bollinger_reversion': {
         'family': 'indicator', 'fa': 'بازگشت به میانگین با RSI و باند بولینگر',
@@ -64,32 +64,49 @@ STRATEGIES = {
         'family': 'indicator', 'fa': 'قدرت نسبی در برابر بیت‌کوین (دفاعی)',
         'thesis': 'در بازار ضعیف، دارایی‌ای که بازده ۲۴ساعته‌اش به‌طور معنادار از بیت‌کوین بهتر است و بالای EMA21 مانده، تقاضای مستقل دارد.',
         'entry': 'بازده ۲۴ساعته بیش از بیت‌کوین + max(۱٫۵٪، دو برابر هزینه)، Close>EMA21، RSI بین ۵۰ و ۶۸',
-        'stop': 'دو برابر ATR', 'target': 'بدون هدف ثابت؛ حد ضرر شناور',
+        'stop': 'دو برابر ATR', 'target': 'TP در ۲٫۵ برابر فاصلهٔ حد ضرر',
         'exit': 'منفی‌شدن روند ۲۴ساعته، حد ضرر شناور، حداکثر ۳۶ ساعت', 'max_holding_hours': 36},
 }
 
 
-def series(history, symbol, t, hours=72):
-    """Contiguous closed bars ending at t-3600, valued in TMN."""
+def series(history, symbol, t, hours=72, max_missing=18):
+    """Closed bars ending at t-3600, valued in TMN.
+
+    An hour without trades has no exchange candle. Such hours are represented as
+    a flat, zero-volume bar at the previous close (no price is invented: the
+    last traded price stands). The last closed hour must have traded, and at
+    most ``max_missing`` of the window may be empty. The count is returned so
+    quality scoring and the AI can see data completeness.
+    """
     m = history.markets[symbol]
-    rows = []
-    for i in range(1, hours+1):
+    raw = []
+    for i in range(hours, 0, -1):
         ts = t-i*3600
         b = history.bar(symbol, ts)
-        if b is None:
-            break
         fx = 1.0
-        if m.quote == 'USDT':
+        if b is not None and m.quote == 'USDT':
             f = history.bar('USDTTMN', ts)
             if f is None:
-                break
-            fx = float(f.close)
-        rows.append((float(b.open)*fx, float(b.high)*fx, float(b.low)*fx, float(b.close)*fx, float(b.volume)))
-    rows.reverse()
-    if len(rows) < 50:
+                b = None
+            else:
+                fx = float(f.close)
+        raw.append(None if b is None else (float(b.open)*fx, float(b.high)*fx, float(b.low)*fx, float(b.close)*fx, float(b.volume)))
+    if raw[-1] is None:
+        return None
+    while raw and raw[0] is None:
+        raw.pop(0)
+    rows, missing, last = [], 0, None
+    for r in raw:
+        if r is None:
+            missing += 1
+            rows.append((last, last, last, last, 0.0))
+        else:
+            rows.append(r)
+            last = r[3]
+    if len(rows) < 50 or missing > max_missing:
         return None
     o, h, l, c, v = (list(x) for x in zip(*rows))
-    return o, h, l, c, v
+    return o, h, l, c, v, missing
 
 
 def classify(history, t, cfg):
@@ -128,7 +145,7 @@ def _clip(x, lo, hi):
 
 def evaluate(strategy, bars, f, cost_bps, btc24, cfg, regime):
     """Return a candidate plan for one strategy or None. Prices are TMN units."""
-    o, h, l, c, v = bars
+    o, h, l, c, v = bars[:5]
     close = c[-1]
     a = ind.atr(h, l, c) or 0.0
     rsis = ind.rsi(c) or []
@@ -172,6 +189,7 @@ def evaluate(strategy, bars, f, cost_bps, btc24, cfg, regime):
                 and f['r24_bps'] > float(cfg.get('trend_cost_multiple', 2))*cost_bps):
             return None
         stop = _clip(2*a/close, lo_stop, hi_stop)
+        target = close*(1+float(cfg.get('trend_tp_r_multiple', 2.5))*stop)
         evidence = {'ema9': e9, 'ema21': e21, 'ema50': e50, 'macd_hist': hist[-1], 'macd_hist_prev': hist[-2], 'rsi14': r}
     elif strategy == 'ind_rsi_bollinger_reversion':
         bb = ind.bollinger(c)
@@ -191,6 +209,7 @@ def evaluate(strategy, bars, f, cost_bps, btc24, cfg, regime):
         if not (spread > max(float(cfg.get('rs_excess_bps', 150)), 2*cost_bps) and f['r24_bps'] > 0 and close > e21 and 50 <= r <= 68):
             return None
         stop = _clip(2*a/close, lo_stop, hi_stop)
+        target = close*(1+float(cfg.get('trend_tp_r_multiple', 2.5))*stop)
         evidence = {'excess_vs_btc_bps': spread, 'ema21': e21, 'rsi14': r}
     else:
         raise ValueError('Unknown strategy')
@@ -205,8 +224,34 @@ def evaluate(strategy, bars, f, cost_bps, btc24, cfg, regime):
             'stop_price_tmn': close*(1-stop), 'target_price_tmn': target, 'reward_bps': reward_bps,
             'reward_risk': rr, 'max_holding_hours': STRATEGIES[strategy]['max_holding_hours']},
             'indicators': {'rsi14': r, 'atr_pct': a/close*100 if close else None,
-                           'ema9_above_ema21': (e9 > e21) if e9 and e21 else None},
+                           'ema9_above_ema21': (e9 > e21) if e9 and e21 else None,
+                           'trend_aligned': bool(e21 and e50 and e21 > e50 and close > e50),
+                           'volume_ratio': (v[-1]/median(v[-25:-1])) if median(v[-25:-1]) > 0 else None,
+                           'missing_hours': bars[5] if len(bars) > 5 else 0},
             'evidence': {k: (round(x, 8) if isinstance(x, float) else x) for k, x in evidence.items()}}
+
+
+def quality(c, regime, confluence):
+    """0-100 setup quality; documented weights, no fitted parameters."""
+    p, i, f = c['plan'], c['indicators'], c['features']
+    q = min(max(p['reward_risk'], 0)/4, 1)*30
+    q += min(len(confluence)-1, 2)*10
+    q += 15 if i.get('trend_aligned') else 0
+    vr = i.get('volume_ratio')
+    q += 10 if vr and vr >= 1.2 else 4 if vr and vr >= 0.8 else 0
+    q += 10 if f['daily_turnover_tmn'] >= 50e6 else 6 if f['daily_turnover_tmn'] >= 15e6 else 2
+    q += 10 if c['strategy'] in REGIMES[regime]['strategies'][:2] else 5
+    r = i.get('rsi14')
+    q += 5 if r is not None and 35 <= r <= 72 else 0
+    q -= min(2*i.get('missing_hours', 0), 15)
+    q += 5 if c['roundtrip_cost_bps'] <= 100 else 0
+    return round(max(0.0, min(100.0, q)), 1)
+
+
+def capacity_tmn(f, cfg):
+    if cfg.get('capacity_basis') == 'max_prior_or_avg24':
+        return max(f['prior_capacity_tmn'], f['daily_turnover_tmn']/24)
+    return f['prior_capacity_tmn']
 
 
 def scan(history, t, cfg):
@@ -226,10 +271,10 @@ def scan(history, t, cfg):
         if f['daily_turnover_tmn'] < float(cfg['min_daily_turnover_tmn']):
             coverage['insufficient_recent_liquidity'] += 1
             continue
-        if f['prior_capacity_tmn']*float(cfg['participation']) < 50000:
+        if capacity_tmn(f, cfg)*float(cfg['participation']) < 50000:
             coverage['estimated_capacity_below_minimum'] += 1
             continue
-        bars = series(history, s, t)
+        bars = series(history, s, t, max_missing=int(cfg.get('max_missing_hours', 18)))
         if bars is None:
             coverage['missing_required_history'] += 1
             continue
@@ -242,11 +287,21 @@ def scan(history, t, cfg):
                 found.append({'symbol': s, 'base': m.base, 'quote': m.quote, 'roundtrip_cost_bps': cost,
                               'features': {k: x for k, x in f.items() if k != 'returns'}, **plan})
         coverage['signal' if hits else 'eligible_no_signal'] += 1
-    chosen, seen = [], set()
-    for c in sorted(found, key=lambda x: (-x['score'], x['roundtrip_cost_bps'], x['symbol'], x['strategy'])):
-        if c['base'] not in seen:
-            chosen.append(c)
-            seen.add(c['base'])
+    groups = {}
+    for c in found:
+        groups.setdefault(c['base'], []).append(c)
+    chosen, minimum = [], float(cfg.get('min_quality', 0))
+    for base, group in groups.items():
+        names = sorted({c['strategy'] for c in group})
+        for c in group:
+            c['confluence'] = names
+            c['quality'] = quality(c, context['regime'], names)
+        best = max(group, key=lambda x: (x['quality'], x['score']))
+        if best['quality'] < minimum:
+            coverage['below_quality'] += 1
+            continue
+        chosen.append(best)
+    chosen.sort(key=lambda x: (-x['quality'], -x['score'], x['roundtrip_cost_bps'], x['symbol']))
     coverage['strategy_hits'] = dict(Counter(c['strategy'] for c in found))
     return chosen, dict(coverage), context
 
@@ -254,4 +309,6 @@ def scan(history, t, cfg):
 def catalog():
     return {'version': VERSION, 'regimes': REGIMES, 'strategies': STRATEGIES,
             'ai_role': 'هر نامزد فقط با تأیید مدل وارد می‌شود؛ مدل ترتیب و ضریب اندازه (۰٫۲۵ تا ۱ برابر سقف) را تعیین می‌کند و دلیل فارسی ثبت می‌شود.',
+            'quality_role': 'فقط ستاپ‌های با امتیاز کیفیت ۵۵ از ۱۰۰ یا بیشتر به مدل می‌رسند: نسبت سود به ریسک، هم‌پوشانی چند استراتژی، هم‌جهتی با روند، تأیید حجم، نقدشوندگی، تناسب با رژیم، RSI و کامل بودن داده. حداقل اطمینان مدل ۰٫۶۵ است.',
+            'exit_role': 'همهٔ موقعیت‌ها TP دارند. پس از رسیدن سود به اندازهٔ یک برابر ریسک، حد ضرر به نقطهٔ سربه‌سر (به‌علاوهٔ ۰٫۴٪) منتقل می‌شود؛ حد ضرر شناور، حداکثر زمان نگهداری و خروج پیش از پایان مسابقه برقرارند.',
             'hard_limits_role': 'سقف سفارش، سقف هر دارایی، زیان روزانه، افت سرمایه، حد ضرر، اعتبار سفارش و خروج‌ها قطعی‌اند و مدل نمی‌تواند تغییرشان دهد.'}

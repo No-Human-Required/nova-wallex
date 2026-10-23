@@ -4,6 +4,10 @@ Used unchanged by the live planner (with fresh quotes) and by the offline
 backtest engine (hourly OHLC simulator). Hard account limits are inherited.
 """
 from decimal import ROUND_UP
+from functools import lru_cache
+from statistics import mean, pstdev
+
+from starwallex.portable_math import log
 
 from starwallex.domain import D
 from starwallex.portfolio_cost import fee_rate
@@ -23,6 +27,61 @@ class AdaptiveHistory(OpportunityHistory):
         super().__init__(*args, **kwargs)
         self.identity = digest({'history': self.identity, 'adaptive': st.VERSION})
         self._regimes = {}
+
+    @lru_cache(maxsize=24000)
+    def feature(self, s, t):
+        f = super().feature(s, t)
+        if f is not None:
+            return f
+        return self.sparse_feature(s, t)
+
+    def sparse_feature(self, s, t, max_missing=12):
+        """Features for pairs with hours that had no trades.
+
+        A missing exchange candle means no trade in that hour; the last traded
+        price is carried with zero volume. The latest closed hour must have a
+        real candle and at most ``max_missing`` of 49 hours may be empty.
+        """
+        m = self.markets[s]
+        rows, missing, last = [], 0, None
+        for i in range(49, 0, -1):
+            ts = t-i*3600
+            b = self.bar(s, ts)
+            fx = 1.0
+            if m.quote == 'USDT':
+                f = self.bar('USDTTMN', ts)
+                if f is None:
+                    return None
+                fx = float(f.close)
+            if b is None:
+                if last is None:
+                    return None
+                missing += 1
+                rows.append((last, last, last, 0.0))
+            else:
+                last = float(b.close)*fx
+                rows.append((float(b.high)*fx, float(b.low)*fx, last, float(b.volume)))
+        if self.bar(s, t-3600) is None or missing > max_missing:
+            return None
+        closes = [r[2] for r in rows]
+        highs = [r[0] for r in rows]
+        lows = [r[1] for r in rows]
+        returns = tuple(log(b/a) for a, b in zip(closes, closes[1:]))
+        logs = [log(p) for p in closes[-24:]]
+        sigma = pstdev(logs)
+        return {'r1_bps': returns[-1]*10000, 'r6_bps': sum(returns[-6:])*10000,
+                'r24_bps': sum(returns[-24:])*10000, 'r48_bps': sum(returns)*10000,
+                'vol24_bps': pstdev(returns[-24:])*10000,
+                'z24_logclose': (logs[-1]-mean(logs))/sigma if sigma else None,
+                'range24_bps': (max(highs[-24:])/min(lows[-24:])-1)*10000,
+                'breakout48_bps': (closes[-1]/max(highs[:-1])-1)*10000,
+                'daily_turnover_tmn': sum(r[3]*r[2] for r in rows[-24:]),
+                'prior_capacity_tmn': rows[-1][3]*rows[-1][2],
+                'zero_volume_last6': sum(r[3] == 0 for r in rows[-6:]),
+                'history_hours': 49-missing, 'missing_hours': missing, 'returns': returns, 'asof': t, 'last_bar_open': t-3600,
+                'breakout12_bps': (closes[-1]/max(highs[-13:-1])-1)*10000,
+                'breakout24_bps': (closes[-1]/max(highs[-25:-1])-1)*10000,
+                'distance_ma12_bps': (closes[-1]/mean(closes[-12:])-1)*10000}
 
     def regime(self, t, cfg):
         key = (t, cfg['min_daily_turnover_tmn'])
@@ -144,9 +203,27 @@ class AdaptiveRules:
             if self.s['halt'] or self.s['daily_halt']:
                 reason = 'portfolio_halt'
             elif not reason:
+                basis = p['cost']/p['qty']
+                if p.get('target') is None:
+                    # Every position carries a take-profit. A legacy entry had none:
+                    # target the 48h swing high (resting buy-side liquidity) when it
+                    # is above the market, otherwise one stop distance above basis.
+                    bars = st.series(self.h, p['symbol'], t)
+                    swing = D(str(max(bars[1][-48:]))) if bars else None
+                    if swing is not None and swing > unit*D('1.005') and swing > basis*D('1.006'):
+                        target, source = swing, 'swing_high_48h'
+                    else:
+                        target, source = basis*(1+D(str(p['stop']))), 'one_r_above_basis'
+                    p['target'] = str(target.quantize(D('0.0001')))
+                    self.event('take_profit_set', {'time': t, 'base': base, 'target': p['target'], 'basis_unit': basis,
+                                                   'source': source})
                 target = p.get('target')
+                protected = p['peak_unit'] >= basis*(1+D(str(p['stop'])))
+                floor = basis*(1+D(str(self.cfg.get('breakeven_buffer_fraction', '0.004'))))
                 if unit <= p['peak_unit']*(1-p['stop']):
                     reason = 'trailing_stop'
+                elif protected and unit <= floor:
+                    reason = 'breakeven_stop'
                 elif target is not None and unit >= D(str(target)):
                     reason = 'target_reached'
                 elif held >= max_hold:
@@ -196,7 +273,9 @@ OVERRIDES = {
     'cooldown_hours': 3, 'min_holding_hours': 3, 'max_holding_hours': 48,
     'max_positive_correlation': 0.85, 'max_entry_spread_bps': 80, 'max_exit_spread_bps': 300,
     'ai_max_calls': 400, 'ai_max_output_tokens': 12000, 'ai_timeout_seconds': 150,
-    'ai_top_candidates': 12, 'ai_min_confidence': 0.55, 'ai_reasoning_effort': 'low',
+    'ai_top_candidates': 10, 'ai_min_confidence': 0.65, 'ai_reasoning_effort': 'low',
+    'min_quality': 55, 'max_missing_hours': 18, 'capacity_basis': 'max_prior_or_avg24',
+    'trend_tp_r_multiple': 2.5, 'breakeven_buffer_fraction': '0.004',
 }
 
 

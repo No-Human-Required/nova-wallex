@@ -67,6 +67,28 @@ class UpgradeTests(unittest.TestCase):
         j.audit.close()
         self.assertTrue(live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)['already_applied'])
 
+    def test_second_upgrade_chains_to_the_first_receipt(self):
+        self.prepare()
+        live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)
+        first = self.app.state.live.run(self.ident)
+        state = read_identity(self.directory)[1]
+        newer = installed('e'*64)
+        for p in newer:
+            p.start()
+            self.addCleanup(p.stop)
+        view = live_upgrade.preview(self.app)
+        self.assertTrue(view['available'])
+        r = live_upgrade.apply(self.app, live_upgrade.CONFIRMATION)
+        self.assertTrue(r['ok'])
+        run = self.app.state.live.run(self.ident)
+        self.assertEqual(run['revision']['version'], 7)
+        self.assertEqual(run['revision']['previous_revision'], first['revision'])
+        self.assertEqual(run['binding']['source_sha256'], 'e'*64)
+        self.assertEqual(read_identity(self.directory)[1]['ledger'], state['ledger'])
+        j = open_journal(self.directory, self.h.markets, session_binding=run['binding'], revision=run['revision'])
+        self.assertTrue(j.audit.verify())
+        j.audit.close()
+
     def test_running_engine_new_fill_or_wallet_mismatch_refuse_without_mutation(self):
         self.prepare()
         self.app.state.live.control('resume')

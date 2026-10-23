@@ -207,7 +207,12 @@ def compile_intent(order,decision,history,quotes,ledger_state,cfg,*,now,max_spre
     if prior is None:raise ContractError('Prior capacity unavailable')
     committed=dec(committed_capacity)
     if committed<0:raise ContractError('Invalid committed capacity')
-    quantity=min(quantity,max(Decimal(0),prior.volume*dec(cfg['participation'])-committed))
+    volume=prior.volume
+    if cfg.get('capacity_basis')=='max_prior_or_avg24':
+        # Thin pairs trade in bursts; the order book depth check below remains binding.
+        recent=[history.bar(m.symbol,decision['time']-i*3600) for i in range(1,25)]
+        volume=max(volume,sum((b.volume for b in recent if b is not None),Decimal(0))/24)
+    quantity=min(quantity,max(Decimal(0),volume*dec(cfg['participation'])-committed))
     # Actual observed depth, when supplied, caps marketable quantity; future depth
     # is not inferred. This is additional live protection, absent in OHLC tests.
     levels=quotes[m.symbol].get('asks' if order['side']=='BUY' else 'bids')

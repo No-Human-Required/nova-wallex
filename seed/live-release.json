@@ -1,14 +1,14 @@
 {
-  "version": "4.0.0",
-  "source_sha256": "10b2f9d25f54c2de5aca1ec43d7f2faaed0afa0e1d95db956cbaa2d0b71840f4",
+  "version": "4.1.0",
+  "source_sha256": "0e2fe2115ed0934a57f97d09190fc409b72f4a32ba464a54eb7aaf13811ff910",
   "offline_fault_tests_passed": true,
-  "sqlite_tests_passed": 253,
-  "postgres_tests_passed": 108,
-  "tests_passed": 361,
+  "sqlite_tests_passed": 256,
+  "postgres_tests_passed": 109,
+  "tests_passed": 365,
   "test_evidence": {
-    "tests-v4.txt": "e1f8b64e5f01c4d1e25b747c7c069f5ee0b8c1c4c615ea4ca8c7b1423e97bdf5",
-    "execution-tests-v4.txt": "27f7befb39fb8e4f18cc5433d31eaca25ad53b378b49d8e9a94c853b4f009cbf",
-    "postgres-v4.txt": "4c09c86797e0e2280674d4af12bbbf925478d5a050c64cffc38d0d5877e67f74"
+    "tests-v4.txt": "58dad75ef361bc2cbbad1c33e63c115eacc5481a6df18dbcf2cf39e948f1be6c",
+    "execution-tests-v4.txt": "432b25d348e6bca2ef49ca31dd11f81f573eaef3d7c0cde5b11532aa8905a0c5",
+    "postgres-v4.txt": "2cf0840d2a298af1f3cab4f588ab8d60e53c81f90865e4d70388db6c09d19bfe"
   },
   "test_runtime": "CPython 3.13 offline container; production image is CPython 3.12",
   "private_challenge_account_tested": false,
@@ -19,5 +19,8 @@
   "contest_end_utc": "2026-10-26T20:29:00+00:00",
   "ai_incomplete_output_fix": "recorded request ladder: reasoning_effort=low/12000 -> thinking disabled/4000 -> plain/16000",
   "end_policy": "adaptive exit capacity, no fixed hour entry cutoff",
-  "native_protection_separate_approval": true
+  "native_protection_separate_approval": true,
+  "coverage_policy": "hours without trades carried at last trade price with zero volume; latest hour must trade; <=12/49 and <=18/72 empty hours",
+  "take_profit_policy": "every position has a TP: structural target or 2.5R; legacy positions get the 48h swing high or 1R; break-even floor after +1R",
+  "quality_policy": "min quality 55/100 before AI; AI min confidence 0.65"
 }

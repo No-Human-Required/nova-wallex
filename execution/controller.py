@@ -114,7 +114,7 @@ class PortfolioController:
         scan=self.j.s['runtime_scans'][str(t)];context=scan['regime'];top=scan['top']
         strategy=self.strategy();active=len(strategy['positions'])+(1 if strategy.get('route') else 0)
         base={'time':t,'regime':context,'coverage':scan['coverage'],'policy':cfg.get('strategy_version'),
-              'original_candidates':[{k:c[k] for k in ('symbol','strategy','score','plan')} for c in top]}
+              'original_candidates':[{k:c.get(k) for k in ('symbol','strategy','score','quality','confluence','plan')} for c in top]}
         def save(ranked,selection,record=None):
             s=deepcopy(self.j.s)
             slim={k:v for k,v in selection.items() if k!='original_candidates'}
