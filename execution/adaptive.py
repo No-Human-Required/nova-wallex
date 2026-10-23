@@ -194,6 +194,10 @@ class AdaptiveRules:
                     reason = 'missing_route_quote'
                 elif budget < need:
                     reason = 'route_minimum_including_fees'
+                elif budget < D(str(self.cfg.get('min_entry_tmn', 0))):
+                    # Wallex rejects orders below 50,000 TMN; an entry must stay
+                    # sellable even after its full stop and the fee buffer.
+                    reason = 'below_min_order_tmn'
             self.event('allocation', {'candidate': c['symbol'], 'strategy': c.get('strategy'), 'score': c['score'],
                                       'budget_tmn': budget, 'stop_fraction': stop, 'ai_size': size, 'sizing': sizing,
                                       'quality': c.get('quality'), 'ai_reason': c.get('ai_reason'), 'ai_size_reason': c.get('ai_size_reason'),
@@ -388,6 +392,7 @@ OVERRIDES = {
     'trend_tp_r_multiple': 2.5, 'breakeven_buffer_fraction': '0.004',
     'fast_layer': True, 'fast_entry_confirmation': True, 'fast_exit': True, 'fast_min_hold_minutes': 30,
     'fast_exit_orders': True, 'exit_limit_bps': '500', 'native_stop_limit_bps': '500',
+    'min_order_tmn': '50000', 'min_entry_tmn': '60000',
 }
 
 

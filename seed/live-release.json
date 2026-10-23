@@ -1,10 +1,10 @@
 {
-  "version": "4.6.2",
-  "source_sha256": "24034ac92bab2e7d0c5f253be04b7dcd328007825a6489a00d92d526762dedea",
+  "version": "4.6.3",
+  "source_sha256": "c0d984ecdd8485ffb1da13ee561253672c22975524e31b3dfbda0d7e24ce2de9",
   "offline_fault_tests_passed": true,
-  "sqlite_tests_passed": 288,
+  "sqlite_tests_passed": 290,
   "postgres_tests_passed": 119,
-  "tests_passed": 407,
+  "tests_passed": 409,
   "test_evidence": {
     "tests-v4.txt": "2acbbe017feae9e8ab17d57bfd08d720b714f9697ac4c59fa7fc13a15a106186",
     "execution-tests-v4.txt": "2d9a3776112b593f58941d263f17412d8f3c33a894ade14385736260df73744c",
@@ -31,5 +31,6 @@
   "strategy_studio": "agentic LLM loop (propose/backtest/tune/save) over a validated JSON strategy specification; backtests on recorded hourly data in memory without orders or AI; human full test and approval required; approved specifications enter the engine config via the operator upgrade and pass the same quality, AI, sizing and exit controls",
   "exit_order_policy": "all algorithmic sells (stops, take-profit, time/trend exits, portfolio halt, final TMN conversion) use a marketable LIMIT 5% below the best bid (exit_limit_bps=500): immediate fills against visible bids with a bounded worst price; no historical-volume throttle on exits, visible bid depth and order cap bind; native TRX stop uses a 5% deep limit (stop-market behaviour) and an operator replacement path cancels the resting stop before a renewed approval; raw MARKET/STOP_MARKET avoided because their reply contract is undocumented",
   "shadow_candles": "Wallex public UDF has no 5-minute resolution: 5/15-minute bars are aggregated from 1-minute candles (shadow test, market and equity charts)",
-  "dust_policy": "a holding below the market minimum quantity or minimum notional cannot be sold on Wallex; it no longer occupies a regime position slot (controller capacity and planner entry check)"
+  "dust_policy": "a holding below the market minimum quantity or minimum notional cannot be sold on Wallex; it no longer occupies a regime position slot (controller capacity and planner entry check)",
+  "minimum_order_policy": "no order below 50,000 TMN (min_order_tmn); entries need at least 60,000 TMN (min_entry_tmn) so a position stays sellable after its full stop; a chunked exit never leaves a remainder below the minimum plus 10%"
 }

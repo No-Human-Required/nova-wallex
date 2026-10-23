@@ -232,7 +232,17 @@ def compile_intent(order,decision,history,quotes,ledger_state,cfg,*,now,max_spre
         capacity=sum((dec(qty) for px,qty in levels if (dec(px)<=limit if order['side']=='BUY' else dec(px)>=limit)),Decimal(0))
         quantity=min(quantity,capacity)
     quantity=floor_step(quantity,m.qty_step)
+    floor_tmn=dec(cfg.get('min_order_tmn','0'))
+    if order['side']=='SELL' and floor_tmn>0:
+        # Never leave a sellable remainder below the exchange minimum: a chunked
+        # exit keeps at least the minimum (plus 10%) for the next cycle.
+        total=floor_step(min(dec(order['qty']),ledger.quantity(m.base))/(1+fee),m.qty_step)
+        rest=total-quantity
+        keep=max(m.min_notional,floor_tmn/fx)*dec('1.1')/limit
+        if 0<rest and rest*limit<max(m.min_notional,floor_tmn/fx)*dec('1.1'):
+            quantity=floor_step(total-(keep/m.qty_step).to_integral_value(rounding=ROUND_UP)*m.qty_step,m.qty_step)
     if quantity<m.min_qty or quantity*limit<m.min_notional:raise ContractError('Approved plan below executable minimum')
+    if floor_tmn>0 and quantity*limit*fx<floor_tmn:raise ContractError('Order below the 50,000 TMN minimum order')
     cid='SW_'+digest({'order':order,'decision':digest(decision)})[:32]
     result={'client_id':cid,'symbol':m.symbol,'base':m.base,'quote':m.quote,'side':order['side'],
             'type':'LIMIT','price':number(limit),'quantity':number(quantity),'observed_at':now,'expires_at':now+10,

@@ -34,6 +34,21 @@ class FastExitTests(unittest.TestCase):
         # depth at or above the floor (999 and 969 levels) caps the quantity; volume does not
         self.assertEqual(D(i['quantity']), D('350'))
 
+    def test_chunked_exit_never_leaves_an_unsellable_remainder(self):
+        i = self.intent(fast_exit_orders=True, exit_limit_bps='500', min_order_tmn='50000')
+        # depth allows 350 of 398.80 sellable; 48.8 left (~46k TMN) would be below
+        # the minimum, so the chunk keeps >= 55k TMN for the next cycle.
+        rest = D('398.80')-D(i['quantity'])
+        self.assertLess(D(i['quantity']), D('350'))
+        self.assertGreaterEqual(rest*D(i['price']), D('55000'))
+        self.assertLess(rest*D(i['price']), D('55100'))
+
+    def test_orders_below_fifty_thousand_toman_are_refused(self):
+        order = {'side': 'BUY', 'symbol': 'AAATMN', 'base': 'AAA', 'stage': 'BUY', 'budget': '45000', 'limit': '1020', 'reason': 'x'}
+        with self.assertRaises(ValueError):
+            compile_intent(order, self.decision, self.h, self.quotes, self.ledger, {**self.cfg, 'participation': '1', 'min_order_tmn': '50000'},
+                           now=self.now, max_spread_bps=300)
+
     def test_buys_are_unchanged(self):
         order = {'side': 'BUY', 'symbol': 'AAATMN', 'base': 'AAA', 'stage': 'BUY', 'budget': '100000', 'limit': '1020', 'reason': 'x'}
         i = compile_intent(order, self.decision, self.h, self.quotes, self.ledger, {**self.cfg, 'participation': '1', 'fast_exit_orders': True},
