@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from tests import test_live_platform as fixtures
 from app.live_revision import CONFIRMATION
-from app.live_api import risk_config
+from app.live_api import legacy_risk_config as risk_config
 from execution.session import open_journal
 from execution.revision import read_identity
 from execution.activation import bundle_hash
@@ -100,3 +100,7 @@ class HistoryRevisionTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+
+from tests.legacy_config import apply as _legacy
+_legacy(globals())

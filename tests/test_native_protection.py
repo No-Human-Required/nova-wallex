@@ -110,3 +110,7 @@ class NativePanelTests(unittest.TestCase):
         self.assertEqual(pending(self.app.state.store,self.ident)['request_id'],q['preview_id'])
 
 if __name__=='__main__':unittest.main()
+
+
+from tests.legacy_config import apply as _legacy
+_legacy(globals())

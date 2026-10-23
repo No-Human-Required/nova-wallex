@@ -25,7 +25,7 @@ def entry_config(previous):
 
 
 def apply_entry_revision(app,confirmation,approval_reference):
-    from .live_api import risk_config,release_ready,gateway,selection,accounts,check_fees,PublicFeed,read_json
+    from .live_api import legacy_risk_config,release_ready,gateway,selection,accounts,check_fees,PublicFeed,read_json
     if confirmation!=CONFIRMATION or not approval_reference.strip():
         raise ContractError('Explicit experimental policy review is required')
     if not release_ready():raise ContractError('Current release verification is required')
@@ -38,7 +38,7 @@ def apply_entry_revision(app,confirmation,approval_reference):
             return {'ok':True,'already_applied':True,'run_id':run['id'],'execution_resumed':False}
         if state['desired']!='stopped':raise ContractError('Stop the engine before reviewing its new policy')
         old=run['binding'];old_cfg=run['config']
-        if old['source_sha256']!=PREVIOUS_SOURCE or digest(old_cfg)!=digest(risk_config()):
+        if old['source_sha256']!=PREVIOUS_SOURCE or digest(old_cfg)!=digest(legacy_risk_config()):
             raise ContractError('Only the unchanged reviewed prior configuration can migrate')
         prior=receipt.get('previous_revision') if receipt and receipt.get('version')==2 else receipt
         if not prior or prior.get('version')!=1 or prior.get('new_source_sha256')!=old['source_sha256']:

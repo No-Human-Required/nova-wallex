@@ -98,3 +98,7 @@ class NativeCancelRecoveryTests(unittest.TestCase):
         self.assertEqual(self.app.state.live.state()['desired'],'stopped')
 
 if __name__=='__main__':unittest.main()
+
+
+from tests.legacy_config import apply as _legacy
+_legacy(globals())

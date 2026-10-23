@@ -53,6 +53,9 @@ class Engine:
         if cfg.get('runtime_policy')=='hourly_opportunity_ai':
             from execution.opportunity import OpportunityHistory
             self.feed.history_type=OpportunityHistory
+        elif cfg.get('runtime_policy')=='adaptive_ai':
+            from execution.adaptive import AdaptiveHistory
+            self.feed.history_type=AdaptiveHistory
         start,end=validate_binding(binding,key,self.feed.markets,cfg)
         if time.time()>=end and not audit_exists(directory):raise ContractError('Window ended before first activation')
         self.gateway=self.gateway_factory(key,subaccount_id=binding['subaccount_client_id'])
@@ -67,7 +70,10 @@ class Engine:
             if file_exists(p) and hashlib.sha256(read_bytes(p)).hexdigest()!=sha:raise ContractError('Orchestrator source snapshot mismatch')
             if not file_exists(p):write_bytes(p,(ROOT/name).read_bytes())
         os.environ['AVALAI_API_KEY']=self.vault.get('avalai')
-        ai=PortfolioAI(directory/'ai-cache')
+        if cfg.get('runtime_policy')=='adaptive_ai':
+            from execution.ai_decision import AdaptiveAI
+            ai=AdaptiveAI(directory/'ai-cache-adaptive')
+        else:ai=PortfolioAI(directory/'ai-cache')
         self.controller=PortfolioController(self.j,self.gateway,cfg,start=start,end=end,ai=ai,settlement_rule='flatten_to_tmn')
         self.live.heartbeat('reconciling')
         # Resolve old SUBMITTING/UNKNOWN first, with GET only. No new client ID

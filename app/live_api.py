@@ -15,11 +15,24 @@ from execution.feed import PublicFeed
 from execution.cli import check_fees
 
 router=APIRouter(prefix='/api/live')
-CONTEST_END_UTC='2026-10-23T20:20:00+00:00'  # User confirmed 1405/08/01 23:50 Tehran.
+# Organizer extension relayed by the user: end of Monday 1405/08/04 Asia/Tehran.
+CONTEST_END_UTC='2026-10-26T20:29:00+00:00'
+CONTEST_END_FA='دوشنبه ۴ آبان ۱۴۰۵ ساعت ۲۳:۵۹ تهران'
 
-def risk_config():
+def legacy_risk_config():
+    """Configuration of runs activated before 3.4 (kept for their migrations)."""
     cfg=configuration(validated_config(),'guarded_breakout_ai')
     cfg.update(mode='account_bound_algorithm',runtime_policy='guarded_breakout_ai',
+               entry_stop_before_end_seconds=0,unwind_before_end_seconds=0,
+               adaptive_deadline=True,exit_network_buffer_seconds=120,
+               contest_end_utc='2026-10-23T20:20:00+00:00',
+               risk_limits_status='requires explicit activation preview approval')
+    return cfg
+
+def risk_config():
+    from execution.adaptive import adaptive_config
+    cfg=adaptive_config(configuration(validated_config(),'guarded_breakout_ai'))
+    cfg.update(mode='account_bound_algorithm',
                entry_stop_before_end_seconds=0,unwind_before_end_seconds=0,
                adaptive_deadline=True,exit_network_buffer_seconds=120,
                contest_end_utc=CONTEST_END_UTC,
@@ -115,6 +128,21 @@ def history_revision(body:HistoryRevision,request:Request):
     try:return apply_history_revision(request.app,body.confirmation,body.approval_reference,resume=body.resume)
     except (ValueError,RuntimeError) as exc:raise HTTPException(409,problem(exc)) from None
 
+class Upgrade(Body):
+    confirmation:str
+
+@router.get('/upgrade')
+def upgrade_preview(request:Request):
+    from .live_upgrade import preview
+    try:return preview(request.app)
+    except (ValueError,RuntimeError) as exc:raise HTTPException(409,problem(exc)) from None
+
+@router.post('/upgrade')
+def upgrade_apply(body:Upgrade,request:Request):
+    from .live_upgrade import apply
+    try:return apply(request.app,body.confirmation)
+    except Exception as exc:raise HTTPException(409,problem(exc)) from None
+
 @router.get('/status')
 def status(request:Request):
     from execution.history import POLICY
@@ -130,10 +158,12 @@ def status(request:Request):
             'wallet_review':{'available':bool(run and run['binding']['source_sha256']==WALLET_PREVIOUS),
                 'applied':bool(run and run.get('revision') and run['revision'].get('version') in {3,4}),
                 'execution_resumed':False,'maximum_tmn_uncertainty_exclusive':'1','ledger_modified':False},
-            'entry_policy_review':{'protocol':PROTOCOL_V1,'proposed_config':entry_config(risk_config()),
+            'entry_policy_review':{'protocol':PROTOCOL_V1,'proposed_config':entry_config(legacy_risk_config()),
                 'available':bool(run and run['binding']['source_sha256']==PREVIOUS_SOURCE),
                 'applied':bool(run and run['config'].get('runtime_policy')=='hourly_opportunity_ai'),
                 'historical_edge_confirmed':False,'requires_operator_resume':True},
+            'contest_end_utc':CONTEST_END_UTC,'contest_end_fa':CONTEST_END_FA,
+            'upgrade_available':bool(run and run['binding']['source_sha256']!=bundle_hash()),
             'history_policy':POLICY,'history_revision_applied':bool(run and run.get('revision') and
                 run['binding']['source_sha256']==run['revision']['new_source_sha256'])}
 
@@ -216,7 +246,7 @@ def blockers(app,binding,cfg):
         validate_binding({**binding,'human_approval_recorded':True},key,app.state.history.markets,cfg)
         if app.state.vault.status()['avalai']['fingerprint']!=binding.get('avalai_fingerprint'):reasons.append('AI credential changed')
         if timestamp(binding['end_utc'])<=time.time():reasons.append('Official contest window has ended')
-        if timestamp(binding['end_utc'])>timestamp(CONTEST_END_UTC):reasons.append('پایان مجاز: ۱ آبان ۱۴۰۵ ساعت ۲۳:۵۰ تهران')
+        if timestamp(binding['end_utc'])>timestamp(CONTEST_END_UTC):reasons.append('پایان مجاز: '+CONTEST_END_FA)
     except Exception as exc:reasons.append(problem(exc))
     return reasons
 
@@ -231,7 +261,7 @@ def preview(body:Preview,request:Request):
              'avalai_fingerprint':app.state.vault.status()['avalai']['fingerprint'],
              'subaccount_client_id':account['client_id'] if account else None,
              'start_utc':body.start_utc,'end_utc':body.end_utc,
-             'organizer_time_reference':'User confirmed contest already started; final deadline 1405/08/01 23:50 Asia/Tehran; engine starts on approved activation',
+             'organizer_time_reference':'User relayed organizer extension: final deadline end of 1405/08/04 Asia/Tehran; engine starts on approved activation',
              'organizer_settlement_reference':'user supplied updated challenge brief: realized TMN',
              'settlement_rule':'flatten_to_tmn' if body.settlement_confirmed else None,
              'entry_stop_before_end_seconds':cfg['entry_stop_before_end_seconds'],'unwind_before_end_seconds':cfg['unwind_before_end_seconds'],

@@ -16,7 +16,7 @@ from app.main import create_app
 from app.store import Store
 from app.vault import Vault
 from app.live_store import LiveStore
-from app.live_api import risk_config, selection, accounts
+from app.live_api import legacy_risk_config as risk_config, selection, accounts
 from app.live_engine import Engine
 from execution.activation import bundle_hash
 from execution.gateway import WallexGateway,NotDispatched
@@ -206,3 +206,7 @@ class AdaptiveDeadlineTests(unittest.TestCase):
         self.assertGreater(large,small)
 
 if __name__=='__main__':unittest.main()
+
+
+from tests.legacy_config import apply as _legacy
+_legacy(globals())

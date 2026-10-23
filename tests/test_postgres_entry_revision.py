@@ -10,3 +10,7 @@ class PostgresEntryRevisionTests(fixture.EntryRevisionTests):
 
 
 if __name__=='__main__':unittest.main()
+
+
+from tests.legacy_config import apply as _legacy
+_legacy(globals())

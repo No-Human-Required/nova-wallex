@@ -27,9 +27,9 @@ def timestamp(value):
 def validate_binding(binding,key,markets,cfg):
     if 'trx_trend_exit_hold' in cfg and type(cfg['trx_trend_exit_hold']) is not bool:
         raise ContractError('TRX trend exit policy must be an explicit boolean')
-    if cfg.get('runtime_policy') not in {None,'guarded_breakout_ai','hourly_opportunity_ai'}:
+    if cfg.get('runtime_policy') not in {None,'guarded_breakout_ai','hourly_opportunity_ai','adaptive_ai'}:
         raise ContractError('Unknown runtime policy')
-    if cfg.get('runtime_policy') in {'guarded_breakout_ai','hourly_opportunity_ai'}:
+    if cfg.get('runtime_policy') in {'guarded_breakout_ai','hourly_opportunity_ai','adaptive_ai'}:
         import re
         if not isinstance(binding.get('subaccount_client_id'),str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}',binding['subaccount_client_id']):
             raise ContractError('Dedicated credit account client ID is required')
@@ -43,7 +43,7 @@ def validate_binding(binding,key,markets,cfg):
     if binding.get('risk_config_sha256')!=digest(cfg):raise ContractError('Risk/model configuration differs from approval')
     if binding.get('symbols_sha256')!=digest(sorted(markets)):raise ContractError('Permitted universe differs from approval')
     start,end=timestamp(binding.get('start_utc')),timestamp(binding.get('end_utc'))
-    if not 0<end-start<=72*3600:raise ContractError('Contest window must be at most three days')
+    if not 0<end-start<=8*86400:raise ContractError('Contest window must be at most eight days')
     if binding.get('settlement_rule') not in {'flatten_to_tmn','mark_open_assets'}:
         raise ContractError('Organizer settlement rule unresolved')
     if binding.get('entry_stop_before_end_seconds')!=cfg.get('entry_stop_before_end_seconds',3600) or binding.get('unwind_before_end_seconds')!=cfg.get('unwind_before_end_seconds',1800):

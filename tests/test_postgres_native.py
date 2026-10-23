@@ -45,3 +45,7 @@ class PostgresTrxTrendHoldTests(hold.TrxTrendHoldTests):
         self.env.start();self.addCleanup(self.env.stop);super().setUp()
 
 if __name__=='__main__':unittest.main()
+
+
+from tests.legacy_config import apply as _legacy
+_legacy(globals())

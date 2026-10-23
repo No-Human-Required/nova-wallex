@@ -22,7 +22,7 @@ CONFIRMATION='Apply reviewed 49-hour history policy to the existing cash-only ru
 
 
 def apply_history_revision(app,confirmation,approval_reference,*,resume=False):
-    from .live_api import risk_config,release_ready,gateway,selection,accounts,check_fees,PublicFeed,read_json
+    from .live_api import legacy_risk_config,release_ready,gateway,selection,accounts,check_fees,PublicFeed,read_json
     if confirmation!=CONFIRMATION or not approval_reference.strip():
         raise ContractError('Explicit history policy approval is required')
     if not release_ready():raise ContractError('Current release verification is required')
@@ -37,7 +37,7 @@ def apply_history_revision(app,confirmation,approval_reference,*,resume=False):
             return {'ok':True,'run_id':run['id'],'already_applied':True}
         if state['desired']!='stopped':raise ContractError('Stop the existing engine before applying a source revision')
         old=run['binding'];cfg=run['config']
-        if old['source_sha256']!=PREVIOUS_SOURCE or digest(cfg)!=digest(risk_config()):
+        if old['source_sha256']!=PREVIOUS_SOURCE or digest(cfg)!=digest(legacy_risk_config()):
             raise ContractError('Only the reviewed prior release with unchanged limits can migrate')
         feed=PublicFeed(read_json(ROOT/'data/portfolio/universe.json'),app.state.store.directory/'revision-observations')
         new={**old,'source_sha256':bundle_hash()}

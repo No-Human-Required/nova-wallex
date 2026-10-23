@@ -3,7 +3,7 @@ import unittest
 from copy import deepcopy
 from decimal import Decimal as D
 from execution.tests import test_controller as fixture
-from app.live_api import risk_config
+from app.live_api import legacy_risk_config as risk_config
 from app.live_entry_revision import entry_config
 from execution.planner import plan
 from execution.controller import PortfolioController

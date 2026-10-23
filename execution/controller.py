@@ -11,9 +11,13 @@ from .ledger import Ledger
 from .planner import plan,compile_intent,bound_risk_authorizer,select,QuoteView
 from .journal import TERMINAL,protective,resting
 
+# The organizer extended the challenge; a run may span up to eight days.
+MAX_WINDOW_SECONDS=8*86400
+TAGS=('strategy','target')
+
 class PortfolioController:
     def __init__(self,journal,gateway,cfg,*,start,end,ai,order_ttl=15,settlement_rule=None):
-        if end<=start or end-start>72*3600 or not 1<=order_ttl<=60:raise ValueError('Invalid runtime window/TTL')
+        if end<=start or end-start>MAX_WINDOW_SECONDS or not 1<=order_ttl<=60:raise ValueError('Invalid runtime window/TTL')
         self.j,self.gateway,self.cfg,self.start,self.end,self.ai,self.ttl=journal,gateway,cfg,start,end,ai,order_ttl
         self.selection_cache={}
         self.settlement_rule=settlement_rule
@@ -41,12 +45,14 @@ class PortfolioController:
                 quote_qty=sum((dec(f['quantity'])-(dec(f['fee']) if f['feeAsset']=='USDT' else 0) for f in fills),Decimal(0))
                 budget=sum((dec(f['quantity'])*dec(f['price'])+(dec(f['fee']) if f['feeAsset']=='TMN' else 0) for f in fills),Decimal(0))
                 strategy['route']={'symbol':context['target_symbol'],'base':base,'stop':context['stop'],
-                         'budget_tmn':number(budget),'available_quote':number(quote_qty)} if quote_qty>0 else None
+                         'budget_tmn':number(budget),'available_quote':number(quote_qty),
+                         **{k:context[k] for k in TAGS if context.get(k) is not None}} if quote_qty>0 else None
             elif stage=='BUY':
                 if nonzero and base in holdings:
                     h=holdings[base]
                     strategy['positions'][base]={'symbol':context['symbol'],'opened_at':order['submitted_at'],
-                        'stop':context['stop'],'peak_unit':number(dec(h['basis'])/dec(h['qty'])),'exit_reason':None}
+                        'stop':context['stop'],'peak_unit':number(dec(h['basis'])/dec(h['qty'])),'exit_reason':None,
+                        **{k:context[k] for k in TAGS if context.get(k) is not None}}
                 strategy['route']=None
             elif stage=='SELL' and base not in holdings:
                 strategy['positions'].pop(base,None)
@@ -93,9 +99,74 @@ class PortfolioController:
             self.reconcile_account(now=now);self.sync_strategy()
         return self.j.unresolved()
 
+    def prepare_adaptive(self,history,*,now):
+        t=now//3600*3600;cfg=self.cfg
+        if 'regime' not in self.j.s.get('runtime_scans',{}).get(str(t),{}):
+            # A scan written by a previous policy in this hour is replaced.
+            ranked,coverage=history.scan(t,cfg,'adaptive');context=history.regime(t,cfg)
+            s=deepcopy(self.j.s)
+            scan={'time':t,'dataset_identity':history.identity,'coverage':coverage,'pair_count':len(history.markets),
+                  'regime':context,'top':ranked[:cfg['ai_top_candidates']]}
+            s['runtime_scans']={str(t):scan}
+            self.j.checkpoint('runtime_scan',scan,s)
+        if now>=self.end-self.cfg.get('entry_stop_before_end_seconds',0):return
+        if str(t) in self.j.s.get('runtime_selections',{}):return
+        scan=self.j.s['runtime_scans'][str(t)];context=scan['regime'];top=scan['top']
+        strategy=self.strategy();active=len(strategy['positions'])+(1 if strategy.get('route') else 0)
+        base={'time':t,'regime':context,'coverage':scan['coverage'],'policy':cfg.get('strategy_version'),
+              'original_candidates':[{k:c[k] for k in ('symbol','strategy','score','plan')} for c in top]}
+        def save(ranked,selection,record=None):
+            s=deepcopy(self.j.s)
+            slim={k:v for k,v in selection.items() if k!='original_candidates'}
+            if record is not None:slim['ai']={k:record.get(k) for k in ('status','request_hash','variant','reason','actual_api_calls')}
+            s['runtime_selections']={str(t):{'ranked':ranked,'selection':slim}}
+            if record is not None:s['runtime_ai_calls']=s.get('runtime_ai_calls',0)+int(record.get('actual_api_calls') or 0) if not record.get('replayed') else s.get('runtime_ai_calls',0)
+            payload=dict(selection)
+            if record is not None:payload['ai']=record
+            self.j.checkpoint('runtime_selection',payload,s)
+        if active>=context['max_positions']:
+            return save([],{**base,'ai':{'status':'not_requested','reason':'regime_position_capacity_full'},'selected_symbols':[]})
+        if not top:
+            return save([],{**base,'ai':{'status':'not_requested','reason':'no_strategy_setup'},'selected_symbols':[]})
+        if self.ai is None:
+            return save([],{**base,'ai':{'status':'disabled','reason':'AI required for entries'},'selected_symbols':[]})
+        reservations=self.j.s.get('runtime_ai_reservations',{})
+        if str(t) in reservations:
+            # A prior process may already have billed this hour; never call twice.
+            return save([],{**base,'ai':{'status':'unavailable','reason':'interrupted_attempt_not_repeated'},'selected_symbols':[]})
+        used=self.j.s.get('runtime_ai_calls',0)
+        if used>=cfg['ai_max_calls']:
+            return save([],{**base,'ai':{'status':'unavailable','reason':'persistent_call_budget'},'selected_symbols':[]})
+        s=deepcopy(self.j.s)
+        s.setdefault('runtime_ai_reservations',{})[str(t)]={'reserved_at':now,'status':'attempt_reserved'}
+        # Keep the reservation map bounded in frequently copied checkpoints.
+        s['runtime_ai_reservations']=dict(sorted(s['runtime_ai_reservations'].items())[-48:])
+        self.j.checkpoint('runtime_ai_reservation',{'time':t,'calls_used':used},s)
+        ledger=self.j.s['ledger']
+        portfolio={'cash_tmn':ledger['cash'],'realized_pnl_tmn':ledger['realized'],
+                   'positions':[{'asset':a,'qty':h['qty'],'basis_tmn':h['basis'],
+                                 'strategy':strategy['positions'].get(a,{}).get('strategy','legacy_trend6'),
+                                 'held_hours':round((now-strategy['positions'].get(a,{}).get('opened_at',now))/3600,1)}
+                                for a,h in ledger['holdings'].items()]}
+        ctx={'time':t,'regime':{k:context[k] for k in ('regime','breadth','btc_r24_bps','median_vol24_bps','underlyings','max_positions')},
+             'portfolio':portfolio,'hours_to_deadline':round((self.end-now)/3600,2),
+             'max_new_positions':max(0,context['max_positions']-active)}
+        self.ai.calls=used
+        try:ranked,record=self.ai.select(top,cfg,ctx)
+        except RuntimeError as exc:
+            return save([],{**base,'ai':{'status':'unavailable','reason':str(exc)[:120]},'selected_symbols':[]})
+        decisions={}
+        if record.get('decision'):
+            ids={f'A{i+1}':c['symbol'] for i,c in enumerate(top)}
+            decisions={ids[d['id']]:d for d in record['decision']['decisions']}
+        save(ranked,{**base,'selected_symbols':[c['symbol'] for c in ranked],'decisions':decisions,
+                     'market_view':(record.get('decision') or {}).get('market_view'),
+                     'regime_assessment':(record.get('decision') or {}).get('regime_assessment')},record)
+
     def prepare_selection(self,history,*,now):
         """Potentially slow AI call occurs BEFORE fetching executable quotes."""
         if not self.start<=now<self.end:return
+        if self.cfg.get('runtime_policy')=='adaptive_ai':return self.prepare_adaptive(history,now=now)
         t=now//3600*3600
         if str(t) not in self.j.s.get('runtime_scans',{}):
             ranked,coverage=history.scan(t,self.cfg,'breakout48')
@@ -170,7 +241,8 @@ class PortfolioController:
             if prepared:ranked,selection=prepared['ranked'],prepared['selection']
             else:selection={'status':'selection_not_prepared','reason':'exits continue without AI entry authorization'}
         executable_rejections=[]
-        if self.cfg.get('runtime_policy')=='hourly_opportunity_ai':
+        if self.cfg.get('runtime_policy') in {'hourly_opportunity_ai','adaptive_ai'}:
+            limit=self.cfg.get('max_entry_spread_bps',30)
             # A wide first-ranked market must not consume the sole weak-market
             # allocation and hide another AI-approved, executable candidate.
             view=QuoteView(history,t,quotes,now);eligible=[]
@@ -181,7 +253,7 @@ class PortfolioController:
                 for symbol in symbols:
                     quote=view.quote(symbol)
                     if not quote:reason='missing_or_stale_quote';break
-                    if (quote[1]/quote[0]-1)*10000>30:reason='spread_gate';break
+                    if (quote[1]/quote[0]-1)*10000>limit:reason='spread_gate';break
                 if reason:executable_rejections.append({'symbol':candidate['symbol'],'reason':reason})
                 else:eligible.append(candidate)
             ranked=eligible
@@ -202,8 +274,9 @@ class PortfolioController:
         self.j.checkpoint('runtime_plan',decision,s)
         rejected=[]
         for order in decision['orders']:
+            spread=self.cfg.get('max_exit_spread_bps' if order['side']=='SELL' else 'max_entry_spread_bps',30)
             try:intent=compile_intent(order,decision,history,quotes,self.j.s['ledger'],self.cfg,now=now,
-                                    committed_capacity=self.committed_capacity(order['symbol'],t))
+                                    committed_capacity=self.committed_capacity(order['symbol'],t),max_spread_bps=spread)
             except ContractError as exc:
                 rejected.append({'stage':order['stage'],'symbol':order['symbol'],'reason':str(exc)});continue
             protected=self.j.protection_orders(order['base']) if order['side']=='SELL' else {}
@@ -221,6 +294,8 @@ class PortfolioController:
                 context['entry_commitment_tmn']=number(order['budget'])
             for key in ('stop','target_symbol'):
                 if key in order:context[key]=str(order[key])
+            for key in TAGS:
+                if order.get(key) is not None:context[key]=str(order[key])
             s=deepcopy(self.j.s);s['strategy']['contexts'][intent['client_id']]=context
             self.j.checkpoint('runtime_order_context',{'client_id':intent['client_id'],'context':context},s)
             fx='1';fx_time=None

@@ -189,3 +189,7 @@ class PostgresExecutionTests(execution_contract_tests.ExecutionTests):
 
 
 if __name__=='__main__':unittest.main()
+
+
+from tests.legacy_config import apply as _legacy
+_legacy(globals())

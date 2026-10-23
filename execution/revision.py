@@ -15,6 +15,24 @@ def read_identity(directory):
 
 
 def receipt_origin(identity,receipt):
+    if receipt.get('version')==7 and receipt.get('policy')=='operator-upgrade-v1':
+        prior=receipt.get('previous_revision')
+        if prior is None:
+            if receipt.get('previous_revision_sha256') is not None:raise ContractError('Upgrade previous receipt differs')
+            original=receipt.get('old_binding_sha256')
+        else:
+            if prior.get('version') not in {1,2,3,4,5,6,7} or digest(prior)!=receipt.get('previous_revision_sha256'):
+                raise ContractError('Upgrade previous receipt differs')
+            original=receipt_origin(identity,prior)
+            if prior.get('new_binding_sha256')!=receipt.get('old_binding_sha256') or prior.get('new_source_sha256')!=receipt.get('old_source_sha256'):
+                raise ContractError('Upgrade source chain does not connect')
+            if prior.get('new_config_sha256') is not None and prior.get('new_config_sha256')!=receipt.get('old_config_sha256'):
+                raise ContractError('Upgrade configuration chain does not connect')
+        if receipt.get('operator_approved') is not True or receipt.get('execution_resumed') is not False or receipt.get('exchange_orders_sent')!=0 or receipt.get('ledger_changed') is not False:
+            raise ContractError('Upgrade review cannot trade, resume or change the ledger')
+        if not isinstance(receipt.get('config_changes'),dict) or not isinstance(receipt.get('binding_changes'),dict):
+            raise ContractError('Upgrade changes must be recorded explicitly')
+        return original
     if receipt.get('version')==6 and receipt.get('policy')=='native-cancel-reconciliation-v1':
         prior=receipt.get('previous_revision',{})
         if prior.get('version')!=5 or digest(prior)!=receipt.get('previous_revision_sha256'):
@@ -88,7 +106,7 @@ def checked_identity(directory,receipt,current_cfg,binding):
     identity,state=read_identity(directory)
     if not state:raise ContractError('Explicit history revision receipt missing')
     original_binding=receipt_origin(identity,receipt)
-    if receipt.get('version') in {2,3,4,5,6} and binding and binding.get('risk_config_sha256')!=receipt.get('new_config_sha256'):
+    if receipt.get('version') in {2,3,4,5,6,7} and binding and binding.get('risk_config_sha256')!=receipt.get('new_config_sha256'):
         raise ContractError('Policy risk configuration differs')
     if digest(identity)!=receipt.get('prior_identity_sha256'):
         raise ContractError('Revision does not match original journal identity')

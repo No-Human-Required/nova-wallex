@@ -99,6 +99,8 @@ def create_app(*, directory=None, history=None, development=None, start_worker=T
     app.include_router(live_router)
     from .live_protection import router as protection_router
     app.include_router(protection_router)
+    from .public_api import router as public_router
+    app.include_router(public_router)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
@@ -132,6 +134,8 @@ def create_app(*, directory=None, history=None, development=None, start_worker=T
             if request.headers.get('origin') != origin:
                 return JSONResponse({'detail':'Origin rejected'}, status_code=403)
         public = path in {'/api/login','/healthz','/readyz'} or not path.startswith('/api/')
+        if (public_readonly or development) and request.method in {'GET','HEAD'} and path.startswith('/api/public/'):
+            public = True
         if public_readonly and request.method in {'GET','HEAD'}:
             public = public or path in {'/api/session','/api/status','/api/report','/api/markets','/api/jobs'} or bool(
                 re.fullmatch(r'/api/(?:cases/w\d{2}-(?:guarded_breakout(?:_ai)?|breakout48(?:_ai)?|cash)-(?:base|cost_delay_stress)|(?:jobs|export)/[a-f0-9]{24})',path))
@@ -248,7 +252,7 @@ def create_app(*, directory=None, history=None, development=None, start_worker=T
     def create_job(body:JobRequest, request:Request):
         if not postgres_enabled() and shutil.disk_usage(storage).free < 128*1024*1024:
             raise HTTPException(507,'Insufficient persistent disk space for a new research job')
-        if body.variant not in VARIANTS or body.scenario not in SCENARIOS or (body.variant.endswith('_ai') and (body.window<31 or body.scenario != 'base')):
+        if body.variant not in VARIANTS+('adaptive_smc',) or body.scenario not in SCENARIOS or (body.variant.endswith('_ai') and (body.window<31 or body.scenario != 'base')):
             raise HTTPException(422,'Unsupported variant/window/scenario')
         try:
             start,end=period(app.state.history,body.window,body.start_utc,body.end_utc)

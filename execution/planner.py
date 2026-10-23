@@ -16,6 +16,7 @@ from starwallex.util import digest,source_manifest
 from .contracts import ContractError,dec,number
 from .ledger import Ledger
 from .opportunity import OpportunityRules, PROTOCOL_V1
+from .adaptive import AdaptiveRules
 
 CONTROL=['peak','day_nav','day','halt','daily_halt','max_dd','cooldowns','stale_hours','order_sequence']
 
@@ -74,6 +75,10 @@ class OpportunityPlanningEngine(OpportunityRules,PlanningEngine,GuardedEngine):
     """Shared experimental rules, actual deadline, and live quotes only."""
     pass
 
+class AdaptivePlanningEngine(AdaptiveRules,PlanningEngine,GuardedEngine):
+    """Regime-adaptive SMC/indicator rules with strategy exits on live quotes."""
+    pass
+
 def select(history,t,cfg,ai):
     ranked,coverage=history.scan(t,cfg,'breakout48')
     ranked=ranked[:cfg['ai_top_candidates']]
@@ -85,7 +90,7 @@ def select(history,t,cfg,ai):
                      'original_candidates':original,'ai':record,'selected_symbols':[x['symbol'] for x in selected]}
 
 def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection,allow_entries,end=None):
-    if cfg.get('runtime_policy') not in {None,'guarded_breakout_ai','hourly_opportunity_ai'}:
+    if cfg.get('runtime_policy') not in {None,'guarded_breakout_ai','hourly_opportunity_ai','adaptive_ai'}:
         raise ContractError('Unknown runtime policy')
     ledger=Ledger(ledger_state)
     view=QuoteView(history,t,quotes,now)
@@ -93,9 +98,12 @@ def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection
               'selection':selection,'quotes':quotes,'data':history.identity,'source':source_manifest()['sha256']}
     dummy=SimpleNamespace(latest=lambda:None,identity=identity)
     opportunity=cfg.get('runtime_policy')=='hourly_opportunity_ai'
-    guarded=cfg.get('runtime_policy') in {'guarded_breakout_ai','hourly_opportunity_ai'}
+    adaptive=cfg.get('runtime_policy')=='adaptive_ai'
+    guarded=cfg.get('runtime_policy') in {'guarded_breakout_ai','hourly_opportunity_ai','adaptive_ai'}
     if guarded and end is None:raise ContractError('V3 planner requires the official end time')
-    if opportunity:
+    if adaptive:
+        engine=AdaptivePlanningEngine(cfg,view,dummy,'adaptive',end=end)
+    elif opportunity:
         if cfg.get('entry_policy')!='trend6' or cfg.get('entry_every_hours')!=1:
             raise ContractError('Unreviewed experimental entry configuration')
         engine=OpportunityPlanningEngine(cfg,view,dummy,'trend6',end=end)
@@ -117,6 +125,8 @@ def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection
         engine.s['positions'][a]={'symbol':m['symbol'],'qty':dec(p['qty']),'cost':dec(p['basis']),
             'opened_at':m['opened_at'],'stop':dec(m['stop']),'peak_unit':dec(m['peak_unit']),
             'exit_reason':m.get('exit_reason')}
+        if adaptive:
+            engine.s['positions'][a].update(strategy=m.get('strategy'),target=m.get('target'))
     required={p['symbol'] for p in engine.s['positions'].values()}
     if engine.s['fx_lots'] or any(history.markets[s].quote=='USDT' for s in required):required.add('USDTTMN')
     if any(view.quote(s) is None for s in required):raise ContractError('Fresh quotes required for every held asset and FX')
@@ -134,7 +144,10 @@ def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection
         stop=dec(route['stop'])
         budget=min(dec(route['budget_tmn']),engine.equity()*dec(cfg['max_asset_fraction']),
                    engine.equity()*dec(cfg['risk_per_asset_fraction'])/stop,dec(cfg['max_order_tmn']))
-        if opportunity:
+        if adaptive:
+            context=engine.regime_context(t)
+            budget=min(budget,dec(context['order_cap_tmn']),engine.equity()*dec(context['risk_fraction'])/stop)
+        elif opportunity:
             context=history.context(t,cfg['min_daily_turnover_tmn'])
             budget=min(budget,dec(context['order_cap_tmn']),engine.equity()*dec(PROTOCOL_V1['entry_risk_fraction'])/stop)
         reason=engine.entry_checks(c,t,budget,stop)
@@ -144,12 +157,14 @@ def plan(history,t,cfg,ledger_state,strategy_state,quotes,*,now,ranked,selection
             engine.queue_fx_exit('aggregate_usdt','USDT',t,'funded_route_abandoned')
         else:
             o=engine.order('BUY',route['symbol'],route['base'],t,budget=budget,stop=stop,lot='aggregate_usdt',reason='confirmed_funding')
-            if o:o['available_quote']=dec(route['available_quote'])
+            if o:
+                o['available_quote']=dec(route['available_quote'])
+                if adaptive:o.update(strategy=route.get('strategy'),target=route.get('target'))
     elif allow_entries:
         engine.entries(ranked,t)
     orders=sorted(engine.s['orders'],key=lambda o:(o['side']!='SELL',o['sequence']))
-    next_metadata={a:{k:p[k] for k in ('symbol','opened_at','stop','peak_unit','exit_reason')}
-                   for a,p in engine.s['positions'].items()}
+    keys=('symbol','opened_at','stop','peak_unit','exit_reason')+(('strategy','target') if adaptive else ())
+    next_metadata={a:{k:p.get(k) for k in keys} for a,p in engine.s['positions'].items()}
     control={k:engine.s[k] for k in CONTROL}
     if guarded:
         # Planning can propose several candidates, but the serial runtime sends
