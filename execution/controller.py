@@ -10,6 +10,7 @@ from .contracts import ContractError,dec,number,normalize_detail_balances
 from .ledger import Ledger
 from .planner import plan,compile_intent,bound_risk_authorizer,select,QuoteView
 from .journal import TERMINAL,protective,resting
+from .dust import unsellable,FEE_BUFFER
 
 # The organizer extended the challenge; a run may span up to eight days.
 MAX_WINDOW_SECONDS=8*86400
@@ -100,14 +101,31 @@ class PortfolioController:
         return self.j.unresolved()
 
     def dust(self,history,t,base,p):
-        """A residue below the exchange minimum order (cannot be sold) holds no position slot."""
-        m=history.markets.get(p.get('symbol'));h=self.j.s['ledger']['holdings'].get(base)
-        if m is None or not h:return False
+        """A residue below the exchange minimum order (cannot be sold) holds no position slot.
+
+        Valued from the latest hourly close within 48h (thin pairs often have
+        no trade in the last hour), else from the ledger cost basis."""
+        sym=p.get('symbol');m=history.markets.get(sym) or (getattr(self.j,'markets',None) or {}).get(sym)
+        h=self.j.s['ledger']['holdings'].get(base)
+        if not h:return True
+        if m is None:return False
         qty=dec(h['qty'])
-        if qty<m.min_qty:return True
-        b=history.bar(m.symbol,t-3600)
-        if b is None:return False
-        return qty*b.close<m.min_notional
+        if qty<=0:return True
+        fx=None
+        if m.quote=='USDT':
+            for k in range(1,49):
+                b=history.bar('USDTTMN',t-3600*k)
+                if b is not None:fx=b.close;break
+        price=None
+        for k in range(1,49):
+            b=history.bar(m.symbol,t-3600*k)
+            if b is not None:price=b.close;break
+        return unsellable(qty,m,price=price,fx=fx,value_tmn=dec(h['basis']) if price is None and h.get('basis') is not None else None,
+                          min_order_tmn=self.cfg.get('min_order_tmn',0),fee_buffer=getattr(self.j,'fee_buffer',FEE_BUFFER))
+
+    def dust_bases(self,history,t):
+        strategy=self.strategy()
+        return sorted(b for b,p in strategy['positions'].items() if self.dust(history,t,b,p))
 
     def prepare_adaptive(self,history,*,now):
         t=now//3600*3600;cfg=self.cfg
@@ -125,8 +143,11 @@ class PortfolioController:
         if str(t) in self.j.s.get('runtime_selections',{}):return
         scan=self.j.s['runtime_scans'][str(t)];context=scan['regime'];top=scan['top']
         strategy=self.strategy()
-        active=sum(not self.dust(history,t,b,p) for b,p in strategy['positions'].items())+(1 if strategy.get('route') else 0)
+        dust=set(self.dust_bases(history,t))
+        active=sum(b not in dust for b in strategy['positions'])+(1 if strategy.get('route') else 0)
         base={'time':t,'regime':context,'coverage':scan['coverage'],'policy':cfg.get('strategy_version'),
+              'slots':{'max_positions':context['max_positions'],'active_positions':sorted(set(strategy['positions'])-dust),
+                       'residues_not_counted':sorted(dust),'route_pending':bool(strategy.get('route'))},
               'original_candidates':[{k:c.get(k) for k in ('symbol','strategy','score','quality','confluence','plan')} for c in top]}
         def save(ranked,selection,record=None):
             s=deepcopy(self.j.s)
@@ -157,7 +178,7 @@ class PortfolioController:
         self.j.checkpoint('runtime_ai_reservation',{'time':t,'calls_used':used},s)
         ledger=self.j.s['ledger']
         portfolio={'cash_tmn':ledger['cash'],'realized_pnl_tmn':ledger['realized'],
-                   'positions':[{'asset':a,'qty':h['qty'],'basis_tmn':h['basis'],
+                   'positions':[{'asset':a,'qty':h['qty'],'basis_tmn':h['basis'],'unsellable_residue':a in dust,
                                  'strategy':strategy['positions'].get(a,{}).get('strategy','legacy_trend6'),
                                  'held_hours':round((now-strategy['positions'].get(a,{}).get('opened_at',now))/3600,1)}
                                 for a,h in ledger['holdings'].items()]}

@@ -15,6 +15,7 @@ from starwallex.portfolio_engine import PortfolioEngine
 from starwallex.portfolio_v3 import GuardedEngine
 from starwallex.util import digest
 from .opportunity import OpportunityHistory
+from .dust import unsellable
 from . import strategies as st
 from . import indicators as ind
 from .fast import signals as fast_signals
@@ -134,21 +135,29 @@ class AdaptiveRules:
         return None
 
     def dust_bases(self):
-        """Residues below the exchange minimum order: unsellable, so they hold no slot."""
+        """Residues below the exchange minimum order: unsellable, so they hold no slot.
+
+        Valued at the live bid, else the latest hourly close within 48h, else
+        the position's cost basis (same rule as the runtime controller)."""
         out = set()
+        floor_tmn = self.cfg.get('min_order_tmn', 0)
         for base, p in self.s['positions'].items():
             m = self.h.markets.get(p.get('symbol'))
             if m is None:
                 continue
-            if p['qty'] < m.min_qty:
+            if p['qty'] <= 0:
                 out.add(base)
                 continue
-            try:
-                value = self.position_value(p)
-                minimum = m.min_notional*(self.bid('USDTTMN') if m.quote == 'USDT' else D(1))
-            except (ValueError, TypeError):
-                continue
-            if value < minimum:
+            fx = self.bid('USDTTMN') if m.quote == 'USDT' else None
+            price = self.bid(m.symbol)
+            source, hour = getattr(self.h, 'history', self.h), getattr(self.h, 't', None)
+            if price is None and hour is not None and hasattr(source, 'bar'):
+                for k in range(1, 49):
+                    bar = source.bar(m.symbol, hour-3600*k)
+                    if bar is not None:
+                        price = bar.close
+                        break
+            if unsellable(p['qty'], m, price=price, fx=fx, value_tmn=p.get('cost') if price is None else None, min_order_tmn=floor_tmn):
                 out.add(base)
         return out
 

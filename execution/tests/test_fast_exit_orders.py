@@ -66,7 +66,58 @@ class DustTests(unittest.TestCase):
         from execution.controller import PortfolioController
         h = SyntheticHistory('AAATMN')  # AAATMN min notional 50000, price 1000
         c = PortfolioController.__new__(PortfolioController)
+        c.cfg = {'min_order_tmn': '50000'}
         c.j = SimpleNamespace(s={'ledger': {'holdings': {'AAA': {'qty': '4.85', 'basis': '5000'}}}})
         self.assertTrue(c.dust(h, 1_800_000_000, 'AAA', {'symbol': 'AAATMN'}))
         c.j.s['ledger']['holdings']['AAA']['qty'] = '60'
         self.assertFalse(c.dust(h, 1_800_000_000, 'AAA', {'symbol': 'AAATMN'}))
+
+
+class ThinPairDustTests(unittest.TestCase):
+    """Regression: three residues on thin pairs still filled every regime slot."""
+    def controller(self, holdings):
+        from types import SimpleNamespace
+        from execution.controller import PortfolioController
+        c = PortfolioController.__new__(PortfolioController)
+        c.cfg = {'min_order_tmn': '50000'}
+        c.j = SimpleNamespace(s={'ledger': {'holdings': holdings}}, markets={}, fee_buffer=D('0.003'))
+        return c
+
+    def test_no_trade_in_last_hour_uses_older_close(self):
+        h = SyntheticHistory('AAATMN')
+        t = 1_800_000_000//3600*3600
+        real = h.bar
+        h.bar = lambda s, x: None if x >= t-3*3600 else real(s, x)   # last trade 4 hours ago
+        c = self.controller({'AAA': {'qty': '4.85', 'basis': '5000'}})
+        self.assertTrue(c.dust(h, t, 'AAA', {'symbol': 'AAATMN'}))
+
+    def test_no_bar_at_all_falls_back_to_cost_basis(self):
+        h = SyntheticHistory('AAATMN')
+        h.bar = lambda s, x: None
+        c = self.controller({'AAA': {'qty': '4.85', 'basis': '5000'}})
+        self.assertTrue(c.dust(h, 1_800_000_000, 'AAA', {'symbol': 'AAATMN'}))
+        c.j.s['ledger']['holdings']['AAA'] = {'qty': '400', 'basis': '400000'}
+        self.assertFalse(c.dust(h, 1_800_000_000, 'AAA', {'symbol': 'AAATMN'}))
+
+    def test_sellable_quantity_after_fee_reservation_decides(self):
+        from execution.dust import unsellable
+        from starwallex.portfolio_data import Instrument
+        m = Instrument('ADATMN', 'ADA', 'TMN', D('1'), D('1'), D('0.1'), D('50000'))
+        # 1.0 ADA held, but 1.0/1.003 floors to 0 at step 1 -> nothing can be sold.
+        self.assertTrue(unsellable('1.0', m, price='60000', min_order_tmn='50000'))
+        self.assertFalse(unsellable('2', m, price='60000', min_order_tmn='50000'))
+
+    def test_below_nova_minimum_order_is_residue(self):
+        from execution.dust import unsellable
+        h = SyntheticHistory('AAATMN')
+        m = h.markets['AAATMN']
+        # 48 AAA at 1000 = 48,000 TMN: never sold by Nova (50,000 floor).
+        self.assertTrue(unsellable('48', m, price='1000', min_order_tmn='50000'))
+        self.assertFalse(unsellable('60', m, price='1000', min_order_tmn='50000'))
+
+    def test_capacity_ignores_three_residues(self):
+        h = SyntheticHistory('AAATMN')
+        h.bar = lambda s, x: None
+        c = self.controller({b: {'qty': '3', 'basis': '3000'} for b in ('AAA', 'BBB', 'CCC')})
+        c.strategy = lambda: {'positions': {b: {'symbol': 'AAATMN'} for b in ('AAA', 'BBB', 'CCC')}, 'route': None}
+        self.assertEqual(c.dust_bases(h, 1_800_000_000), ['AAA', 'BBB', 'CCC'])

@@ -381,7 +381,7 @@ SAFE_SNAPSHOT = ('at', 'phase', 'equity_tmn', 'cash_tmn', 'reported_cash_tmn', '
                  'source_sha256', 'native_protection', 'fully_realized_tmn', 'settlement_complete', 'balance_confirmed_at')
 
 
-def dust_view(app, snap, positions):
+def dust_view(app, snap, positions, min_order_tmn=50000):
     """Holdings below the exchange minimum order (cannot be sold on Wallex)."""
     out = {}
     markets = app.state.history.markets
@@ -394,8 +394,10 @@ def dust_view(app, snap, positions):
             qty, value = float(h['qty']), float(h.get('value_tmn') or 0)
         except (TypeError, ValueError, KeyError):
             continue
-        if qty < float(m.min_qty) or (value and value < float(m.min_notional)):
-            out[h['asset']] = {'min_notional_tmn': float(m.min_notional), 'min_qty': float(m.min_qty), 'value_tmn': value}
+        from execution.dust import unsellable
+        floor_tmn = float(min_order_tmn or 0)
+        if unsellable(h['qty'], m, value_tmn=str(value) if value else None, min_order_tmn=floor_tmn) or qty < float(m.min_qty):
+            out[h['asset']] = {'min_notional_tmn': max(float(m.min_notional), floor_tmn), 'min_qty': float(m.min_qty), 'value_tmn': value}
     return out
 
 
@@ -451,7 +453,7 @@ def live_view(app):
             out['latest_decision'] = j.decisions[-1] if j.decisions else None
             out['ai_calls_used'] = s.get('runtime_ai_calls', 0)
             out['positions_meta'] = s.get('strategy', {}).get('positions', {})
-            out['dust'] = dust_view(app, snap, out['positions_meta'])
+            out['dust'] = dust_view(app, snap, out['positions_meta'], cfg.get('min_order_tmn', 50000))
             out['journal_seq'] = j.seq
             out['fast'] = j.fast
         except Exception as exc:
