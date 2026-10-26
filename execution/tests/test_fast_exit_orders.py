@@ -121,3 +121,36 @@ class ThinPairDustTests(unittest.TestCase):
         c = self.controller({b: {'qty': '3', 'basis': '3000'} for b in ('AAA', 'BBB', 'CCC')})
         c.strategy = lambda: {'positions': {b: {'symbol': 'AAATMN'} for b in ('AAA', 'BBB', 'CCC')}, 'route': None}
         self.assertEqual(c.dust_bases(h, 1_800_000_000), ['AAA', 'BBB', 'CCC'])
+
+
+class ResidueAIContextTests(unittest.TestCase):
+    def test_ai_is_not_told_residues_are_positions(self):
+        from types import SimpleNamespace
+        from execution.controller import PortfolioController
+        h = SyntheticHistory('AAATMN')
+        h.bar = lambda s, x: None
+        t = 1_800_000_000//3600*3600
+        seen = {}
+
+        class AI:
+            calls = 0
+            def select(self, top, cfg, ctx):
+                seen.update(ctx)
+                return [], {'status': 'ok', 'decision': {'decisions': []}, 'actual_api_calls': 1}
+
+        state = {'ledger': {'cash': '1000000', 'realized': '0', 'holdings': {
+                     'AAA': {'qty': '3', 'basis': '3000'}, 'BBB': {'qty': '400', 'basis': '400000'}}},
+                 'strategy': {'positions': {'AAA': {'symbol': 'AAATMN'}}, 'route': None},
+                 'runtime_scans': {str(t): {'regime': {'regime': 'range', 'breadth': 0.5, 'btc_r24_bps': 0, 'median_vol24_bps': 50,
+                                                       'underlyings': 10, 'max_positions': 1}, 'top': [{'symbol': 'AAATMN'}], 'coverage': {}}}}
+        c = PortfolioController.__new__(PortfolioController)
+        c.cfg = {'min_order_tmn': '50000', 'ai_max_calls': 99}
+        c.end, c.ai = t+10*86400, AI()
+        def checkpoint(kind, payload, s):
+            c.j.s = s
+        c.j = SimpleNamespace(s=state, markets={}, fee_buffer=D('0.003'), checkpoint=checkpoint)
+        c.prepare_adaptive(h, now=t+60)
+        self.assertEqual(seen['max_new_positions'], 1)
+        self.assertEqual([p['asset'] for p in seen['portfolio']['positions']], ['BBB'])
+        self.assertEqual([r['asset'] for r in seen['portfolio']['unsellable_residues_ignored']], ['AAA'])
+        self.assertEqual(seen['portfolio']['open_position_slots_used'], 0)

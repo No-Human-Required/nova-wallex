@@ -177,11 +177,21 @@ class PortfolioController:
         s['runtime_ai_reservations']=dict(sorted(s['runtime_ai_reservations'].items())[-48:])
         self.j.checkpoint('runtime_ai_reservation',{'time':t,'calls_used':used},s)
         ledger=self.j.s['ledger']
+        def residue(a):
+            p=strategy['positions'].get(a) or {'symbol':a+'TMN'}
+            return a in dust or self.dust(history,t,a,p)
+        held={a:h for a,h in ledger['holdings'].items() if a!='USDT'}
+        residues=sorted(a for a in held if residue(a))
+        # Unsellable residues are not positions: the AI sees them separately so
+        # it never counts them as occupied slots.
         portfolio={'cash_tmn':ledger['cash'],'realized_pnl_tmn':ledger['realized'],
-                   'positions':[{'asset':a,'qty':h['qty'],'basis_tmn':h['basis'],'unsellable_residue':a in dust,
+                   'positions':[{'asset':a,'qty':h['qty'],'basis_tmn':h['basis'],
                                  'strategy':strategy['positions'].get(a,{}).get('strategy','legacy_trend6'),
                                  'held_hours':round((now-strategy['positions'].get(a,{}).get('opened_at',now))/3600,1)}
-                                for a,h in ledger['holdings'].items()]}
+                                for a,h in ledger['holdings'].items() if a not in residues],
+                   'open_position_slots_used':active,'max_positions':context['max_positions'],
+                   'unsellable_residues_ignored':[{'asset':a,'qty':held[a]['qty'],
+                                                   'note':'below the exchange minimum order; cannot be sold; holds no position slot'} for a in residues]}
         ctx={'time':t,'regime':{k:context[k] for k in ('regime','breadth','btc_r24_bps','median_vol24_bps','underlyings','max_positions')},
              'portfolio':portfolio,'hours_to_deadline':round((self.end-now)/3600,2),
              'max_new_positions':max(0,context['max_positions']-active)}

@@ -1,6 +1,6 @@
 {
-  "version": "4.7.1",
-  "source_sha256": "6f0647e7b1ccb024c5f1684681cf3fb351db0000b40d07acc2b489d3437ef39b",
+  "version": "4.7.2",
+  "source_sha256": "d66cab38656cc176e1a0002445700980ed76b46548f205968e4eebdcc0a3d39a",
   "offline_fault_tests_passed": true,
   "sqlite_tests_passed": 290,
   "postgres_tests_passed": 119,
@@ -31,6 +31,6 @@
   "strategy_studio": "agentic LLM loop (propose/backtest/tune/save) over a validated JSON strategy specification; backtests on recorded hourly data in memory without orders or AI; human full test and approval required; approved specifications enter the engine config via the operator upgrade and pass the same quality, AI, sizing and exit controls",
   "exit_order_policy": "all algorithmic sells (stops, take-profit, time/trend exits, portfolio halt, final TMN conversion) use a marketable LIMIT 5% below the best bid (exit_limit_bps=500): immediate fills against visible bids with a bounded worst price; no historical-volume throttle on exits, visible bid depth and order cap bind; native TRX stop uses a 5% deep limit (stop-market behaviour) and an operator replacement path cancels the resting stop before a renewed approval; raw MARKET/STOP_MARKET avoided because their reply contract is undocumented",
   "shadow_candles": "Wallex public UDF has no 5-minute resolution: 5/15-minute bars are aggregated from 1-minute candles (shadow test, market and equity charts)",
-  "dust_policy": "one shared rule (execution/dust.py) for controller capacity, planner entry check and the live panel: a holding is a residue when its sellable quantity (after the 0.3% fee reservation and qty step) is below the market minimum quantity, or its value is below max(market minimum notional, 50,000 TMN); valued at the live bid, else the latest hourly close within 48h (thin pairs often have no trade in the last hour), else cost basis. Residues never occupy a regime position slot; the selection event lists them.",
+  "dust_policy": "one shared rule (execution/dust.py) for controller capacity, planner entry check and the live panel: a holding is a residue when its sellable quantity (after the 0.3% fee reservation and qty step) is below the market minimum quantity, or its value is below max(market minimum notional, 50,000 TMN); valued at the live bid, else the latest hourly close within 48h (thin pairs often have no trade in the last hour), else cost basis. Residues never occupy a regime position slot; the selection event lists them. The AI request lists residues separately (unsellable_residues_ignored) with open_position_slots_used, so the model never treats them as occupied slots.",
   "minimum_order_policy": "no order below 50,000 TMN (min_order_tmn); entries need at least 60,000 TMN (min_entry_tmn) so a position stays sellable after its full stop; a chunked exit never leaves a remainder below the minimum plus 10%"
 }
