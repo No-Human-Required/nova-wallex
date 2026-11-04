@@ -15,6 +15,30 @@ PRESETS = {
     'aggressive': {'fa': 'جسورانه', 'risk_pct': 1.0, 'max_positions': 5, 'min_quality': 45, 'regime_filter': False},
 }
 BOT_TIMEFRAMES = ('15m', '30m', '1h', '4h')
+END_ACTIONS = {'close': 'فروش همهٔ موقعیت‌ها و توقف', 'exits_only': 'بدون ورود جدید؛ مدیریت خروج تا بسته شدن موقعیت‌ها، سپس توقف'}
+
+
+def validate_schedule(raw, now=None):
+    """Run window of a bot: ``from`` (None = as soon as started), ``until`` (None = unlimited)."""
+    raw = raw if isinstance(raw, dict) else {}
+    out = {}
+    for k in ('from', 'until'):
+        v = raw.get(k)
+        if v in (None, ''):
+            out[k] = None
+            continue
+        try:
+            out[k] = float(le.parse_time(v)) if isinstance(v, str) else float(v)
+        except (TypeError, ValueError):
+            raise ValueError('تاریخ شروع یا پایان ربات نامعتبر است') from None
+        if not 1.5e9 < out[k] < 4.2e9:
+            raise ValueError('تاریخ شروع یا پایان ربات نامعتبر است')
+    if out['from'] and out['until'] and out['until'] <= out['from']+3600:
+        raise ValueError('پایان اجرای ربات باید دست‌کم یک ساعت بعد از شروع آن باشد')
+    out['end_action'] = raw.get('end_action') or 'close'
+    if out['end_action'] not in END_ACTIONS:
+        raise ValueError('رفتار پایان بازه نامعتبر است')
+    return out
 EXTRA = {'ai_filter': True, 'ai_min_confidence': 0.65, 'preset': 'balanced'}
 
 
@@ -53,7 +77,7 @@ def validate(raw, exchange, mode, plan_cap_tmn=None, customs=None):
     if not 0.3 <= conf <= 0.95:
         raise ValueError('حداقل اطمینان AI باید بین ۰٫۳ و ۰٫۹۵ باشد')
     cfg = {k: p[k] for k in le.DEFAULTS if k not in {'start', 'end', 'source'}}
-    cfg.update(ai_filter=ai, ai_min_confidence=conf, preset=preset)
+    cfg.update(ai_filter=ai, ai_min_confidence=conf, preset=preset, schedule=validate_schedule(raw.get('schedule')))
     return cfg
 
 

@@ -17,7 +17,7 @@ from .exchanges import wallex_markets
 D = Decimal
 _lock = threading.Lock()
 _cache = {}
-STATUS = {'running': 'running', 'paused': 'reduce_only', 'closing': 'stopping', 'stopped': 'stopped', 'blocked': 'blocked',
+STATUS = {'scheduled': 'waiting_start', 'running': 'running', 'paused': 'reduce_only', 'closing': 'stopping', 'stopped': 'stopped', 'blocked': 'blocked',
           'pending_approval': 'activation_pending', 'deleted': 'stopped'}
 RULE_ONLY = ('rules_only', 'not_requested')
 
@@ -176,7 +176,8 @@ def live(db, bot, now=None):
     snap, meta, dust = snapshot(db, bot, state, px)
     limit, used = quota(db, bot['user_id'], now)
     return {'version': VERSION, 'bot': {'id': bot['id'], 'name': bot['name'], 'mode': bot['mode'], 'status': bot['status'], 'exchange': bot['exchange'],
-                                         'timeframe': cfg['timeframe'], 'symbols': cfg['symbols'], 'ai_filter': cfg.get('ai_filter')},
+                                         'timeframe': cfg['timeframe'], 'symbols': cfg['symbols'], 'ai_filter': cfg.get('ai_filter'),
+                                         'schedule': cfg.get('schedule') or {'from': None, 'until': None, 'end_action': 'close'}, 'started': bot['started']},
             'engine': engine(bot, cfg, now),
             'run': {'limits': {'capital_tmn': cfg['capital_tmn'], 'max_drawdown_fraction': None, 'ai_max_calls': limit},
                     'policy': 'adaptive_ai' if cfg.get('ai_filter') else 'rules', 'upgrade_required': False},

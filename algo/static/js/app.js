@@ -6,7 +6,7 @@ import { background, Radar, ART } from '/nova/js/fx.js';
 import { pageHow } from './how.js';
 import { labSection } from './lab.js';
 import { pageStudio } from './studio.js';
-import { pageLanding, pageLogin, pageBots, pageBuilder, pageKeys, pageBilling, pageProfile, toast, act, liveRequest } from './account.js';
+import { pageLanding, pageLogin, pageBots, pageBuilder, pageKeys, pageBilling, pageProfile, toast, act, liveRequest, scheduleModal, scheduleText } from './account.js';
 import { ADMIN_PAGES } from './admin.js';
 
 // [key, title, icon, needs a bot]
@@ -41,6 +41,7 @@ function shell() {
   <div class="side-foot"><div id="ver">نسخهٔ ${esc(S.meta.version)}</div><div>فقط اسپات · بدون اهرم · دارایی در حساب خودتان</div></div></aside>
   <main>${S.meta.notice ? `<div class="notice" style="margin-bottom:12px">${esc(S.meta.notice)}</div>` : ''}<header class="top"><h1 id="title"></h1>
   <span class="pill hidden" id="engpill"><span class="dot"></span><span>…</span></span>
+  <span class="pill hidden" id="schedpill" title="بازهٔ زمانی اجرای ربات">⏳ <span id="cdl">…</span> <span class="countdown" id="cd"></span></span>
   <label class="pill botpick hidden" id="botpick" title="رباتی که داشبورد نشان می‌دهد"><span class="faint">ربات</span><select id="botsel"></select></label>
   <span class="spacer"></span><a class="pill" id="who" href="#profile"></a></header><div id="page"></div></main></div><div id="toast" class="toast hidden"></div>`;
   background($('#fx'));
@@ -91,6 +92,7 @@ async function route() {
   const needsBot = def && def[3];
   $('#botpick').classList.toggle('hidden', !needsBot || !S.bots.length);
   $('#engpill').classList.toggle('hidden', !needsBot || !S.bot);
+  $('#schedpill').classList.toggle('hidden', !needsBot || !S.bot);
   const root = $('#page'); root.innerHTML = ''; root.className = 'fade-in';
   if (needsBot && !S.bot) {
     root.innerHTML = `<section class="panel glow" style="max-width:640px"><div class="body" style="padding:26px">
@@ -121,11 +123,12 @@ async function pollLive() {
 function botControls(node, d) {
   if (S.viewing === d.bot.id && !S.bots.some(b => b.id === d.bot.id)) { node.innerHTML = '<span class="chip y">نمای ادمین · فقط خواندنی</span> ' + botChip(d.bot.status); return; }
   const b = (S.bots.find(x => x.id === d.bot.id)) || {}; const st = d.bot.status; const hasPos = (d.snapshot.holdings || []).some(x => +x.basis > 0);
-  const can = { start: ['stopped', 'paused', 'blocked'].includes(st), pause: st === 'running', stop: ['running', 'paused', 'pending_approval', 'closing'].includes(st),
+  const can = { start: ['stopped', 'paused', 'blocked'].includes(st), pause: st === 'running', stop: ['running', 'paused', 'pending_approval', 'closing', 'scheduled'].includes(st),
     close: hasPos && ['running', 'paused', 'stopped'].includes(st), edit: ['stopped', 'blocked'].includes(st) };
-  const key = JSON.stringify([st, hasPos, b.live_approved]);
+  const key = JSON.stringify([st, hasPos, b.live_approved, d.bot.schedule]);
   if (node.dataset.k === key) return; node.dataset.k = key;
   node.innerHTML = `<div class="muted" style="margin-bottom:4px">${botChip(st)} <span class="chip ${d.bot.mode === 'live' ? 'y' : ''}">${d.bot.mode === 'live' ? 'واقعی' : 'آزمایشی'}</span> <span class="chip">${esc(d.bot.timeframe)}</span></div>
+    <div class="faint" style="font-size:11.5px;margin-bottom:6px">⏳ ${esc(scheduleText(d.bot.schedule, st))} · <a href="javascript:void 0" id="schedit">تغییر بازه</a></div>
     <div class="row" style="display:flex;gap:6px;flex-wrap:wrap">${can.start ? '<button class="primary" data-a="start">▶ شروع</button>' : ''}${can.pause ? '<button data-a="pause" title="ورود جدید نه؛ خروج‌ها مدیریت می‌شوند">❚❚ توقف ورود</button>' : ''}${can.stop ? '<button data-a="stop">■ توقف</button>' : ''}${can.close ? '<button class="danger" data-a="close">فروش همه</button>' : ''}${can.edit ? `<a href="#edit/${d.bot.id}"><button>ویرایش</button></a>` : ''}</div>
     ${d.bot.mode === 'live' && !b.live_approved ? `<div id="livereq" style="margin-top:6px"></div>` : ''}`;
   $$('[data-a]', node).forEach(x => x.onclick = async () => {
@@ -134,6 +137,7 @@ function botControls(node, d) {
     if (ask && !confirm(ask)) return;
     if (await act(() => api(`/api/bots/${d.bot.id}/${a}`, { body: {} }), 'انجام شد')) { node.dataset.k = ''; await refreshBots(); safe(pollLive); }
   });
+  $('#schedit', node).onclick = () => b.id && scheduleModal(b, async () => { node.dataset.k = ''; await refreshBots(); safe(pollLive); });
   if ($('#livereq', node)) liveRequest($('#livereq', node), b, () => { node.dataset.k = ''; refreshBots(); });
 }
 
@@ -477,6 +481,17 @@ function windowBars(el, rows, stress) {
   el.onmouseleave = () => { tip.style.display = 'none'; };
 }
 
+// Header countdown: time to the bot's scheduled start or end (Nova's contest clock, per bot).
+function countdown() {
+  const node = $('#cd'); const d = CTX.live; if (!node || !d || !d.bot || d.bot.id !== S.bot) return;
+  const s = d.bot.schedule || {}; const now = Date.now() / 1000;
+  const fmt = sec => { sec = Math.max(0, Math.floor(sec)); const dd = Math.floor(sec / 86400); sec %= 86400; const hh = Math.floor(sec / 3600); sec %= 3600;
+    return `${dd}d ${String(hh).padStart(2, '0')}:${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; };
+  const [label, value] = d.bot.status === 'scheduled' && s.from > now ? ['شروع تا', fmt(s.from - now)] : s.until && s.until > now ? ['پایان تا', fmt(s.until - now)]
+    : s.until ? ['بازه تمام شد', ''] : ['نامحدود', '∞'];
+  $('#cdl').textContent = label; node.textContent = value;
+}
+
 // ------------------------------------------------------------------ research
 function pageResearch(root) {
   const lab = document.createElement('div'); root.appendChild(lab); labSection(lab, { every, keep, safe });
@@ -494,5 +509,6 @@ function pageResearch(root) {
   safe(async () => { CTX.catalog = await api('/api/public/strategies'); });
   setInterval(() => { if (!document.hidden && S.user && S.bot && $('#engpill') && !$('#engpill').classList.contains('hidden')) safe(pollLive); }, 10000);
   setInterval(() => { if (!document.hidden && S.user) refreshBots(); }, 30000);
+  setInterval(countdown, 1000);
   addEventListener('hashchange', route); route();
 })();

@@ -22,7 +22,7 @@ from app.lab_data import TIMEFRAMES, TIMEFRAMES_FA, WallexCandles
 from execution import strategies as st
 from . import VERSION, exchanges
 from .auth import Auth, AuthError
-from .bots import PRESETS, BOT_TIMEFRAMES, validate as validate_bot, lab_params, initial_state
+from .bots import PRESETS, BOT_TIMEFRAMES, END_ACTIONS, validate as validate_bot, validate_schedule, lab_params, initial_state
 from .crypto import Secrets, fingerprint
 from .db import Database, data_dir, new_id
 from .payments import Zarinpal, PaymentError
@@ -79,6 +79,10 @@ class BotUpdate(Body):
     name: str | None = None
     config: dict | None = None
     mode: str | None = None
+
+
+class ScheduleBody(Body):
+    schedule: dict
 
 
 class LiveBody(Body):
@@ -258,7 +262,7 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
                 'lab_timeframes': [{'id': k, 'fa': TIMEFRAMES_FA[k]} for k in TIMEFRAMES],
                 'strategies': [{'id': k, 'fa': v['fa'], 'family': v['family'], 'thesis': v['thesis'], 'max_holding_hours': v['max_holding_hours']}
                                for k, v in st.STRATEGIES.items()],
-                'presets': {k: v for k, v in PRESETS.items()}, 'defaults': {k: v for k, v in le.DEFAULTS.items() if k not in {'start', 'end', 'source'}},
+                'presets': {k: v for k, v in PRESETS.items()}, 'end_actions': END_ACTIONS, 'defaults': {k: v for k, v in le.DEFAULTS.items() if k not in {'start', 'end', 'source'}},
                 'markets': [{'symbol': s, 'base': m.base, 'quote': m.quote} for s, m in sorted(exchanges.wallex_markets().items()) if s != 'USDTTMN'],
                 'plans': db.all('SELECT id,name,price_tmn,days,max_bots,max_live_bots,max_capital_tmn,ai_calls_month,description FROM plans WHERE active=1 ORDER BY sort'),
                 'development': development}
@@ -413,7 +417,10 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
             raise ValueError('پلن شما اجرای واقعی ندارد؛ از بخش اشتراک پلن را ارتقا دهید')
         stored = json.loads(bot['config'])
         customs = {**{c['id']: c for c in stored.get('custom_strategies') or []}, **studio.strategies.specs(u['id'])}
-        cfg = validate_bot(body.config if body.config is not None else stored, bot['exchange'], mode,
+        raw_cfg = body.config if body.config is not None else stored
+        if 'schedule' not in raw_cfg:
+            raw_cfg = {**raw_cfg, 'schedule': stored.get('schedule')}  # the run window is kept unless sent
+        cfg = validate_bot(raw_cfg, bot['exchange'], mode,
                            plan['max_capital_tmn'] if mode == 'live' and plan else None, customs=customs)
         changes = {'name': (body.name or bot['name']).strip()[:60], 'config': json.dumps(cfg), 'mode': mode}
         if mode != bot['mode'] or cfg['capital_tmn'] != json.loads(bot['config'])['capital_tmn']:
@@ -424,6 +431,16 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
         db.run('UPDATE bots SET name=?,config=?,mode=?,state=COALESCE(?,state),live_approved=?,updated=? WHERE id=?',
                (changes['name'], changes['config'], mode, changes.get('state'), approval, time.time(), ident))
         db.audit(u['id'], 'bot_updated', {'bot': ident, 'mode': mode, 'live_approval_kept': bool(approval)})
+        return bot_view(db.one('SELECT * FROM bots WHERE id=?', (ident,)))
+
+    @app.post('/api/bots/{ident}/schedule')
+    def schedule_bot(ident: str, body: ScheduleBody, request: Request):
+        """Change the run window at any time; the rules (and a live approval) stay as they are."""
+        u, bot = me(request), bot_of(request, ident)
+        sched = validate_schedule(body.schedule)
+        cfg = {**json.loads(bot['config']), 'schedule': sched}
+        db.run('UPDATE bots SET config=?,updated=? WHERE id=?', (json.dumps(cfg), time.time(), ident))
+        db.audit(u['id'], 'bot_schedule', {'bot': ident, **sched})
         return bot_view(db.one('SELECT * FROM bots WHERE id=?', (ident,)))
 
     @app.post('/api/bots/{ident}/request-live')
@@ -457,16 +474,21 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
             if bot['mode'] == 'live':
                 if not bot['live_approved']:
                     raise ValueError('اجرای واقعی هنوز توسط ادمین تأیید نشده است')
-                running = db.one("SELECT count(*) AS n FROM bots WHERE user_id=? AND mode='live' AND status IN ('running','paused','closing') AND id!=?", (u['id'], ident))['n']
+                running = db.one("SELECT count(*) AS n FROM bots WHERE user_id=? AND mode='live' AND status IN ('running','paused','closing','scheduled') AND id!=?", (u['id'], ident))['n']
                 if running >= plan['max_live_bots']:
                     raise ValueError(f'سقف ربات واقعی هم‌زمان پلن شما {plan["max_live_bots"]} است')
             if bot['status'] == 'blocked' and db.one("SELECT 1 AS x FROM bot_orders WHERE bot_id=? AND phase IN ('SUBMITTING','UNKNOWN')", (ident,)):
                 raise ValueError('ربات سفارش با وضعیت نامعلوم دارد؛ پشتیبانی باید بررسی کند')
-            db.run("UPDATE bots SET status='running',last_error=NULL,started=COALESCE(started,?),updated=? WHERE id=?", (now, now, ident))
+            sched = json.loads(bot['config']).get('schedule') or {}
+            if sched.get('until') and sched['until'] <= now:
+                raise ValueError('بازهٔ زمانی این ربات تمام شده است؛ اول زمان پایان را تغییر دهید یا «نامحدود» کنید')
+            waiting = bool(sched.get('from') and sched['from'] > now)
+            db.run("UPDATE bots SET status=?,last_error=NULL,started=COALESCE(started,?),updated=? WHERE id=?",
+                   ('scheduled' if waiting else 'running', None if waiting else now, now, ident))
         elif action == 'pause':
             db.run("UPDATE bots SET status='paused',updated=? WHERE id=? AND status='running'", (now, ident))
         elif action == 'stop':
-            db.run("UPDATE bots SET status='stopped',updated=? WHERE id=? AND status IN ('running','paused','pending_approval','closing')", (now, ident))
+            db.run("UPDATE bots SET status='stopped',updated=? WHERE id=? AND status IN ('running','paused','pending_approval','closing','scheduled')", (now, ident))
         elif action == 'close':
             if not json.loads(bot['state'])['positions']:
                 raise ValueError('موقعیت بازی وجود ندارد')
@@ -881,6 +903,7 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
             if body.status == 'blocked':
                 db.run('DELETE FROM sessions WHERE user_id=?', (ident,))
                 db.run("UPDATE bots SET status='paused' WHERE user_id=? AND status='running'", (ident,))
+                db.run("UPDATE bots SET status='stopped' WHERE user_id=? AND status='scheduled'", (ident,))
         if body.plan_id is not None:
             plan = db.one('SELECT * FROM plans WHERE id=?', (body.plan_id,))
             if not plan:

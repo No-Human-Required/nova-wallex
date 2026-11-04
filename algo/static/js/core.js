@@ -85,7 +85,7 @@ export const STATUS_FA = {
   activation_pending: 'در انتظار تأیید ادمین', not_configured: 'پیکربندی نشده', stopping: 'در حال بستن موقعیت‌ها', reduce_only: 'فقط مدیریت خروج'
 };
 // Bot statuses (the bots table) in Persian with a chip colour.
-export const BOT_STATUS = { running: ['در حال اجرا', 'ok'], paused: ['فقط مدیریت خروج', 'y'], stopped: ['متوقف', ''], closing: ['در حال بستن موقعیت‌ها', 'y'],
+export const BOT_STATUS = { scheduled: ['زمان‌بندی‌شده؛ منتظر شروع', 'smc'], running: ['در حال اجرا', 'ok'], paused: ['فقط مدیریت خروج', 'y'], stopped: ['متوقف', ''], closing: ['در حال بستن موقعیت‌ها', 'y'],
   pending_approval: ['در انتظار تأیید ادمین', 'smc'], blocked: ['مسدود — نیاز به بررسی', 'bad'], deleted: ['حذف‌شده', 'bad'] };
 export const botChip = st => { const [t, c] = BOT_STATUS[st] || [st, '']; return `<span class="chip ${c}">${esc(t)}</span>`; };
 export const REASON_FA = {

@@ -12,6 +12,40 @@ export function modal(html) {
   m.onclick = e => { if (e.target === m) m.remove(); }; document.body.appendChild(m); return m;
 }
 const post = (path, body = {}) => api(path, { body });
+
+// ------------------------------------------------------------------ run window (schedule)
+const localInput = ts => ts ? new Date(ts * 1000 - new Date(ts * 1000).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+const fromInput = v => v ? Math.floor(new Date(v).getTime() / 1000) : null;
+export function scheduleText(s, status) {
+  s = s || {}; const now = Date.now() / 1000;
+  if (status === 'scheduled' && s.from && s.from > now) return 'شروع خودکار ' + when(s.from) + (s.until ? ' · پایان ' + when(s.until) : ' · بدون پایان');
+  if (s.until) return (s.until > now ? 'پایان ' : 'بازه تمام شد ') + when(s.until) + (s.from ? ' · شروع ' + when(s.from) : '');
+  return s.from && s.from > now ? 'شروع ' + when(s.from) + ' · بدون پایان' : 'نامحدود (تا وقتی متوقفش کنید)';
+}
+export function scheduleFields(s) {
+  s = s || {}; const acts = S.meta.end_actions || {};
+  return `<div class="lgrid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <label class="lf"><span>شروع (به وقت شما؛ خالی = همان لحظهٔ «شروع»)</span><input type="datetime-local" data-s="from" value="${localInput(s.from)}"></label>
+      <label class="lf"><span>پایان</span><input type="datetime-local" data-s="until" value="${localInput(s.until)}" ${s.until ? '' : 'disabled'}></label>
+      <label class="chk" style="align-self:end;padding-bottom:8px"><input type="checkbox" data-s="unlimited" ${s.until ? '' : 'checked'}> نامحدود (بدون تاریخ پایان)</label></div>
+    <div class="prov" data-s="actions">${Object.entries(acts).map(([k, t]) => `<div class="pcard ${(s.end_action || 'close') === k ? 'on' : ''}" data-act="${k}"><b>${k === 'close' ? 'در پایان: فروش و توقف' : 'در پایان: فقط مدیریت خروج'}</b><span class="faint">${esc(t)}</span></div>`).join('')}</div>
+    <div class="faint" style="font-size:11.5px">در پایان بازه ورود جدید انجام نمی‌شود و ربات طبق انتخاب بالا موقعیت‌ها را می‌بندد. زمان‌ها به وقت مرورگر شما (تهران) هستند.</div>`;
+}
+export function bindSchedule(root) {
+  const un = root.querySelector('[data-s=unlimited]'), until = root.querySelector('[data-s=until]');
+  un.onchange = () => { until.disabled = un.checked; if (!un.checked && !until.value) until.value = localInput(Math.floor(Date.now() / 1000) + 7 * 86400); };
+  root.querySelectorAll('[data-act]').forEach(c => c.onclick = () => root.querySelectorAll('[data-act]').forEach(x => x.classList.toggle('on', x === c)));
+  return () => ({ from: fromInput(root.querySelector('[data-s=from]').value), until: un.checked ? null : fromInput(until.value),
+    end_action: (root.querySelector('[data-act].on') || {}).dataset ? root.querySelector('[data-act].on').dataset.act : 'close' });
+}
+export function scheduleModal(bot, done) {
+  const m = modal(`<div class="head"><h2>بازهٔ زمانی اجرای «${esc(bot.name)}»</h2></div><div class="body form" id="schf">${scheduleFields(bot.config.schedule)}
+    <div class="row"><button class="primary" id="schsave">ذخیره</button><button id="schc">انصراف</button></div>
+    <div class="faint" style="font-size:11.5px">تغییر بازه قواعد ربات را عوض نمی‌کند و تأیید اجرای واقعی سر جایش می‌ماند.</div></div>`);
+  const read = bindSchedule($('#schf', m));
+  $('#schc', m).onclick = () => m.remove();
+  $('#schsave', m).onclick = async () => { if (await act(() => post(`/api/bots/${bot.id}/schedule`, { schedule: read() }), 'بازهٔ زمانی ذخیره شد')) { m.remove(); done && done(); } };
+}
 const PRESET_TXT = p => `ریسک ${pct(p.risk_pct, 1).replace('+', '')} هر معامله · حداکثر ${n0(p.max_positions)} موقعیت · کیفیت ≥ ${n0(p.min_quality)}`;
 const famChip = f => `<span class="chip ${f === 'smart_money' ? 'smc' : 'ind'}">${f === 'smart_money' ? 'SMC' : f === 'hybrid' ? 'ترکیبی' : 'اندیکاتور'}</span>`;
 
@@ -93,7 +127,7 @@ function botCard(b) {
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:15px">${esc(b.name)}</b>${botChip(b.status)}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><span class="chip ${b.mode === 'live' ? 'y' : ''}">${b.mode === 'live' ? 'واقعی' : 'آزمایشی'}</span><span class="chip">${b.exchange === 'wallex' ? 'والکس' : esc(b.exchange)}</span><span class="chip">${esc(b.config.timeframe)}</span><span class="chip">${n0(b.config.symbols.length)} نماد</span>${b.config.ai_filter ? '<span class="chip smc">AI</span>' : ''}</div>
     <table><tr><td class="muted">ارزش</td><td><b>${toman(b.equity_tmn)}</b></td></tr><tr><td class="muted">سود/زیان</td><td class="${signCls(pnl)}">${toman(pnl)} (${pct(pnl / b.config.capital_tmn * 100)})</td></tr>
-    <tr><td class="muted">موقعیت باز</td><td>${n0(Object.keys(b.positions).length)}</td></tr></table>
+    <tr><td class="muted">موقعیت باز</td><td>${n0(Object.keys(b.positions).length)}</td></tr><tr><td class="muted">زمان اجرا</td><td style="font-size:12px">${esc(scheduleText(b.config.schedule, b.status))}</td></tr></table>
     ${b.last_error ? `<div class="faint neg" style="font-size:12px">${esc(b.last_error)}</div>` : ''}
     <div style="display:flex;gap:6px;margin-top:8px"><button class="primary" style="flex:1">داشبورد ←</button>${['stopped', 'blocked'].includes(b.status) ? `<a href="#edit/${b.id}"><button>ویرایش</button></a>` : ''}</div></div></div>`;
 }
@@ -140,7 +174,8 @@ export async function pageBuilder(root, ctx, id) {
         <label class="lf"><span>مدل خروج</span><select id="exit_mode"><option value="ladder" ${d.exit_mode === 'ladder' ? 'selected' : ''}>سه TP با فاصلهٔ برابر + حد ضرر پله‌ای</option><option value="single" ${d.exit_mode === 'single' ? 'selected' : ''}>یک حد سود</option></select></label></div>
         <div style="display:flex;gap:16px;flex-wrap:wrap"><label class="chk"><input type="checkbox" id="trailing" ${d.trailing ? 'checked' : ''}> حد ضرر شناور از اوج</label><label class="chk"><input type="checkbox" id="trend_exit" ${d.trend_exit ? 'checked' : ''}> خروج با برگشت روند</label>
         <label class="chk"><input type="checkbox" id="regime_filter" ${d.regime_filter ? 'checked' : ''}> فیلتر رژیم بازار (≥ ۳ نماد)</label></div></details></div></section>
-    <section class="panel" style="margin-bottom:14px"><div class="head"><h2>۴. هوش مصنوعی</h2><span class="sub">هر درخواست از سهمیهٔ ماهانهٔ پلن شما کم می‌شود</span></div><div class="body form">
+    <section class="panel" style="margin-bottom:14px"><div class="head"><h2>۴. زمان اجرا</h2><span class="sub">ربات از چه تاریخی تا کی کار کند؛ یا نامحدود</span></div><div class="body form" id="sched">${scheduleFields(d.schedule)}</div></section>
+    <section class="panel" style="margin-bottom:14px"><div class="head"><h2>۵. هوش مصنوعی</h2><span class="sub">هر درخواست از سهمیهٔ ماهانهٔ پلن شما کم می‌شود</span></div><div class="body form">
       <label class="chk"><input type="checkbox" id="ai" ${d.ai_filter ? 'checked' : ''}> هر ورود پیش از ارسال سفارش توسط AI تأیید، رتبه‌بندی و اندازه‌گذاری شود</label>
       <label class="lf" style="max-width:260px"><span>حداقل اطمینان مدل</span><input id="aic" type="number" step="0.05" min="0.3" max="0.95" value="${d.ai_min_confidence}"></label></div></section>
     <div class="row" style="display:flex;gap:8px;align-items:center"><button class="primary" id="save">${bot ? 'ذخیرهٔ تغییرات' : 'ساخت ربات'}</button><button id="bt">بک‌تست ۹۰ روزهٔ همین تنظیمات</button><span id="msg" class="muted"></span></div>
@@ -167,8 +202,9 @@ export async function pageBuilder(root, ctx, id) {
     } else symbols = k === 'major' ? ['BTCTMN', 'ETHTMN'] : [];
     paint();
   });
+  const readSchedule = bindSchedule($('#sched'));
   const val = k => { const v = $('#' + k).value; return v === '' ? null : +v; };
-  const config = () => ({ symbols, timeframe: $('#tf').value, strategies: $$('#lstrats input:checked').map(x => x.value), capital_tmn: val('cap'), preset,
+  const config = () => ({ schedule: readSchedule(), symbols, timeframe: $('#tf').value, strategies: $$('#lstrats input:checked').map(x => x.value), capital_tmn: val('cap'), preset,
     risk_pct: val('risk_pct'), max_positions: val('max_positions'), min_quality: val('min_quality'), max_asset_pct: val('max_asset_pct'), max_gross_pct: val('max_gross_pct'),
     min_stop_pct: val('min_stop_pct'), max_stop_pct: val('max_stop_pct'), trend_tp_r: val('trend_tp_r'), max_hold_hours: val('max_hold_hours'), cooldown_bars: val('cooldown_bars'),
     breakeven_buffer_pct: val('breakeven_buffer_pct'), exit_mode: $('#exit_mode').value, trailing: $('#trailing').checked, trend_exit: $('#trend_exit').checked,

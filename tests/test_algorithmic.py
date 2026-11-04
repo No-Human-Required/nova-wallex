@@ -196,6 +196,29 @@ class PlatformTests(unittest.TestCase):
         r = user.post(f'/api/bots/{bot["id"]}/update', json={'config': {**cfg, 'risk_pct': 0.3}})
         self.assertEqual(r.json()['live_approved'], 0)
 
+    def test_bot_run_window_api(self):
+        user, _ = self.login(USER)
+        now = time.time()
+        cfg = {'symbols': ['BTCTMN', 'ETHTMN'], 'timeframe': '1h', 'capital_tmn': 5_000_000,
+               'schedule': {'from': now+86400, 'until': now+5*86400, 'end_action': 'exits_only'}}
+        bot = user.post('/api/bots', json={'name': 'زمان‌دار', 'mode': 'paper', 'config': cfg}).json()
+        self.assertEqual(bot['config']['schedule']['end_action'], 'exits_only')
+        self.assertEqual(user.post(f'/api/bots/{bot["id"]}/start').json()['status'], 'scheduled')
+        self.assertEqual(user.post(f'/api/bots/{bot["id"]}/stop').json()['status'], 'stopped')
+        bad = user.post('/api/bots', json={'name': 'x', 'mode': 'paper', 'config': {**cfg, 'schedule': {'from': now+86400, 'until': now+86400}}})
+        self.assertEqual(bad.status_code, 422)
+        r = user.post(f'/api/bots/{bot["id"]}/schedule', json={'schedule': {'from': now-3*3600, 'until': now-3600}})
+        self.assertEqual(r.json()['config']['schedule']['until'], now-3600)
+        self.assertIn('بازهٔ زمانی', user.post(f'/api/bots/{bot["id"]}/start').json()['detail'])
+        r = user.post(f'/api/bots/{bot["id"]}/schedule', json={'schedule': {'from': None, 'until': None}})  # unlimited
+        self.assertIsNone(r.json()['config']['schedule']['until'])
+        self.assertEqual(user.post(f'/api/bots/{bot["id"]}/start').json()['status'], 'running')
+        # A plain config edit keeps the window it does not mention.
+        user.post(f'/api/bots/{bot["id"]}/stop')
+        user.post(f'/api/bots/{bot["id"]}/schedule', json={'schedule': {'until': now+9*86400}})
+        r = user.post(f'/api/bots/{bot["id"]}/update', json={'config': {'symbols': ['BTCTMN'], 'timeframe': '4h', 'capital_tmn': 5_000_000}})
+        self.assertEqual(r.json()['config']['schedule']['until'], now+9*86400)
+
     def test_nova_dashboard_views_per_bot_are_scoped(self):
         user, _ = self.login(USER)
         other, _ = self.login('09121112233')
@@ -466,6 +489,45 @@ class RunnerTests(ExecutorTests):
             self.db.run("UPDATE bots SET live_approved=0, status='running' WHERE id='b1'")
             r.run_bot(self.bot())
             self.assertEqual(self.bot()['status'], 'stopped')
+
+    def test_schedule_starts_on_time_and_closes_at_the_end(self):
+        m = Market('100000000', '100100000')
+        r, s = self.runner(m)
+        now = self.clock[0]
+        cfg = {**self.cfg, 'schedule': {'from': now+3600, 'until': now+3*3600, 'end_action': 'close'}}
+        self.db.run("UPDATE bots SET mode='paper', status='scheduled', config=? WHERE id='b1'", (json.dumps(cfg),))
+        with patch('app.lab_engine.scan_bar', return_value=([candidate()], None)):
+            r.run_bot(self.bot())
+            self.assertEqual(self.bot()['status'], 'scheduled')  # before the start time nothing runs
+            self.assertEqual(json.loads(self.bot()['state'])['positions'], {})
+            self.clock[0] = now+3600+30
+            r.run_bot(self.bot())
+            self.assertEqual(self.bot()['status'], 'running')
+            self.assertIn('BTCTMN', json.loads(self.bot()['state'])['positions'])
+            self.clock[0] = now+3*3600+30
+            r.run_bot(self.bot())  # window over: sell everything, then stop
+        self.assertEqual(json.loads(self.bot()['state'])['positions'], {})
+        self.assertEqual(self.bot()['status'], 'stopped')
+        self.assertEqual(self.db.one("SELECT reason FROM bot_trades WHERE bot_id='b1'")['reason'], 'manual_close')
+        self.assertTrue(self.db.one("SELECT 1 AS x FROM bot_events WHERE bot_id='b1' AND kind='schedule_ended'"))
+
+    def test_schedule_exits_only_keeps_managing_positions(self):
+        m = Market('100000000', '100100000')
+        r, s = self.runner(m)
+        now = self.clock[0]
+        cfg = {**self.cfg, 'schedule': {'from': None, 'until': now+3600, 'end_action': 'exits_only'}}
+        self.db.run("UPDATE bots SET mode='paper', config=? WHERE id='b1'", (json.dumps(cfg),))
+        with patch('app.lab_engine.scan_bar', return_value=([candidate()], None)):
+            r.run_bot(self.bot())
+            self.clock[0] = now+3600+30
+            r.run_bot(self.bot())
+        self.assertEqual(self.bot()['status'], 'paused')  # no new entries, the position keeps its stop and TPs
+        self.assertIn('BTCTMN', json.loads(self.bot()['state'])['positions'])
+        m.b, m.a = D('96000000'), D('96100000')  # stop hit: the position closes and the bot stops
+        self.clock[0] += 60
+        r.next.clear()
+        r.run_bot(self.bot())
+        self.assertEqual(self.bot()['status'], 'stopped')
 
     def test_write_authorizer_only_allows_own_submitting_orders(self):
         m = Market('1', '1')

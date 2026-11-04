@@ -21,7 +21,7 @@ from .ai import AIFilter
 from . import exchanges
 
 CYCLE_SECONDS = 30
-ACTIVE = ('running', 'paused', 'closing')
+ACTIVE = ('running', 'paused', 'closing', 'scheduled')
 
 
 def plan_allows_live(db, user, now):
@@ -57,11 +57,40 @@ class Runner:
         g._authorizer = authorize
         return g
 
+    def schedule(self, bot, now):
+        """Apply the bot's run window; returns the (possibly updated) bot row or None when nothing runs now."""
+        sched = json.loads(bot['config']).get('schedule') or {}
+        start, until = sched.get('from'), sched.get('until')
+        if bot['status'] == 'scheduled':
+            if until and now >= until:
+                self.stop(bot, 'stopped', 'بازهٔ زمانی ربات پیش از شروع تمام شد')
+                return None
+            if start and now < start:
+                return None
+            self.db.run("UPDATE bots SET status='running',started=COALESCE(started,?),updated=? WHERE id=? AND status='scheduled'", (now, now, bot['id']))
+            self.executor.event(bot, 'schedule_started', {'from': start})
+            return self.db.one('SELECT * FROM bots WHERE id=?', (bot['id'],))
+        if until and now >= until and bot['status'] == 'running':
+            action = sched.get('end_action') or 'close'
+            state = json.loads(bot['state'])
+            if not state['positions'] and not self.executor.orders(bot, ('SUBMITTING', 'UNKNOWN', 'OPEN', 'PARTIAL')):
+                self.stop(bot, 'stopped', None)
+                self.executor.event(bot, 'schedule_ended', {'until': until, 'action': 'stopped_flat'})
+                return None
+            status = 'closing' if action == 'close' else 'paused'
+            self.db.run('UPDATE bots SET status=?,updated=? WHERE id=?', (status, now, bot['id']))
+            self.executor.event(bot, 'schedule_ended', {'until': until, 'action': action})
+            return self.db.one('SELECT * FROM bots WHERE id=?', (bot['id'],))
+        return bot
+
     def run_bot(self, bot):
         now = self.clock()
         user = self.db.one('SELECT * FROM users WHERE id=?', (bot['user_id'],))
         if not user or user['status'] != 'active':
             self.stop(bot, 'stopped', 'حساب کاربر فعال نیست')
+            return
+        bot = self.schedule(bot, now)
+        if bot is None:
             return
         if bot['mode'] == 'live':
             if not bot['live_approved']:
@@ -78,7 +107,8 @@ class Runner:
         except BotBlocked as exc:
             self.stop(bot, 'blocked', str(exc))
             return
-        if bot['status'] == 'closing':
+        until = (json.loads(bot['config']).get('schedule') or {}).get('until')
+        if bot['status'] == 'closing' or (bot['status'] == 'paused' and until and now >= until):
             state = json.loads(self.db.one('SELECT state FROM bots WHERE id=?', (bot['id'],))['state'])
             if not state['positions'] and not self.executor.orders(bot, ('SUBMITTING', 'UNKNOWN', 'OPEN', 'PARTIAL')):
                 self.stop(bot, 'stopped', None)
