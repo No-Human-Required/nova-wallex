@@ -46,6 +46,16 @@ class BotBlocked(RuntimeError):
     pass
 
 
+def compact(c):
+    """A screened candidate as the dashboard shows it (no raw bars)."""
+    plan = c.get('plan') or {}
+    ind_ = c.get('indicators') or {}
+    return {'symbol': c['symbol'], 'strategy': c['strategy'], 'strategy_name': c.get('strategy_name'), 'quality': c.get('quality'),
+            'score': c.get('score'), 'confluence': c.get('confluence') or [c['strategy']],
+            'plan': {k: plan.get(k) for k in ('entry_ref_tmn', 'stop_fraction', 'stop_price_tmn', 'target_price_tmn', 'reward_risk', 'max_holding_hours')},
+            'indicators': {k: ind_.get(k) for k in ('rsi14', 'atr_pct', 'trend_aligned', 'volume_ratio')}}
+
+
 class PaperGateway:
     """Immediate fills at the public best bid/ask, Wallex-shaped replies."""
     paper = True
@@ -286,64 +296,117 @@ class Executor:
     # ------------------------------------------------------------- entries
     def on_bar(self, bot, cfg, state, gateway, markets, closed, entries_allowed):
         step = le.TIMEFRAMES[cfg['timeframe']]
+        at = closed+step  # the bar's close: the time every record of this scan carries
         series, idx, n24, btc = self.market.series(cfg, markets, closed, step)
         if series is None:
-            self.event(bot, 'data_unavailable', {'bar': closed})
+            self.event(bot, 'data_unavailable', {'bar': closed, 'time': at})
             return []
         for sym, pos in state['positions'].items():
-            if cfg['trend_exit'] and pos.get('strategy') in le.TREND_EXIT and sym in series:
+            if cfg['trend_exit'] and le.trend_exits(cfg, pos.get('strategy')) and sym in series:
                 w = series[sym].window(idx, 30)
                 if w:
                     e9, e21 = ind.last_ema(w[3], 9), ind.last_ema(w[3], 21)
                     if e9 is not None and e21 is not None and e9 < e21:
                         pos['exit_flag'] = 'trend_exit'
-        if not entries_allowed:
-            return []
         pending = {r['symbol'] for r in self.orders(bot, UNRESOLVED | OPEN)}
         cooling = {s for s, until in (state.get('cooldown') or {}).items() if until > self.clock()}
         busy = set(state['positions']) | pending | cooling
         free = cfg['max_positions']-len(state['positions'])-len(pending)
-        if free <= 0:
-            return []
         fee = {'TMN': cfg['fee_tmn_bps']/10000, 'USDT': (cfg['fee_usdt_bps']+cfg['fee_tmn_bps'])/10000}
         cost_bps = {q: 2*(fee[q]*10000+cfg['half_spread_bps']+cfg['slippage_bps']) for q in fee}
-        found, regime = le.scan_bar(cfg, series, markets, idx, n24, btc, le.strategy_cfg(cfg), cost_bps, busy)
-        if not found:
+        # The screener runs every bar (also while paused or full) so the dashboard keeps a history.
+        trace = {}
+        found, regime = le.scan_bar(cfg, series, markets, idx, n24, btc, le.strategy_cfg(cfg), cost_bps, busy, trace=trace)
+        context = self.record_scan(bot, cfg, at, step, series, idx, n24, btc, regime, trace, found)
+        if not entries_allowed or free <= 0 or not found:
+            if found:
+                self.record_decision(bot, at, step, {'status': 'not_requested', 'reason': 'regime_position_capacity_full' if free <= 0 else 'entries_paused',
+                                                     'regime': context, 'candidates': [compact(c) for c in found[:12]], 'decisions': [], 'selected': []})
             return []
         chosen = found[:max(free, 0)+3]
         if cfg.get('ai_filter'):
             if self.ai is None:
-                self.event(bot, 'ai_unavailable', {'bar': closed, 'candidates': len(found)})
+                self.event(bot, 'ai_unavailable', {'bar': closed, 'time': at, 'candidates': len(found)})
+                self.record_decision(bot, at, step, {'status': 'unavailable', 'reason': 'ai_unavailable', 'regime': context,
+                                                     'candidates': [compact(c) for c in chosen], 'decisions': [], 'selected': []})
                 return []
-            chosen = self.ai(bot, chosen, regime, cfg)
+            if hasattr(self.ai, 'decide'):
+                chosen, record = self.ai.decide(bot, chosen, regime, cfg)
+                self.record_decision(bot, at, step, {**record, 'regime': context})
+            else:
+                chosen = self.ai(bot, chosen, regime, cfg)
             if not chosen:
                 return []
+        else:
+            self.record_decision(bot, at, step, {'status': 'rules_only', 'regime': context, 'candidates': [compact(c) for c in found[:12]],
+                                                 'decisions': [], 'selected': [c['symbol'] for c in chosen[:free]]})
         out = []
         for c in chosen[:free]:
             market = markets[c['symbol']]
             book = self.market.book(c['symbol'])
             equity = self.equity(state, markets)
             stop = D(str(c['plan']['stop_fraction']))
-            budget = equity*D(str(cfg['risk_pct']))/100/stop if cfg['sizing'] == 'risk' else equity*D(str(cfg['position_pct']))/100
-            gross = equity-D(state['cash_tmn'])
             f = D(str(fee[market.quote]))
-            budget = min(budget, equity*D(str(cfg['max_asset_pct']))/100, equity*D(str(cfg['max_gross_pct']))/100-gross,
-                         D(state['cash_tmn'])/(1+f))*D(str(c.get('ai_size', 1)))
+            gross = equity-D(state['cash_tmn'])
+            caps = {'risk_budget' if cfg['sizing'] == 'risk' else 'position_size':
+                    equity*D(str(cfg['risk_pct']))/100/stop if cfg['sizing'] == 'risk' else equity*D(str(cfg['position_pct']))/100,
+                    'asset_cap': equity*D(str(cfg['max_asset_pct']))/100, 'gross_room': equity*D(str(cfg['max_gross_pct']))/100-gross,
+                    'cash_room': D(state['cash_tmn'])/(1+f)}
             free_tmn = self.free_tmn(gateway)
             if free_tmn is not None:
-                budget = min(budget, free_tmn/(1+f)*D('0.98'))
+                caps['exchange_cash'] = free_tmn/(1+f)*D('0.98')
+            binding = min(caps, key=lambda k: caps[k])
+            ai_size = D(str(c.get('ai_size', 1)))
+            budget = max(D(0), caps[binding])*ai_size
             price = q_up(book['ask']*(1+ENTRY_BOUND), market.price_step)
             qty = q_down(budget/price, market.qty_step)
+            sizing = {**{k: float(v) for k, v in caps.items()}, 'binding_limit': binding, 'ai_size': float(ai_size), 'budget': float(budget),
+                      'equity': float(equity), 'stop_fraction': float(stop),
+                      'risk_fraction': cfg['risk_pct']/100 if cfg['sizing'] == 'risk' else None}
+            alloc = {'time': at, 'candidate': c['symbol'], 'strategy': c['strategy'], 'quality': c['quality'], 'sizing': sizing,
+                     'budget_tmn': float(budget), 'ai_reason': c.get('ai_reason'), 'ai_size_reason': c.get('ai_size_reason')}
             if budget < D(str(cfg['min_order_tmn'])) or qty < market.min_qty or qty*price < market.min_notional*D('1.1'):
-                self.event(bot, 'entry_skipped', {'symbol': c['symbol'], 'reason': 'below_minimum', 'budget_tmn': str(budget)})
+                self.event(bot, 'allocation', {**alloc, 'approved': False, 'reason': 'کمتر از حداقل سفارش'})
+                self.event(bot, 'entry_skipped', {'time': at, 'symbol': c['symbol'], 'reason': 'below_minimum', 'budget_tmn': str(budget)})
                 continue
             d = le.tp_distance(float(price), float(stop), c['plan'].get('target_price_tmn'), c['strategy'], cost_bps[market.quote], cfg)
             plan = {'strategy': c['strategy'], 'stop': str(stop), 'tp_distance': str(round(d, 6)), 'quality': c['quality'],
-                    'max_hold': (cfg.get('max_hold_hours') or st.STRATEGIES[c['strategy']]['max_holding_hours'])*3600,
+                    'max_hold': (cfg.get('max_hold_hours') or le.holding_hours(cfg, c['strategy']))*3600,
                     'ai': {k: c.get(k) for k in ('ai_confidence', 'ai_reason', 'ai_size') if c.get(k) is not None} or None}
             cid = self.submit(bot, state, gateway, market, 'BUY', qty, price, c['strategy'], plan)
+            self.event(bot, 'allocation', {**alloc, 'approved': bool(cid), 'reason': None if cid else 'سفارش پذیرفته نشد', 'client_id': cid})
             out.append({'symbol': c['symbol'], 'strategy': c['strategy'], 'client_id': cid, 'budget_tmn': str(budget)})
         return out
+
+    # ------------------------------------------------------------- dashboard records
+    KEEP_BARS = 500
+
+    def record_scan(self, bot, cfg, at, step, series, idx, n24, btc, regime, trace, found):
+        try:
+            context = le.regime_context(cfg, series, idx, n24, btc, regime)
+        except Exception:  # partial data: the scan still counts, the regime card stays minimal
+            context = {'regime': regime or 'unfiltered', 'fa': (st.REGIMES.get(regime) or {}).get('fa', 'بدون فیلتر رژیم'),
+                       'breadth': 0.0, 'btc_r24_bps': 0.0, 'max_positions': cfg['max_positions'], 'strategies': list(cfg['strategies'])}
+        stages = [v.get('stage') for v in trace.values()]
+        held = stages.count('liquidity')
+        hits = {}
+        for v in trace.values():
+            if v.get('stage') in ('candidate', 'quality'):
+                for name in v.get('strategies') or []:
+                    hits[name] = hits.get(name, 0)+1
+        coverage = {'signal': stages.count('candidate')+stages.count('quality'), 'eligible_no_signal': stages.count('strategy'),
+                    'missing_required_history': stages.count('data')+held, 'held_or_cooling': held, 'below_quality': stages.count('quality'),
+                    'candidates': stages.count('candidate'), 'strategy_hits': hits, 'symbols': len(cfg['symbols'])}
+        scan = {'time': at, 'regime': context, 'coverage': coverage, 'pairs': trace, 'top': [compact(c) for c in found[:12]]}
+        self.db.run('INSERT INTO bot_scans(bot_id,time,detail) VALUES(?,?,?) ON CONFLICT(bot_id,time) DO UPDATE SET detail=excluded.detail',
+                    (bot['id'], at, json.dumps(scan, ensure_ascii=False, default=float)))
+        self.db.run('DELETE FROM bot_scans WHERE bot_id=? AND time<?', (bot['id'], at-self.KEEP_BARS*step))
+        return context
+
+    def record_decision(self, bot, at, step, record):
+        self.db.run('INSERT INTO bot_decisions(bot_id,time,detail) VALUES(?,?,?) ON CONFLICT(bot_id,time) DO UPDATE SET detail=excluded.detail',
+                    (bot['id'], at, json.dumps({**record, 'time': at}, ensure_ascii=False, default=float)))
+        self.db.run('DELETE FROM bot_decisions WHERE bot_id=? AND time<?', (bot['id'], at-self.KEEP_BARS*step))
 
     def free_tmn(self, gateway):
         r = gateway.main_balances()

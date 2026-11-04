@@ -38,7 +38,8 @@ DEFS = {
     'llm.base_url': ('str', '', False, 'آدرس پایهٔ LLM (خالی = پیش‌فرض سرویس)'),
     'llm.model': ('str', 'deepseek-v4.1-flash', False, 'مدل'),
     'llm.api_key': ('secret', '', True, 'کلید API پلتفرم'),
-    'llm.enabled': ('bool', True, False, 'فیلتر AI برای ربات‌ها'),
+    'llm.studio_model': ('str', '', False, 'مدل استودیوی استراتژی (خالی = همان مدل)'),
+    'llm.enabled': ('bool', True, False, 'هوش مصنوعی (فیلتر ربات‌ها و استودیو)'),
     # exchanges
     'exchange.wallex.enabled': ('bool', True, False, 'والکس'),
     'exchange.nobitex.enabled': ('bool', False, False, 'نوبیتکس (به‌زودی)'),

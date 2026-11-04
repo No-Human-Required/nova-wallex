@@ -29,6 +29,9 @@ from .payments import Zarinpal, PaymentError
 from .settings import Settings
 from .sms import IPPanel, normalize_phone, SMSError
 from .ai import quota
+from . import views
+from .studio import Studio, APPROVE_PHRASE, MIN_TRADES
+from execution.custom_strategy import SpecError, validate as validate_spec
 
 ROOT = Path(__file__).resolve().parent
 COOKIE = 'algo_session'
@@ -88,6 +91,32 @@ class BacktestBody(Body):
     start: str
     end: str
     title: str | None = None
+
+
+class LabRun(Body):
+    params: dict
+    title: str | None = None
+
+
+class StudioNew(Body):
+    title: str | None = None
+
+
+class StudioMessage(Body):
+    text: str
+
+
+class StudioDraft(Body):
+    spec: dict
+
+
+class StudioBacktest(Body):
+    windows: int = 6
+    scenario: str = 'base'
+
+
+class StudioApprove(Body):
+    confirmation: str
 
 
 class PayBody(Body):
@@ -157,7 +186,8 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
     lock = threading.Lock()
 
     app = FastAPI(title='Algorithmic', docs_url=None, redoc_url=None, openapi_url=None)
-    app.state.db, app.state.settings, app.state.auth = db, settings, auth
+    studio = Studio(db, settings, lab_candles, start=start_threads)
+    app.state.db, app.state.settings, app.state.auth, app.state.studio = db, settings, auth, studio
 
     # ------------------------------------------------------------ middleware
     @app.middleware('http')
@@ -353,7 +383,8 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
             raise ValueError('این صرافی فعلاً فعال نیست')
         if body.mode not in ('paper', 'live'):
             raise ValueError('حالت ربات نامعتبر است')
-        cfg = validate_bot(body.config, body.exchange, body.mode, plan['max_capital_tmn'] if body.mode == 'live' else None)
+        cfg = validate_bot(body.config, body.exchange, body.mode, plan['max_capital_tmn'] if body.mode == 'live' else None,
+                           customs=studio.strategies.specs(u['id']))
         name = body.name.strip()[:60]
         if not name:
             raise ValueError('نام ربات را وارد کنید')
@@ -380,8 +411,10 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
         plan, active = plan_of(u)
         if mode == 'live' and (not active or plan['max_live_bots'] <= 0):
             raise ValueError('پلن شما اجرای واقعی ندارد؛ از بخش اشتراک پلن را ارتقا دهید')
-        cfg = validate_bot(body.config if body.config is not None else json.loads(bot['config']), bot['exchange'], mode,
-                           plan['max_capital_tmn'] if mode == 'live' and plan else None)
+        stored = json.loads(bot['config'])
+        customs = {**{c['id']: c for c in stored.get('custom_strategies') or []}, **studio.strategies.specs(u['id'])}
+        cfg = validate_bot(body.config if body.config is not None else stored, bot['exchange'], mode,
+                           plan['max_capital_tmn'] if mode == 'live' and plan else None, customs=customs)
         changes = {'name': (body.name or bot['name']).strip()[:60], 'config': json.dumps(cfg), 'mode': mode}
         if mode != bot['mode'] or cfg['capital_tmn'] != json.loads(bot['config'])['capital_tmn']:
             if state['positions']:
@@ -480,28 +513,18 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
     @app.post('/api/backtests')
     def create_backtest(body: BacktestBody, request: Request):
         u = me(request)
-        if db.one("SELECT count(*) AS n FROM backtests WHERE user_id=? AND status IN ('queued','running')", (u['id'],))['n'] >= 2:
-            raise ValueError('دو بک‌تست در صف دارید؛ تا پایان آن‌ها صبر کنید')
-        if db.one('SELECT count(*) AS n FROM backtests WHERE user_id=? AND created>?', (u['id'], time.time()-86400))['n'] >= 40:
-            raise ValueError('سقف روزانهٔ بک‌تست (۴۰) پر شده است')
         if body.bot_id:
             bot = bot_of(request, body.bot_id)
             cfg = json.loads(bot['config'])
             if body.config:
-                cfg = validate_bot({**cfg, **body.config}, bot['exchange'], 'paper')
+                customs = {**{c['id']: c for c in cfg.get('custom_strategies') or []}, **studio.strategies.specs(u['id'])}
+                cfg = validate_bot({**cfg, **body.config}, bot['exchange'], 'paper', customs=customs)
         else:
-            cfg = validate_bot(body.config or {}, 'wallex', 'paper')
+            cfg = validate_bot(body.config or {}, 'wallex', 'paper', customs=studio.strategies.specs(u['id'], ('draft', 'tested', 'approved')))
         params = lab_params(cfg, body.start, body.end)
-        le.validate(params, exchanges.wallex_markets(), time.time())  # reject bad ranges before queueing
-        ident = new_id(8)
-        db.run('INSERT INTO backtests(id,user_id,bot_id,title,status,params,result,error,created,finished) VALUES(?,?,?,?,?,?,?,?,?,?)',
-               (ident, u['id'], body.bot_id, (body.title or '')[:80] or None, 'queued', json.dumps(params), None, None, time.time(), None))
-        with lock:
-            queue.append((ident, u['id'], params))
-            if worker['thread'] is None and start_threads:
-                worker['thread'] = threading.Thread(target=backtest_worker, daemon=True, name='algo-backtests')
-                worker['thread'].start()
-        return {'id': ident}
+        p = le.validate(params, exchanges.wallex_markets(), time.time())  # reject bad ranges before queueing
+        title = (body.title or '')[:80] or ('، '.join(p['symbols'][:3])+('…' if len(p['symbols']) > 3 else '')+' · '+p['timeframe'])
+        return {'id': queue_backtest(u, params, title, body.bot_id)}
 
     @app.get('/api/backtests')
     def list_backtests(request: Request):
@@ -519,6 +542,275 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
         if not row:
             raise HTTPException(404, 'پیدا نشد')
         return rows_json([row], 'params', 'result')[0]
+
+    # ------------------------------------------------------------ Nova dashboard per bot
+    def bot_any(request, ident):
+        """The owner's bot; an admin may open any bot's dashboard (read-only views)."""
+        u = me(request)
+        bot = db.one('SELECT * FROM bots WHERE id=?', (ident,))
+        if not bot or bot['status'] == 'deleted' or (bot['user_id'] != u['id'] and u['role'] != 'admin'):
+            raise HTTPException(404, 'ربات پیدا نشد')
+        return bot
+
+    @app.get('/api/u/bots/{ident}/live')
+    def bot_live(ident: str, request: Request):
+        return views.live(db, bot_any(request, ident))
+
+    @app.get('/api/u/bots/{ident}/journal')
+    def bot_journal(ident: str, request: Request):
+        return views.journal(db, bot_any(request, ident))
+
+    @app.get('/api/u/bots/{ident}/equity')
+    def bot_equity(ident: str, request: Request, resolution: str = 'auto'):
+        return views.equity(db, bot_any(request, ident), resolution)
+
+    @app.get('/api/u/bots/{ident}/explain')
+    def bot_explain(ident: str, request: Request):
+        bot = bot_any(request, ident)
+        return views.cached(('explain', ident), 5, lambda: views.explain(db, bot))
+
+    @app.get('/api/u/bots/{ident}/shadow')
+    def bot_shadow(ident: str, request: Request):
+        bot = bot_any(request, ident)
+        try:
+            return views.cached(('shadow', ident), 60, lambda: views.shadow(db, bot))
+        except Exception as exc:
+            raise HTTPException(503, 'تست سایه در دسترس نیست ('+type(exc).__name__+')') from None
+
+    @app.get('/api/u/ticker')
+    def u_ticker():
+        try:
+            return views.ticker()
+        except Exception as exc:
+            raise HTTPException(503, 'قیمت‌های والکس در دسترس نیست ('+type(exc).__name__+')') from None
+
+    @app.get('/api/u/candles')
+    def u_candles(symbol: str, resolution: str = '1', minutes: int = 720):
+        from app.public_api import CANDLES, RESOLUTIONS
+        if symbol not in exchanges.wallex_markets():
+            raise HTTPException(404, 'نماد خارج از بازارهای مجاز است')
+        if resolution not in RESOLUTIONS or not 30 <= minutes <= 20160:
+            raise HTTPException(422, 'تفکیک یا بازه نامعتبر است')
+        end = int(time.time())
+        try:
+            rows = CANDLES.get(symbol, resolution, end-minutes*60, end)
+        except Exception as exc:
+            raise HTTPException(503, 'کندل‌های والکس در دسترس نیست ('+type(exc).__name__+')') from None
+        ts = sorted(rows)
+        return {'symbol': symbol, 'resolution': resolution, 'received_at': time.time(), 't': ts, 'o': [rows[t][0] for t in ts],
+                'h': [rows[t][1] for t in ts], 'l': [rows[t][2] for t in ts], 'c': [rows[t][3] for t in ts], 'v': [rows[t][4] for t in ts]}
+
+    @app.get('/api/u/strategies')
+    def u_strategies(request: Request):
+        customs = list(studio.strategies.specs(me(request)['id']).values())
+        return views.catalog({'custom_strategies': customs, 'ai_filter': True, 'min_quality': 55})
+
+    @app.get('/api/u/adaptive-report')
+    def u_report():
+        from starwallex.util import ROOT as NOVA, read_json
+        path = NOVA/'seed/adaptive-report.json'
+        return read_json(path) if path.exists() else {'pending': True, 'aggregates': [], 'rows': []}
+
+    @app.get('/api/me/strategies')
+    def my_strategies(request: Request):
+        """Strategies a bot can use: the built-ins and the user's approved Studio strategies."""
+        out = [{'id': k, 'fa': v['fa'], 'family': v['family'], 'thesis': v['thesis'], 'custom': False, 'max_holding_hours': v['max_holding_hours']}
+               for k, v in st.STRATEGIES.items()]
+        for k, c in studio.strategies.specs(me(request)['id']).items():
+            out.append({'id': k, 'fa': c['name_fa'], 'family': c['family'], 'thesis': c.get('thesis_fa', ''), 'custom': True,
+                        'max_holding_hours': c['max_holding_hours'], 'regimes': c['regimes']})
+        return out
+
+    # ------------------------------------------------------------ strategy studio (per user)
+    def sid_of(request, sid):
+        try:
+            studio.sessions.get(me(request)['id'], sid)
+        except KeyError:
+            raise HTTPException(404, 'گفت‌وگو پیدا نشد') from None
+        return me(request)['id']
+
+    @app.get('/api/studio')
+    def studio_overview(request: Request):
+        return studio.overview(me(request)['id'])
+
+    @app.post('/api/studio/sessions')
+    def studio_new(body: StudioNew, request: Request):
+        u = me(request)
+        if len(studio.sessions.list(u['id'])) >= 30:
+            old = studio.sessions.list(u['id'])[-1]
+            db.run('DELETE FROM studio_sessions WHERE id=? AND user_id=?', (old['id'], u['id']))
+        return studio.session_view(u['id'], studio.sessions.create(u['id'], body.title)['id'])
+
+    @app.get('/api/studio/sessions/{sid}')
+    def studio_session(sid: str, request: Request):
+        return studio.session_view(sid_of(request, sid), sid)
+
+    @app.post('/api/studio/sessions/{sid}/message')
+    def studio_message(sid: str, body: StudioMessage, request: Request):
+        uid = sid_of(request, sid)
+        text = body.text.strip()
+        if not 1 <= len(text) <= 3000:
+            raise ValueError('پیام باید ۱ تا ۳۰۰۰ نویسه باشد')
+        if studio.busy.get(sid):
+            raise ValueError('این گفت‌وگو هنوز در حال اجراست')
+        if not settings.get('llm.enabled') or not settings.get('llm.api_key'):
+            raise ValueError('هوش مصنوعی پلتفرم هنوز توسط ادمین تنظیم نشده است')
+        limit, used = quota(db, uid)
+        if used >= limit:
+            raise ValueError(f'سهمیهٔ ماهانهٔ AI شما ({limit} فراخوانی) تمام شده است؛ پلن را ارتقا دهید')
+        studio.turn(uid, sid, text)
+        return studio.session_view(uid, sid)
+
+    @app.post('/api/studio/sessions/{sid}/draft')
+    def studio_draft(sid: str, body: StudioDraft, request: Request):
+        uid = sid_of(request, sid)
+        try:
+            spec = validate_spec(body.spec)
+        except SpecError as exc:
+            raise ValueError(str(exc)) from None
+        from execution.custom_strategy import summary as spec_summary
+        studio.sessions.update(uid, sid, draft=spec)
+        studio.sessions.append(uid, sid, {'role': 'event', 'kind': 'manual_edit', 'summary': spec_summary(spec)})
+        return studio.session_view(uid, sid)
+
+    @app.post('/api/studio/sessions/{sid}/backtest')
+    def studio_backtest(sid: str, body: StudioBacktest, request: Request):
+        uid = sid_of(request, sid)
+        if studio.busy.get(sid):
+            raise ValueError('این گفت‌وگو هنوز در حال اجراست')
+        studio.manual_backtest(uid, sid, body.windows, body.scenario)
+        return studio.session_view(uid, sid)
+
+    @app.post('/api/studio/sessions/{sid}/save')
+    def studio_save(sid: str, request: Request):
+        uid = sid_of(request, sid)
+        s = studio.sessions.get(uid, sid)
+        if not s['draft']:
+            raise ValueError('ابتدا یک پیش‌نویس بسازید')
+        ident = studio.strategies.save(uid, s['draft'], sid, s.get('strategy_id'))
+        studio.sessions.update(uid, sid, strategy_id=ident)
+        return studio.session_view(uid, sid)
+
+    def strategy_of(request, ident):
+        try:
+            return studio.strategies.get(me(request)['id'], ident)
+        except KeyError:
+            raise HTTPException(404, 'استراتژی پیدا نشد') from None
+
+    @app.post('/api/studio/strategies/{ident}/test')
+    def studio_full_test(ident: str, request: Request):
+        strategy_of(request, ident)
+        j = studio.full_test(me(request)['id'], ident)
+        return {k: v for k, v in j.items() if k != 'user'}
+
+    @app.post('/api/studio/strategies/{ident}/approve')
+    def studio_approve(ident: str, body: StudioApprove, request: Request):
+        r = strategy_of(request, ident)
+        if body.confirmation.strip() != APPROVE_PHRASE:
+            raise ValueError('عبارت تأیید درست نیست')
+        rep = r['report']
+        if not rep or rep.get('spec_sha256') != r['spec_sha256']:
+            raise ValueError('ابتدا «آزمون کامل» را برای همین نسخه اجرا کنید')
+        if not rep.get('eligible'):
+            raise ValueError(f'شرط حداقلی برقرار نیست: حداقل {MIN_TRADES} معامله و بدترین پنجره بهتر از ۵٪- لازم است')
+        studio.strategies.set(me(request)['id'], ident, status='approved', approved_at=time.time())
+        db.audit(me(request)['id'], 'studio_strategy_approved', {'id': ident, 'spec_sha256': r['spec_sha256']})
+        return {'ok': True, 'id': ident, 'status': 'approved', 'next': 'در «ربات‌ها» یک ربات بسازید یا ربات متوقف را ویرایش کنید و این استراتژی را انتخاب کنید'}
+
+    @app.post('/api/studio/strategies/{ident}/retire')
+    def studio_retire(ident: str, request: Request):
+        strategy_of(request, ident)
+        studio.strategies.set(me(request)['id'], ident, status='retired')
+        db.audit(me(request)['id'], 'studio_strategy_retired', {'id': ident})
+        return {'ok': True, 'id': ident, 'status': 'retired'}
+
+    @app.get('/api/studio/jobs/{ident}')
+    def studio_job(ident: str, request: Request):
+        j = studio.jobs.get(ident)
+        if not j or j['user'] != me(request)['id']:
+            raise HTTPException(404, 'کار پیدا نشد')
+        return {k: v for k, v in j.items() if k != 'user'}
+
+    @app.get('/api/settings')
+    def studio_settings(request: Request):
+        """What studio.js reads: Studio strategies used by the user's bots."""
+        used = set()
+        for b in db.all("SELECT config FROM bots WHERE user_id=? AND status!='deleted'", (me(request)['id'],)):
+            used |= {c['id'] for c in json.loads(b['config']).get('custom_strategies') or []}
+        return {'bound': {'custom_strategies': sorted(used)}}
+
+    # ------------------------------------------------------------ backtest lab (Nova's lab page)
+    def lab_customs(user_id, names):
+        mine = studio.strategies.specs(user_id, ('draft', 'tested', 'approved'))
+        return [mine[x] for x in names if isinstance(x, str) and x in mine]
+
+    @app.get('/api/studio/lab/meta')
+    def lab_meta(request: Request):
+        mine = studio.strategies.specs(me(request)['id'], ('draft', 'tested', 'approved'))
+        strategies = [{'id': k, 'fa': v['fa'], 'family': v['family'], 'max_holding_hours': v['max_holding_hours']} for k, v in st.STRATEGIES.items()]
+        strategies += [{'id': k, 'fa': c['name_fa'], 'family': c['family'], 'max_holding_hours': c['max_holding_hours'], 'custom': True} for k, c in mine.items()]
+        return {'timeframes': [{'id': k, 'fa': TIMEFRAMES_FA[k], 'seconds': v, 'default_stops': le.default_stops(v)} for k, v in TIMEFRAMES.items()],
+                'strategies': strategies,
+                'markets': [{'symbol': s, 'base': m.base, 'quote': m.quote} for s, m in sorted(exchanges.wallex_markets().items()) if s != 'USDTTMN'],
+                'defaults': {k: v for k, v in le.DEFAULTS.items() if k not in {'start', 'end', 'custom_strategies'}},
+                'recorded_span': None, 'limits': {'max_symbols': le.MAX_SYMBOLS, 'minute_max_days': 62, 'max_years': 3},
+                'exit_reasons': le.EXIT_FA, 'sources': ['wallex']}
+
+    def queue_backtest(u, params, title, bot_id=None):
+        if db.one("SELECT count(*) AS n FROM backtests WHERE user_id=? AND status IN ('queued','running')", (u['id'],))['n'] >= 2:
+            raise ValueError('دو بک‌تست در صف دارید؛ تا پایان آن‌ها صبر کنید')
+        if db.one('SELECT count(*) AS n FROM backtests WHERE user_id=? AND created>?', (u['id'], time.time()-86400))['n'] >= 40:
+            raise ValueError('سقف روزانهٔ بک‌تست (۴۰) پر شده است')
+        ident = new_id(8)
+        db.run('INSERT INTO backtests(id,user_id,bot_id,title,status,params,result,error,created,finished) VALUES(?,?,?,?,?,?,?,?,?,?)',
+               (ident, u['id'], bot_id, title, 'queued', json.dumps(params), None, None, time.time(), None))
+        with lock:
+            queue.append((ident, u['id'], params))
+            if worker['thread'] is None and start_threads:
+                worker['thread'] = threading.Thread(target=backtest_worker, daemon=True, name='algo-backtests')
+                worker['thread'].start()
+        return ident
+
+    @app.post('/api/studio/lab/runs', status_code=202)
+    def lab_create(body: LabRun, request: Request):
+        u = me(request)
+        raw = {**{k: v for k, v in body.params.items() if k != 'custom_strategies'}, 'source': 'wallex'}
+        raw['custom_strategies'] = lab_customs(u['id'], raw.get('strategies') or [])
+        p = le.validate(raw, exchanges.wallex_markets(), time.time())
+        title = (body.title or '')[:80] or ('، '.join(p['symbols'][:3])+('…' if len(p['symbols']) > 3 else '')+' · '+p['timeframe'])
+        return {'id': queue_backtest(u, raw, title)}
+
+    def lab_summary(r):
+        res = json.loads(r['result']) if r.get('result') else None
+        p = json.loads(r['params'])
+        return {'id': r['id'], 'title': r['title'], 'status': r['status'], 'error': r['error'], 'created': r['created'], 'finished': r['finished'],
+                'bot_id': r.get('bot_id'),
+                'spec': {'symbols': p.get('symbols'), 'timeframe': p.get('timeframe'), 'start_ts': (res or {}).get('params', {}).get('start_ts') or le.parse_time(p['start']),
+                         'end_ts': (res or {}).get('params', {}).get('end_ts') or le.parse_time(p['end']), 'source': 'wallex', 'strategies': p.get('strategies'),
+                         'exit_mode': p.get('exit_mode'), 'start': p.get('start'), 'end': p.get('end')},
+                'summary': {k: res['summary'].get(k) for k in ('total_return_pct', 'max_drawdown_pct', 'sharpe', 'profit_factor', 'trades', 'win_rate_pct')} if res else None,
+                'benchmark_return_pct': res['benchmark']['total_return_pct'] if res and res.get('benchmark') else None}
+
+    @app.get('/api/studio/lab/runs')
+    def lab_runs(request: Request):
+        rows = db.all('SELECT * FROM backtests WHERE user_id=? ORDER BY created DESC LIMIT 40', (me(request)['id'],))
+        out = []
+        for r in rows:
+            v = lab_summary(r)
+            with lock:
+                v['progress'] = progress.get(r['id'])
+            out.append(v)
+        return out
+
+    @app.get('/api/studio/lab/runs/{ident}')
+    def lab_run(ident: str, request: Request):
+        row = db.one('SELECT * FROM backtests WHERE id=? AND user_id=?', (ident, me(request)['id']))
+        if not row:
+            raise HTTPException(404, 'پیدا نشد')
+        r = rows_json([row], 'params', 'result')[0]
+        with lock:
+            r['progress'] = progress.get(ident)
+        return r
 
     # ------------------------------------------------------------ plans & payments
     @app.post('/api/pay')
@@ -723,6 +1015,8 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
     static = ROOT/'static'
     app.mount('/assets', StaticFiles(directory=static), name='assets')
     app.mount('/fonts', StaticFiles(directory=ROOT.parent/'static'/'fonts'), name='fonts')
+    # Nova's own stylesheet, charts and effects: the user panel is built on the same UI.
+    app.mount('/nova', StaticFiles(directory=ROOT.parent/'static'), name='nova')
 
     @app.get('/healthz')
     def health():

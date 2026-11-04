@@ -37,14 +37,20 @@ class AIFilter:
                     (new_id(), bot['id'], self.clock(), kind, json.dumps(detail, ensure_ascii=False, default=str)))
 
     def __call__(self, bot, candidates, regime, cfg):
+        return self.decide(bot, candidates, regime, cfg)[0]
+
+    def decide(self, bot, candidates, regime, cfg):
+        """Ranked approved candidates and the decision record shown on the dashboard."""
+        from .executor import compact
+        shown = [compact(c) for c in candidates]
         key = self.s.get('llm.api_key')
         if not self.s.get('llm.enabled') or not key:
             self.event(bot, 'ai_unavailable', {'reason': 'platform_ai_not_configured'})
-            return []
+            return [], {'status': 'unavailable', 'reason': 'platform_ai_not_configured', 'candidates': shown, 'decisions': [], 'selected': []}
         limit, used = quota(self.db, bot['user_id'], self.clock())
         if used >= limit:
             self.event(bot, 'ai_quota_exhausted', {'limit': limit, 'used': used})
-            return []
+            return [], {'status': 'quota', 'reason': 'persistent_call_budget', 'candidates': shown, 'decisions': [], 'selected': []}
         state = json.loads(bot['state'])
         ai_cfg = {'ai_model': self.s.get('llm.model'), 'ai_provider': self.s.get('llm.provider'),
                   'ai_base_url': self.s.get('llm.base_url') or None, 'ai_timeout_seconds': 60, 'ai_max_calls': 10**9,
@@ -56,6 +62,7 @@ class AIFilter:
                                            for s, p in state['positions'].items()]},
                'hours_to_deadline': None, 'max_new_positions': max(0, cfg['max_positions']-len(state['positions']))}
         ai = ai_decision.AdaptiveAI(self.cache, **({'transport': self.transport} if self.transport else {}))
+        mapping, _ = ai_decision.candidate_items(candidates)
         with _lock:
             original = ai_decision.api_key
             ai_decision.api_key = lambda: key
@@ -70,7 +77,14 @@ class AIFilter:
             self.db.run('INSERT INTO ai_usage(user_id,month,calls) VALUES(?,?,?) ON CONFLICT(user_id,month) DO UPDATE SET calls=ai_usage.calls+excluded.calls',
                         (bot['user_id'], month(self.clock()), calls))
         decision = record.get('decision') or {}
-        self.event(bot, 'ai_decision', {'status': record.get('status'), 'calls': calls, 'market_view': decision.get('market_view'),
-                                        'decisions': [{k: d.get(k) for k in ('id', 'action', 'confidence', 'size', 'reason')} for d in decision.get('decisions') or []],
-                                        'candidates': [c['symbol'] for c in candidates]})
-        return ranked
+        rows = [{'symbol': (mapping.get(d.get('id')) or {}).get('symbol'), **{k: d.get(k) for k in ('id', 'action', 'confidence', 'size', 'reason', 'size_reason')}}
+                for d in decision.get('decisions') or []]
+        attempts = [{k: a.get(k) for k in ('variant', 'status', 'finish_reason', 'http_status', 'usage', 'latency_seconds', 'error_type')}
+                    for a in record.get('attempts') or []]
+        view = {'status': record.get('status'), 'reason': record.get('reason'), 'calls': calls, 'replayed': bool(record.get('replayed')),
+                'market_view': decision.get('market_view'), 'regime_assessment': decision.get('regime_assessment'),
+                'decisions': rows, 'selected': [c['symbol'] for c in ranked], 'candidates': shown,
+                'model': record.get('response_model') or ai_cfg['ai_model'], 'attempts': attempts, 'usage': record.get('usage'),
+                'latency_seconds': record.get('latency_seconds'), 'reasoning_excerpt': (record.get('reasoning_excerpt') or '')[:3000]}
+        self.event(bot, 'ai_decision', {'status': view['status'], 'calls': calls, 'selected': view['selected']})
+        return ranked, view

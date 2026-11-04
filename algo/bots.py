@@ -18,8 +18,19 @@ BOT_TIMEFRAMES = ('15m', '30m', '1h', '4h')
 EXTRA = {'ai_filter': True, 'ai_min_confidence': 0.65, 'preset': 'balanced'}
 
 
-def validate(raw, exchange, mode, plan_cap_tmn=None):
+def validate(raw, exchange, mode, plan_cap_tmn=None, customs=None):
+    """``customs``: the user's approved Strategy Studio specifications by id.
+
+    Studio strategies are chosen by id in ``strategies``; their specifications
+    are embedded from ``customs`` (never taken from the request).
+    """
     raw = dict(raw or {})
+    customs = customs or {}
+    chosen = [x for x in raw.get('strategies') or le.DEFAULTS['strategies'] if isinstance(x, str)]
+    unknown = [x for x in chosen if x.startswith('custom_') and x not in customs]
+    if unknown:
+        raise ValueError('استراتژی استودیو باید تأییدشده و متعلق به شما باشد: '+'، '.join(unknown))
+    raw['custom_strategies'] = [customs[x] for x in chosen if x in customs]
     preset = raw.get('preset') or 'balanced'
     if preset not in PRESETS and preset != 'custom':
         raise ValueError('پروفایل ریسک نامعتبر است')

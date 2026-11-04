@@ -1,0 +1,235 @@
+// Landing, sign-in, bots, bot builder, exchange keys, subscription and profile (Nova look).
+import { S, api, n0, n2, toman, pct, signCls, when, esc, h, $, $$, botChip, download } from './core.js';
+import { background, ART } from '/nova/js/fx.js';
+
+export function toast(msg, err = false) {
+  const t = $('#toast') || document.body.appendChild(h('<div id="toast" class="toast hidden"></div>'));
+  t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); clearTimeout(t._h); t._h = setTimeout(() => t.classList.add('hidden'), 4200);
+}
+export async function act(fn, ok) { try { const r = await fn(); if (ok) toast(ok); return r; } catch (e) { toast(e.message, true); return null; } }
+export function modal(html) {
+  const m = h(`<div class="modal"><div class="panel">${html}</div></div>`);
+  m.onclick = e => { if (e.target === m) m.remove(); }; document.body.appendChild(m); return m;
+}
+const post = (path, body = {}) => api(path, { body });
+const PRESET_TXT = p => `ریسک ${pct(p.risk_pct, 1).replace('+', '')} هر معامله · حداکثر ${n0(p.max_positions)} موقعیت · کیفیت ≥ ${n0(p.min_quality)}`;
+const famChip = f => `<span class="chip ${f === 'smart_money' ? 'smc' : 'ind'}">${f === 'smart_money' ? 'SMC' : f === 'hybrid' ? 'ترکیبی' : 'اندیکاتور'}</span>`;
+
+// ------------------------------------------------------------------ public
+export function pageLanding() {
+  const m = S.meta;
+  const plans = m.plans.map(p => `<div class="panel plan"><div class="body"><b style="font-size:16px">${esc(p.name)}</b>
+    <div class="big" style="font-size:26px;margin:6px 0">${+p.price_tmn ? toman(p.price_tmn) : 'رایگان'}</div><div class="faint">${+p.price_tmn ? n0(p.days) + ' روز' : 'همیشه'}</div>
+    <div class="muted" style="font-size:13px;margin:8px 0">${esc(p.description || '')}</div>
+    <div style="font-size:12.5px">${n0(p.max_bots)} ربات · ${+p.max_live_bots ? n0(p.max_live_bots) + ' ربات واقعی' : 'فقط اجرای آزمایشی'} · ${n0(p.ai_calls_month)} درخواست AI در ماه</div></div></div>`).join('');
+  const strategies = m.strategies.map(s => `<div class="panel strategy">${ART[s.id] || ''}<div><h3>${esc(s.fa)} ${famChip(s.family)}</h3><div class="muted" style="font-size:12.5px">${esc(s.thesis)}</div></div></div>`).join('');
+  document.body.innerHTML = `<canvas id="fx" aria-hidden="true"></canvas><div class="land">
+    <header class="top"><a class="brand" href="#home"><img src="/assets/mark.svg" alt=""><div><b>${esc(m.site_name)}</b><small>ALGORITHMIC TRADING BOTS</small></div></a><span class="spacer"></span>
+      <a href="#login"><button class="primary">ورود / ثبت‌نام</button></a></header>
+    <section class="panel glow lhero"><div class="body">
+      <h1>ربات معامله‌گر <span>خودت</span> را بساز، بسنج و به کار بینداز</h1>
+      <p class="muted">همان موتوری که در چالش والکس زنده معامله کرد: شش استراتژی Smart Money و اندیکاتوری، تشخیص رژیم بازار، فیلتر هوش مصنوعی با دلیل ثبت‌شده و مدیریت ریسک با سه حد سود و حد ضرر پله‌ای. اول روی گذشته بک‌تست بگیر، بعد آزمایشی اجرا کن و وقتی مطمئن شدی روی حساب صرافی خودت فعالش کن. دارایی همیشه در حساب خودت می‌ماند.</p>
+      <div class="row" style="display:flex;gap:10px;align-items:center;margin-top:16px"><a href="#login"><button class="primary">شروع رایگان</button></a><span class="faint">ورود فقط با شمارهٔ موبایل و کد پیامکی</span></div>
+      <div class="flow-steps" style="margin-top:22px">${[['ساخت', 'نمادها، استراتژی‌ها و پروفایل ریسک'], ['بک‌تست', 'هر تایم‌فریم و بازه، شارپ، افت، مونت‌کارلو'], ['اجرای آزمایشی', 'قیمت زنده بدون پول واقعی'], ['اجرای واقعی', 'روی حساب والکس خودت، پس از تأیید']].map(([a, b], i) => `<div class="fs"><b>${n0(i + 1)}. ${a}</b><span class="muted" style="font-size:12px">${b}</span></div>`).join('')}</div></div></section>
+    <section class="grid g3" style="margin:16px 0">${[['داشبورد زنده', 'منحنی ارزش، اسکنر رادار، نمودار هر موقعیت با ورود، حد ضرر و سه TP، و ژورنال کامل هر سفارش.'],
+      ['جریان تصمیم شفاف', 'ببین هر نماد در کدام مرحله رد یا انتخاب شد: داده، ستاپ، کیفیت، تأیید AI، اندازه‌گذاری و سفارش.'],
+      ['استودیوی استراتژی', 'با هوش مصنوعی گفت‌وگو کن تا استراتژی خودت را بسازد، بک‌تست بگیرد و ضرایبش را بهینه کند.'],
+      ['تست سایه', 'هر نامزدی که ربات دید (تأییدشده یا ردشده) بدون سفارش دنبال می‌شود تا اثر واقعی AI را ببینی.'],
+      ['مدیریت ریسک', 'ریسک ثابت هر معامله، سقف هر دارایی و ناخالص، حد ضرر شناور و حد ضرر پله‌ای پس از هر TP.'],
+      ['امنیت', 'کلید API رمزنگاری‌شده و فقط با دسترسی معامله؛ هر ربات واقعی پیش از اجرا توسط ادمین بررسی می‌شود.']]
+      .map(([a, b]) => `<div class="panel"><div class="body"><b>${a}</b><div class="muted" style="font-size:13px;margin-top:4px">${b}</div></div></div>`).join('')}</section>
+    <h2 style="font-size:16px">استراتژی‌های آماده</h2><section class="grid g2" style="margin-bottom:18px">${strategies}</section>
+    <h2 style="font-size:16px">پلن‌ها</h2><section class="grid g3">${plans}</section>
+    <p class="faint" style="margin:30px 0 10px;font-size:12px">معامله در بازار رمزارز ریسک دارد و بازده گذشته یا بک‌تست سود آینده را تضمین نمی‌کند.${m.support ? ' · ' + esc(m.support) : ''}</p></div>
+    <div id="toast" class="toast hidden"></div>`;
+  background($('#fx'));
+}
+
+export function pageLogin(done) {
+  let phone = '', timer = null;
+  document.body.innerHTML = `<canvas id="fx" aria-hidden="true"></canvas><div class="land"><header class="top"><a class="brand" href="#home"><img src="/assets/mark.svg" alt=""><div><b>${esc(S.meta.site_name)}</b><small>ALGORITHMIC TRADING BOTS</small></div></a></header>
+    <section class="panel glow login"><div class="head"><h2>ورود / ثبت‌نام</h2><a class="tools" href="#home">بازگشت</a></div><div class="body form" id="lf">
+      <label>شمارهٔ موبایل<input id="ph" class="ltr" inputmode="tel" placeholder="09121234567" autocomplete="tel" style="width:100%"></label>
+      <button class="primary" id="send">دریافت کد</button><div class="faint" style="font-size:12px">کد ۶ رقمی با پیامک ارسال می‌شود. حساب در اولین ورود ساخته می‌شود.</div></div></section></div><div id="toast" class="toast hidden"></div>`;
+  background($('#fx'));
+  const step2 = r => {
+    $('#lf').innerHTML = `<div class="muted">کد ارسال‌شده به <b class="mono">${esc(r.phone)}</b> را وارد کنید${r.dev_code ? ` <span class="chip y">حالت توسعه: ${esc(r.dev_code)}</span>` : ''}</div>
+      <input id="code" class="code ltr" inputmode="numeric" maxlength="6" autocomplete="one-time-code"><button class="primary" id="verify">ورود</button>
+      <div class="row"><button id="resend" disabled>ارسال دوباره</button><span class="faint" id="cd"></span><a href="#login" id="chg" class="faint" style="margin-inline-start:auto">تغییر شماره</a></div>`;
+    let left = r.resend_after; clearInterval(timer);
+    timer = setInterval(() => { left--; if ($('#cd')) $('#cd').textContent = left > 0 ? n0(left) + ' ثانیه' : ''; if (left <= 0) { clearInterval(timer); if ($('#resend')) $('#resend').disabled = false; } }, 1000);
+    $('#code').focus();
+    const go = async () => { const v = await act(() => post('/api/auth/verify', { phone, code: $('#code').value })); if (v) { S.user = v.user; S.csrf = v.csrf; S.authenticated = true; clearInterval(timer); location.hash = '#live'; done(); } };
+    $('#verify').onclick = go; $('#code').oninput = () => { if ($('#code').value.length === 6) go(); };
+    $('#resend').onclick = send; $('#chg').onclick = () => { clearInterval(timer); pageLogin(done); };
+  };
+  async function send() { phone = phone || $('#ph').value; const r = await act(() => post('/api/auth/request', { phone })); if (r) { phone = r.phone; step2(r); } }
+  $('#send').onclick = send; $('#ph').onkeydown = e => { if (e.key === 'Enter') send(); }; $('#ph').focus();
+}
+
+async function refreshMe() { const r = await api('/api/auth/me'); S.user = r.user; S.csrf = r.csrf || S.csrf; return S.user; }
+
+// ------------------------------------------------------------------ bots
+export function pageBots(root, ctx) {
+  root.innerHTML = `<section class="grid g4" id="bk" style="margin-bottom:14px"></section>
+    <div class="row" style="display:flex;gap:8px;margin-bottom:14px"><a href="#new"><button class="primary">＋ ربات جدید</button></a><a href="#research"><button>بک‌تست</button></a><a href="#studio"><button>استودیوی استراتژی</button></a></div>
+    <section class="grid g3" id="blist"><div class="skeleton" style="height:160px"></div></section>`;
+  ctx.every(15000, async () => {
+    const bots = await ctx.refreshBots(); await refreshMe().catch(() => null);
+    const u = S.user; if (!u) return;
+    const live = bots.filter(b => b.mode === 'live'), paper = bots.filter(b => b.mode === 'paper');
+    const total = l => l.reduce((a, b) => a + (+b.equity_tmn || 0), 0);
+    const k = (a, b, c) => `<div class="panel kpi"><div class="label">${a}</div><div class="value">${b}</div><div class="note">${c}</div></div>`;
+    $('#bk').innerHTML = k('پلن', esc(u.plan ? u.plan.name : 'بدون پلن'), u.plan_active ? (u.plan_expires ? 'تا ' + when(u.plan_expires) : '') : '<a href="#billing">فعال‌سازی پلن</a>')
+      + k('سهمیهٔ AI این ماه', n0(u.ai_quota.used) + ' / ' + n0(u.ai_quota.limit), 'درخواست')
+      + k('ربات‌های واقعی', n0(live.length), 'ارزش: ' + toman(total(live))) + k('ربات‌های آزمایشی', n0(paper.length), 'ارزش مجازی: ' + toman(total(paper)));
+    $('#blist').innerHTML = bots.length ? bots.map(botCard).join('') : `<div class="panel span2"><div class="empty">هنوز رباتی نساخته‌اید.<br><br><a href="#new"><button class="primary">ساخت اولین ربات</button></a></div></div>`;
+    $$('#blist [data-open]').forEach(x => x.onclick = e => { if (e.target.closest('a,button')) return; S.bot = x.dataset.open; try { localStorage.setItem('algo.bot', S.bot); } catch (_) { /* optional */ } location.hash = '#live'; });
+  });
+}
+function botCard(b) {
+  const pnl = (+b.equity_tmn) - (+b.config.capital_tmn);
+  return `<div class="panel botcard" data-open="${b.id}"><div class="body">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:15px">${esc(b.name)}</b>${botChip(b.status)}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><span class="chip ${b.mode === 'live' ? 'y' : ''}">${b.mode === 'live' ? 'واقعی' : 'آزمایشی'}</span><span class="chip">${b.exchange === 'wallex' ? 'والکس' : esc(b.exchange)}</span><span class="chip">${esc(b.config.timeframe)}</span><span class="chip">${n0(b.config.symbols.length)} نماد</span>${b.config.ai_filter ? '<span class="chip smc">AI</span>' : ''}</div>
+    <table><tr><td class="muted">ارزش</td><td><b>${toman(b.equity_tmn)}</b></td></tr><tr><td class="muted">سود/زیان</td><td class="${signCls(pnl)}">${toman(pnl)} (${pct(pnl / b.config.capital_tmn * 100)})</td></tr>
+    <tr><td class="muted">موقعیت باز</td><td>${n0(Object.keys(b.positions).length)}</td></tr></table>
+    ${b.last_error ? `<div class="faint neg" style="font-size:12px">${esc(b.last_error)}</div>` : ''}
+    <div style="display:flex;gap:6px;margin-top:8px"><button class="primary" style="flex:1">داشبورد ←</button>${['stopped', 'blocked'].includes(b.status) ? `<a href="#edit/${b.id}"><button>ویرایش</button></a>` : ''}</div></div></div>`;
+}
+
+// The live-approval request box (key choice) for a live bot.
+export async function liveRequest(node, b, done) {
+  if (b.status === 'pending_approval') { node.innerHTML = '<div class="notice" style="font-size:12px">درخواست اجرای واقعی در انتظار بررسی ادمین است.</div>'; return; }
+  const keys = (await api('/api/keys').catch(() => [])).filter(k => k.exchange === b.exchange && k.status === 'verified');
+  node.innerHTML = `${b.review_note ? `<div class="notice red" style="font-size:12px;margin-bottom:6px">${esc(b.review_note)}</div>` : ''}<div class="row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    <select id="lkey" style="max-width:220px">${keys.map(k => `<option value="${k.id}">${esc(k.label || 'کلید')} …${esc(k.last4)}</option>`).join('') || '<option value="">کلید تأییدشده ندارید</option>'}</select>
+    <button class="primary" id="lreq">درخواست اجرای واقعی</button><a href="#keys" class="faint">کلیدها</a></div>`;
+  $('#lreq', node).onclick = async () => { if (!$('#lkey', node).value) return toast('اول یک کلید API تأییدشده اضافه کنید', true); if (await act(() => post(`/api/bots/${b.id}/request-live`, { key_id: $('#lkey', node).value }), 'درخواست ثبت شد')) done(); };
+}
+
+// ------------------------------------------------------------------ builder
+export async function pageBuilder(root, ctx, id) {
+  const bot = id ? await act(() => api('/api/bots/' + id)) : null;
+  if (id && !bot) return;
+  const m = S.meta; const strategies = await api('/api/me/strategies').catch(() => m.strategies);
+  const { fa: _fa, ...balanced } = m.presets.balanced;
+  const d = bot ? { ...bot.config } : { ...m.defaults, ...balanced, preset: 'balanced', ai_filter: true, ai_min_confidence: 0.65, symbols: ['BTCTMN', 'ETHTMN', 'SOLTMN', 'XRPTMN', 'DOGETMN'], capital_tmn: 10000000 };
+  let mode = bot ? bot.mode : 'paper', exchange = bot ? bot.exchange : 'wallex', symbols = [...d.symbols], preset = d.preset || 'balanced';
+  const num = (key, label, v, step) => `<label class="lf"><span>${label}</span><input id="${key}" type="number" step="${step}" value="${v ?? ''}"></label>`;
+  root.innerHTML = `
+    <section class="panel" style="margin-bottom:14px"><div class="head"><h2>۱. صرافی و حالت اجرا</h2></div><div class="body form">
+      <label class="lf" style="max-width:360px"><span>نام ربات</span><input id="bn" value="${esc(bot ? bot.name : 'ربات من')}" maxlength="60"></label>
+      <div class="prov" id="exch">${m.exchanges.map(e => `<div class="pcard ${e.enabled ? '' : 'off'}" data-x="${e.id}"><b>${esc(e.fa)}</b><span class="faint">${e.enabled ? 'فعال' : 'به‌زودی'}</span></div>`).join('')}</div>
+      <div class="prov" id="mode"><div class="pcard" data-m="paper"><b>آزمایشی (کاغذی)</b><span class="faint">قیمت‌های زندهٔ بازار، بدون پول واقعی</span></div><div class="pcard" data-m="live"><b>واقعی</b><span class="faint">روی حساب صرافی خودت؛ پس از تأیید ادمین</span></div></div></div></section>
+    <section class="panel" style="margin-bottom:14px"><div class="head"><h2>۲. بازار و استراتژی</h2></div><div class="body form">
+      <div class="lf"><span>نمادها <b id="symc" class="chip y"></b></span><div id="syms" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0"></div>
+        <div class="row"><input id="sq" list="mk" class="ltr" placeholder="افزودن نماد، مثلاً ADATMN" style="width:220px"><datalist id="mk">${m.markets.map(x => `<option value="${x.symbol}">`).join('')}</datalist>
+        <button id="sadd">افزودن</button><button data-pre="major">BTC + ETH</button><button data-pre="top10">۱۰ بازار بزرگ</button><button data-pre="clear">پاک کردن</button></div></div>
+      <label class="lf" style="max-width:260px"><span>تایم‌فریم سیگنال</span><select id="tf">${m.timeframes.map(t => `<option value="${t.id}" ${t.id === d.timeframe ? 'selected' : ''}>${t.fa}</option>`).join('')}</select></label>
+      <div class="lf"><span>استراتژی‌ها</span><div id="lstrats" style="display:flex;gap:10px;flex-wrap:wrap">${strategies.map(s => `<label class="chk" title="${esc(s.thesis)}"><input type="checkbox" value="${s.id}" ${d.strategies.includes(s.id) ? 'checked' : ''}> ${famChip(s.family)}${s.custom ? ' <span class="chip y">استودیو</span>' : ''} ${esc(s.fa)}</label>`).join('')}</div>
+        <div class="faint" style="font-size:11.5px">استراتژی‌های «استودیو» پس از آزمون کامل و تأیید در استودیوی استراتژی اینجا ظاهر می‌شوند.</div></div></div></section>
+    <section class="panel" style="margin-bottom:14px"><div class="head"><h2>۳. سرمایه و ریسک</h2></div><div class="body form">
+      <label class="lf" style="max-width:260px"><span>سرمایهٔ ربات (تومان)</span><input id="cap" type="number" min="500000" step="100000" value="${d.capital_tmn}"></label>
+      <div class="prov" id="pre">${Object.entries(m.presets).map(([k, p]) => `<div class="pcard" data-p="${k}"><b>${esc(p.fa)}</b><span class="faint">${PRESET_TXT(p)}</span></div>`).join('')}<div class="pcard" data-p="custom"><b>سفارشی</b><span class="faint">همهٔ پارامترها دست خودت</span></div></div>
+      <details id="adv"><summary>تنظیمات پیشرفته</summary><div class="lgrid">
+        ${num('risk_pct', 'ریسک هر معامله ٪', d.risk_pct, 0.05)}${num('max_positions', 'حداکثر موقعیت هم‌زمان', d.max_positions, 1)}${num('min_quality', 'حداقل کیفیت ستاپ (۰ تا ۱۰۰)', d.min_quality, 1)}
+        ${num('max_asset_pct', 'سقف هر دارایی ٪ (خالی = خودکار)', d.max_asset_pct, 1)}${num('max_gross_pct', 'سقف ناخالص ٪', d.max_gross_pct, 1)}${num('min_stop_pct', 'حد ضرر کمینه ٪ (خالی = خودکار)', d.min_stop_pct, 0.1)}
+        ${num('max_stop_pct', 'حد ضرر بیشینه ٪', d.max_stop_pct, 0.1)}${num('trend_tp_r', 'TP1 روندی (برابر R)', d.trend_tp_r, 0.1)}${num('max_hold_hours', 'حداکثر نگهداری (ساعت، خالی = استراتژی)', d.max_hold_hours, 1)}
+        ${num('cooldown_bars', 'مکث پس از خروج (کندل)', d.cooldown_bars, 1)}${num('breakeven_buffer_pct', 'حاشیهٔ سربه‌سر ٪', d.breakeven_buffer_pct, 0.1)}
+        <label class="lf"><span>مدل خروج</span><select id="exit_mode"><option value="ladder" ${d.exit_mode === 'ladder' ? 'selected' : ''}>سه TP با فاصلهٔ برابر + حد ضرر پله‌ای</option><option value="single" ${d.exit_mode === 'single' ? 'selected' : ''}>یک حد سود</option></select></label></div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap"><label class="chk"><input type="checkbox" id="trailing" ${d.trailing ? 'checked' : ''}> حد ضرر شناور از اوج</label><label class="chk"><input type="checkbox" id="trend_exit" ${d.trend_exit ? 'checked' : ''}> خروج با برگشت روند</label>
+        <label class="chk"><input type="checkbox" id="regime_filter" ${d.regime_filter ? 'checked' : ''}> فیلتر رژیم بازار (≥ ۳ نماد)</label></div></details></div></section>
+    <section class="panel" style="margin-bottom:14px"><div class="head"><h2>۴. هوش مصنوعی</h2><span class="sub">هر درخواست از سهمیهٔ ماهانهٔ پلن شما کم می‌شود</span></div><div class="body form">
+      <label class="chk"><input type="checkbox" id="ai" ${d.ai_filter ? 'checked' : ''}> هر ورود پیش از ارسال سفارش توسط AI تأیید، رتبه‌بندی و اندازه‌گذاری شود</label>
+      <label class="lf" style="max-width:260px"><span>حداقل اطمینان مدل</span><input id="aic" type="number" step="0.05" min="0.3" max="0.95" value="${d.ai_min_confidence}"></label></div></section>
+    <div class="row" style="display:flex;gap:8px;align-items:center"><button class="primary" id="save">${bot ? 'ذخیرهٔ تغییرات' : 'ساخت ربات'}</button><button id="bt">بک‌تست ۹۰ روزهٔ همین تنظیمات</button><span id="msg" class="muted"></span></div>
+    <div id="btres" style="margin-top:14px"></div>`;
+  const paint = () => {
+    $$('#exch .pcard').forEach(c => c.classList.toggle('on', c.dataset.x === exchange));
+    $$('#mode .pcard').forEach(c => c.classList.toggle('on', c.dataset.m === mode));
+    $$('#pre .pcard').forEach(c => c.classList.toggle('on', c.dataset.p === preset));
+    $('#syms').innerHTML = symbols.map(s => `<span class="chip">${esc(s)} <a href="javascript:void 0" data-rm="${s}" style="color:var(--faint)">✕</a></span>`).join('') || '<span class="faint" style="font-size:12px">نمادی انتخاب نشده</span>';
+    $('#symc').textContent = symbols.length > 1 ? 'پرتفوی ' + n0(symbols.length) + ' نماد' : 'تک‌ارزی';
+    $$('#syms [data-rm]').forEach(a => a.onclick = () => { symbols = symbols.filter(x => x !== a.dataset.rm); paint(); });
+  };
+  $$('#exch .pcard').forEach(c => c.onclick = () => { if (!c.classList.contains('off')) { exchange = c.dataset.x; paint(); } });
+  $$('#mode .pcard').forEach(c => c.onclick = () => { mode = c.dataset.m; paint(); });
+  $$('#pre .pcard').forEach(c => c.onclick = () => { preset = c.dataset.p; const p = m.presets[preset]; if (p) { ['risk_pct', 'max_positions', 'min_quality'].forEach(k => $('#' + k).value = p[k]); $('#regime_filter').checked = p.regime_filter; } if (preset === 'custom') $('#adv').open = true; paint(); });
+  $('#sadd').onclick = () => { const s = $('#sq').value.trim().toUpperCase(); if (m.markets.some(x => x.symbol === s) && !symbols.includes(s) && symbols.length < 25) symbols.push(s); $('#sq').value = ''; paint(); };
+  $('#sq').onkeydown = e => { if (e.key === 'Enter') $('#sadd').click(); };
+  $$('[data-pre]').forEach(b => b.onclick = async () => {
+    const k = b.dataset.pre;
+    if (k === 'top10') {
+      const t = await api('/api/public/ticker').catch(() => null); const ok = new Set(m.markets.map(x => x.symbol));
+      symbols = t ? t.rows.filter(r => r.quote === 'TMN' && ok.has(r.symbol) && r.symbol !== 'USDTTMN' && r.symbol !== 'USDCTMN').sort((a, c) => (c.volume_tmn_24h || 0) - (a.volume_tmn_24h || 0)).slice(0, 10).map(r => r.symbol)
+        : ['BTCTMN', 'ETHTMN', 'SOLTMN', 'XRPTMN', 'DOGETMN', 'TRXTMN', 'ADATMN', 'BNBTMN', 'TONTMN', 'LINKTMN'].filter(s => ok.has(s));
+    } else symbols = k === 'major' ? ['BTCTMN', 'ETHTMN'] : [];
+    paint();
+  });
+  const val = k => { const v = $('#' + k).value; return v === '' ? null : +v; };
+  const config = () => ({ symbols, timeframe: $('#tf').value, strategies: $$('#lstrats input:checked').map(x => x.value), capital_tmn: val('cap'), preset,
+    risk_pct: val('risk_pct'), max_positions: val('max_positions'), min_quality: val('min_quality'), max_asset_pct: val('max_asset_pct'), max_gross_pct: val('max_gross_pct'),
+    min_stop_pct: val('min_stop_pct'), max_stop_pct: val('max_stop_pct'), trend_tp_r: val('trend_tp_r'), max_hold_hours: val('max_hold_hours'), cooldown_bars: val('cooldown_bars'),
+    breakeven_buffer_pct: val('breakeven_buffer_pct'), exit_mode: $('#exit_mode').value, trailing: $('#trailing').checked, trend_exit: $('#trend_exit').checked,
+    regime_filter: $('#regime_filter').checked, ai_filter: $('#ai').checked, ai_min_confidence: val('aic') });
+  $('#save').onclick = async () => {
+    const body = { name: $('#bn').value, config: config(), mode };
+    const r = bot ? await act(() => post('/api/bots/' + id + '/update', body), 'ذخیره شد') : await act(() => post('/api/bots', { ...body, exchange }), 'ربات ساخته شد');
+    if (r) { S.bot = r.id; try { localStorage.setItem('algo.bot', r.id); } catch (_) { /* optional */ } await ctx.refreshBots(); location.hash = '#live'; }
+  };
+  $('#bt').onclick = async () => {
+    const end = Math.floor(Date.now() / 1000); const iso = t => new Date(t * 1000).toISOString();
+    const r = await act(() => post('/api/backtests', { config: config(), start: iso(end - 90 * 86400), end: iso(end), title: $('#bn').value + ' (پیش‌نمایش)' }));
+    if (r) { $('#btres').innerHTML = `<div class="notice">بک‌تست در صف اجرا قرار گرفت. نتیجهٔ کامل (منحنی، افت، معاملات و مونت‌کارلو) در <a href="#research">«بک‌تست و پژوهش»</a> نمایش داده می‌شود.</div>`; }
+  };
+  paint();
+}
+
+// ------------------------------------------------------------------ keys
+export function pageKeys(root) {
+  const ex = S.meta.exchanges.filter(e => e.enabled);
+  root.innerHTML = `<section class="grid g2"><div class="panel"><div class="head"><h2>افزودن کلید API</h2></div><div class="body form">
+    <label class="lf"><span>صرافی</span><select id="kx">${ex.map(e => `<option value="${e.id}">${esc(e.fa)}</option>`).join('')}</select></label>
+    <label class="lf"><span>نام دلخواه</span><input id="kl" maxlength="40" placeholder="مثلاً حساب اصلی"></label><label class="lf"><span>کلید API</span><input id="kk" class="ltr" autocomplete="off" style="width:100%"></label>
+    <div class="notice" style="font-size:12.5px">${esc(ex[0] ? ex[0].key_help : '')} کلید رمزنگاری‌شده ذخیره می‌شود، فقط موتور اجرا آن را باز می‌کند و پس از ذخیره دیگر نمایش داده نمی‌شود.</div>
+    <div><button class="primary" id="ka">ذخیره و بررسی فقط‌خواندنی</button></div></div></div>
+    <div class="panel"><div class="head"><h2>کلیدهای من</h2></div><div class="body table-wrap" id="kl2"></div></div></section>`;
+  const load = async () => { const ks = await api('/api/keys').catch(() => []);
+    $('#kl2').innerHTML = ks.length ? `<table><thead><tr><th>صرافی</th><th>نام</th><th>کلید</th><th>وضعیت</th><th></th></tr></thead><tbody>${ks.map(k => `<tr><td>${k.exchange === 'wallex' ? 'والکس' : esc(k.exchange)}</td><td>${esc(k.label || '—')}</td><td class="mono">…${esc(k.last4)}</td>
+      <td>${k.status === 'verified' ? '<span class="chip ok">تأیید شد</span>' : k.status === 'failed' ? '<span class="chip bad">نامعتبر</span>' : '<span class="chip y">بررسی نشد</span>'}</td><td style="white-space:nowrap"><button data-v="${k.id}">بررسی</button> <button class="danger" data-d="${k.id}">حذف</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">کلیدی ثبت نشده است.</div>';
+    $$('[data-v]').forEach(b => b.onclick = async () => { const r = await act(() => post(`/api/keys/${b.dataset.v}/verify`)); if (r) toast(r.status === 'verified' ? 'کلید معتبر است' : (r.check.error || 'نامعتبر'), r.status !== 'verified'); load(); });
+    $$('[data-d]').forEach(b => b.onclick = async () => { if (confirm('کلید حذف شود؟')) { await act(() => post(`/api/keys/${b.dataset.d}/delete`), 'حذف شد'); load(); } });
+  };
+  $('#ka').onclick = async () => { const r = await act(() => post('/api/keys', { exchange: $('#kx').value, label: $('#kl').value || null, api_key: $('#kk').value }));
+    if (r) { $('#kk').value = ''; toast(r.status === 'verified' ? 'کلید ذخیره و تأیید شد' : 'کلید ذخیره شد ولی بررسی نشد: ' + ((r.check && r.check.error) || ''), r.status !== 'verified'); load(); } };
+  load();
+}
+
+// ------------------------------------------------------------------ billing and profile
+export async function pageBilling(root, ctx, q) {
+  await refreshMe().catch(() => null);
+  const u = S.user;
+  root.innerHTML = `${q.status === 'paid' ? '<div class="notice green" style="margin-bottom:14px">پرداخت موفق بود و پلن فعال شد.</div>' : q.status ? '<div class="notice red" style="margin-bottom:14px">پرداخت انجام نشد یا لغو شد.</div>' : ''}
+    <section class="grid g3" style="margin-bottom:14px"><div class="panel kpi"><div class="label">پلن فعلی</div><div class="value">${esc(u.plan ? u.plan.name : '—')}</div><div class="note">${u.plan_active ? (u.plan_expires ? 'تا ' + when(u.plan_expires) : '') : '<span class="neg">منقضی</span>'}</div></div>
+      <div class="panel kpi"><div class="label">سهمیهٔ AI این ماه</div><div class="value">${n0(u.ai_quota.used)} / ${n0(u.ai_quota.limit)}</div><div class="note">فیلتر ربات‌ها و استودیو</div></div>
+      <div class="panel kpi"><div class="label">ربات واقعی</div><div class="value">${n0(u.plan ? u.plan.max_live_bots : 0)}</div><div class="note">سقف سرمایه ${toman(u.plan ? u.plan.max_capital_tmn : 0)}</div></div></section>
+    <section class="grid g3" style="margin-bottom:14px">${S.meta.plans.map(p => `<div class="panel plan ${u.plan && u.plan.id === p.id ? 'glow' : ''}"><div class="body"><b style="font-size:16px">${esc(p.name)}</b><div class="big" style="font-size:24px;margin:6px 0">${+p.price_tmn ? toman(p.price_tmn) : 'رایگان'}</div><div class="faint">${+p.price_tmn ? n0(p.days) + ' روز' : ''}</div>
+      <div class="muted" style="font-size:13px;margin:6px 0">${esc(p.description || '')}</div><div style="font-size:12.5px">${n0(p.max_bots)} ربات · ${+p.max_live_bots ? n0(p.max_live_bots) + ' واقعی تا ' + toman(p.max_capital_tmn) : 'فقط آزمایشی'} · AI ${n0(p.ai_calls_month)} در ماه</div>
+      ${+p.price_tmn ? `<button class="primary" style="margin-top:10px" data-p="${p.id}">${u.plan && u.plan.id === p.id ? 'تمدید' : 'خرید'}</button>` : ''}</div></div>`).join('')}</section>
+    <section class="panel"><div class="head"><h2>پرداخت‌ها</h2></div><div class="body table-wrap" id="pays"></div></section>`;
+  $$('[data-p]').forEach(b => b.onclick = async () => { const r = await act(() => post('/api/pay', { plan_id: b.dataset.p })); if (r) location.href = r.url; });
+  const ps = await api('/api/payments').catch(() => []);
+  $('#pays').innerHTML = ps.length ? `<table><thead><tr><th>زمان</th><th>پلن</th><th>مبلغ</th><th>وضعیت</th><th>کد پیگیری</th></tr></thead><tbody>${ps.map(p => `<tr><td>${when(p.created)}</td><td>${esc(p.plan_id)}</td><td>${toman(p.amount_rial / 10)}</td><td>${{ paid: '<span class="pos">موفق</span>', pending: 'در انتظار', cancelled: 'لغو', failed: '<span class="neg">ناموفق</span>' }[p.status] || esc(p.status)}${p.sandbox ? ' <span class="chip y">آزمایشی</span>' : ''}</td><td class="mono">${esc(p.ref_id || '—')}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">پرداختی ثبت نشده.</div>';
+}
+
+export function pageProfile(root, ctx, onLogout) {
+  const u = S.user;
+  root.innerHTML = `<section class="panel" style="max-width:520px"><div class="body form"><label class="lf"><span>نام</span><input id="nm" value="${esc(u.name || '')}" maxlength="60"></label>
+    <div class="muted">موبایل: <span class="mono">${esc(u.phone)}</span></div>
+    <div class="row"><button class="primary" id="sv">ذخیره</button><button class="danger" id="out">خروج از حساب</button></div>${S.meta.support ? `<div class="faint">${esc(S.meta.support)}</div>` : ''}</div></section>`;
+  $('#sv').onclick = () => act(() => post('/api/me/profile', { name: $('#nm').value }), 'ذخیره شد').then(refreshMe);
+  $('#out').onclick = async () => { await post('/api/auth/logout').catch(() => null); onLogout(); };
+}
+
+export { download };

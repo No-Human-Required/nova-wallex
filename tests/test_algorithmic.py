@@ -196,6 +196,92 @@ class PlatformTests(unittest.TestCase):
         r = user.post(f'/api/bots/{bot["id"]}/update', json={'config': {**cfg, 'risk_pct': 0.3}})
         self.assertEqual(r.json()['live_approved'], 0)
 
+    def test_nova_dashboard_views_per_bot_are_scoped(self):
+        user, _ = self.login(USER)
+        other, _ = self.login('09121112233')
+        admin, _ = self.login(ADMIN)
+        cfg = {'symbols': ['BTCTMN', 'ETHTMN', 'SOLTMN'], 'timeframe': '1h', 'capital_tmn': 5_000_000, 'preset': 'custom', 'ai_filter': False,
+               'sizing': 'fixed', 'position_pct': 20, 'max_asset_pct': 30, 'min_order_tmn': 100000, 'regime_filter': False}
+        bot = user.post('/api/bots', json={'name': 'داشبورد', 'mode': 'paper', 'config': cfg}).json()
+        from algo.executor import Executor, PaperGateway
+        from algo import views
+        db = self.app.state.db
+        m = Market('100000000', '100100000')
+
+        def scan(*a, trace=None, **k):
+            trace.update({'BTCTMN': {'stage': 'candidate', 'quality': 70, 'strategy': 'smc_liquidity_sweep', 'strategies': ['smc_liquidity_sweep']},
+                          'ETHTMN': {'stage': 'strategy', 'reason': 'no_active_strategy_setup'}, 'SOLTMN': {'stage': 'data', 'reason': 'missing_required_history'}})
+            return [candidate()], None
+        user.post(f'/api/bots/{bot["id"]}/start')
+        with patch('app.lab_engine.scan_bar', side_effect=scan):
+            Executor(db, m).cycle(db.one('SELECT * FROM bots WHERE id=?', (bot['id'],)), PaperGateway(m, 0.003))
+        with patch.object(views, 'prices', return_value={'BTCTMN': 100000000.0}):
+            live = user.get(f'/api/u/bots/{bot["id"]}/live').json()
+            self.assertEqual(live['bot']['name'], 'داشبورد')
+            self.assertEqual(live['latest_scan']['coverage']['signal'], 1)
+            self.assertEqual(live['positions_meta']['BTC']['symbol'], 'BTCTMN')
+            self.assertEqual(len(live['positions_meta']['BTC']['tp']), 3)
+            self.assertIsNone(live['latest_decision'])  # AI filter off: rules-only records stay off the AI page
+            journal = user.get(f'/api/u/bots/{bot["id"]}/journal').json()
+            self.assertEqual([o['side'] for o in journal['orders']], ['BUY'])
+            self.assertEqual(journal['trades'][0]['status'], 'open')
+            explain = user.get(f'/api/u/bots/{bot["id"]}/explain').json()
+            self.assertEqual(explain['scans'][-1]['pairs']['ETHTMN']['stage'], 'strategy')
+            alloc = explain['allocations'][-1]
+            self.assertTrue(alloc['approved'])
+            self.assertEqual(alloc['sizing']['binding_limit'], 'position_size')
+            self.assertEqual(explain['decisions'][-1]['status'], 'rules_only')
+            self.assertEqual(len(user.get(f'/api/u/bots/{bot["id"]}/equity').json()['fills']), 1)
+            self.assertEqual(other.get(f'/api/u/bots/{bot["id"]}/live').status_code, 404)
+            self.assertEqual(admin.get(f'/api/u/bots/{bot["id"]}/journal').status_code, 200)  # read-only review
+        self.assertEqual(other.post(f'/api/bots/{bot["id"]}/stop').status_code, 404)
+        self.assertEqual(admin.post(f'/api/bots/{bot["id"]}/stop').status_code, 404)  # owner controls only
+
+    def test_studio_strategy_is_tested_approved_and_used_by_a_bot(self):
+        user, _ = self.login(USER)
+        other, _ = self.login('09121112233')
+        st = self.app.state.studio
+        self.app.state.settings.put('llm.api_key', 'platform-llm-key', 'test')
+        spec = {'name_fa': 'پولبک آزمایشی', 'family': 'indicator', 'regimes': ['bull', 'range'],
+                'entry': {'all': [{'left': {'ind': 'close'}, 'op': '>', 'right': {'ind': 'ema', 'period': 21}}]},
+                'stop': {'method': 'atr', 'atr_multiple': 2}, 'take_profit': {'method': 'r_multiple', 'r_multiple': 2.5}, 'max_holding_hours': 24}
+        answers = [{'reply': 'پیش‌نویس ساختم', 'action': {'type': 'propose', 'spec': spec}}, {'reply': 'آماده است', 'action': {'type': 'none'}}]
+        calls = []
+
+        def transport(url, headers=None, body=None, timeout=None):
+            calls.append((url, headers['Authorization']))
+            return {'choices': [{'message': {'content': json.dumps(answers[len(calls)-1], ensure_ascii=False)}, 'finish_reason': 'stop'}], 'model': 'm'}, {}
+        st.transport = transport
+        sid = user.post('/api/studio/sessions', json={'title': 'تست'}).json()['id']
+        self.assertEqual(other.get(f'/api/studio/sessions/{sid}').status_code, 404)
+        self.assertEqual(user.post(f'/api/studio/sessions/{sid}/message', json={'text': 'یک استراتژی پولبک بساز'}).status_code, 200)
+        st.run_job(*st.queue.get_nowait())
+        view = user.get(f'/api/studio/sessions/{sid}').json()
+        self.assertEqual(view['draft']['name_fa'], 'پولبک آزمایشی')
+        self.assertEqual([m['role'] for m in view['messages']], ['user', 'assistant', 'tool', 'assistant'])
+        self.assertEqual(calls[0][1], 'Bearer platform-llm-key')
+        self.assertEqual(user.get('/api/auth/me').json()['user']['ai_quota']['used'], 2)  # every model call is counted
+        ident = user.post(f'/api/studio/sessions/{sid}/save').json()['strategy_id']
+        self.assertIn('آزمون کامل', user.post(f'/api/studio/strategies/{ident}/approve', json={'confirmation': 'افزودن به استراتژی‌های ربات‌های من'}).json()['detail'])
+        fake = {'rows': [{'return_percent': 1.0}], 'trade_list': [], 'trades': 5, 'worst_return_percent': 1.0, 'mean_return_percent': 1.0}
+        with patch('algo.studio.run', return_value=fake):
+            self.assertEqual(user.post(f'/api/studio/strategies/{ident}/test').status_code, 200)
+            st.run_job(*st.queue.get_nowait())
+        r = user.post(f'/api/studio/strategies/{ident}/approve', json={'confirmation': 'افزودن به استراتژی‌های ربات‌های من'})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertIn(ident, [s['id'] for s in user.get('/api/me/strategies').json()])
+        cfg = {'symbols': ['BTCTMN', 'ETHTMN', 'SOLTMN'], 'timeframe': '1h', 'capital_tmn': 5_000_000, 'strategies': [ident, 'smc_liquidity_sweep']}
+        bot = user.post('/api/bots', json={'name': 'با استودیو', 'mode': 'paper', 'config': cfg})
+        self.assertEqual(bot.status_code, 200, bot.text)
+        self.assertEqual(bot.json()['config']['custom_strategies'][0]['id'], ident)
+        self.assertEqual(other.post('/api/bots', json={'name': 'x', 'mode': 'paper', 'config': cfg}).status_code, 422)
+        # The backtest lab accepts the user's own Studio strategy by id.
+        params = {'symbols': ['BTCTMN'], 'timeframe': '1h', 'start': '2026-09-01T00:00:00Z', 'end': '2026-10-01T00:00:00Z', 'strategies': [ident]}
+        self.assertEqual(user.post('/api/studio/lab/runs', json={'params': params}).status_code, 202)
+        self.assertEqual(other.post('/api/studio/lab/runs', json={'params': params}).status_code, 422)
+        self.assertEqual(user.get('/api/studio/lab/runs').json()[0]['spec']['strategies'], [ident])
+        self.assertTrue(any(s.get('custom') for s in user.get('/api/studio/lab/meta').json()['strategies']))
+
 
 # ---------------------------------------------------------------- executor
 class Market:

@@ -46,7 +46,31 @@ DEFAULTS = {
     'min_quality': 0.0, 'regime_filter': False, 'fee_tmn_bps': 30.0, 'fee_usdt_bps': 13.0, 'half_spread_bps': 5.0,
     'slippage_bps': 10.0, 'latency_bars': 1, 'min_stop_pct': None, 'max_stop_pct': None, 'stop_atr_multiple': 2.5,
     'min_reward_risk': 2.0, 'trend_tp_r': 2.5, 'lookback_bars': 72, 'max_missing_pct': 25.0, 'breakeven_buffer_pct': 0.4,
+    'custom_strategies': [],
 }
+MAX_CUSTOM = 5
+
+
+def customs(p):
+    return {c['id']: c for c in p.get('custom_strategies') or []}
+
+
+def allowed_in(p, name, regime):
+    """A strategy runs in ``regime`` (None = no regime filter); Studio strategies carry their own regimes."""
+    if regime is None:
+        return True
+    c = customs(p).get(name)
+    return regime in c['regimes'] if c else name in st.REGIMES[regime]['strategies']
+
+
+def holding_hours(p, name):
+    c = customs(p).get(name)
+    return c['max_holding_hours'] if c else st.STRATEGIES[name]['max_holding_hours']
+
+
+def trend_exits(p, name):
+    c = customs(p).get(name)
+    return c['trend_exit'] != 'none' if c else name in TREND_EXIT
 
 
 def parse_time(value):
@@ -71,7 +95,18 @@ def validate(raw, markets, now):
     if bad:
         raise ValueError('نماد خارج از بازارهای مجاز: ' + '، '.join(bad))
     p['symbols'] = syms
-    unknown = [s for s in p['strategies'] if s not in st.STRATEGIES]
+    from execution import custom_strategy as cs
+    raw_custom = p.get('custom_strategies') or []
+    if not isinstance(raw_custom, list) or len(raw_custom) > MAX_CUSTOM:
+        raise ValueError(f'حداکثر {MAX_CUSTOM} استراتژی استودیو در هر تست/ربات.')
+    try:
+        p['custom_strategies'] = [cs.validate(c) for c in raw_custom]
+    except cs.SpecError as exc:
+        raise ValueError('استراتژی استودیو نامعتبر است: '+str(exc)) from None
+    if any(not c.get('id') for c in p['custom_strategies']):
+        raise ValueError('استراتژی استودیو شناسه ندارد؛ اول آن را ذخیره کنید.')
+    p['strategies'] = list(dict.fromkeys(p['strategies']))
+    unknown = [s for s in p['strategies'] if s not in st.STRATEGIES and s not in customs(p)]
     if unknown or not p['strategies']:
         raise ValueError('حداقل یک استراتژی معتبر انتخاب کنید.')
     if p['source'] not in {'wallex', 'recorded'}:
@@ -125,6 +160,7 @@ def strategy_cfg(p):
     cfg = adaptive_config(validated_config())
     cfg.update(min_stop_fraction=p['min_stop_pct']/100, max_stop_fraction=p['max_stop_pct']/100,
                stop_atr_multiple=p['stop_atr_multiple'], min_reward_risk=p['min_reward_risk'], trend_tp_r_multiple=p['trend_tp_r'])
+    cfg['custom_strategies'] = list(p.get('custom_strategies') or [])
     return cfg
 
 
@@ -211,22 +247,34 @@ def tp_distance(entry, stop, target, strategy, cost_bps, p):
     return max((target/entry-1) if target else 0, floor)
 
 
-def scan_bar(p, series, markets, i, n24, btc, cfg, cost_bps, busy=()):
-    """Best qualifying candidate per symbol on bar i's close, ranked; same code for backtest and live bots."""
+def scan_bar(p, series, markets, i, n24, btc, cfg, cost_bps, busy=(), trace=None):
+    """Best qualifying candidate per symbol on bar i's close, ranked; same code for backtest and live bots.
+
+    ``trace`` (a dict, optional) receives each symbol's screener stage with the
+    reason it stopped there; it does not change the result.
+    """
     regime = classify([series[s] for s in p['symbols']], i, n24, btc) if p['regime_filter'] else None
-    allowed = [x for x in p['strategies'] if regime is None or x in st.REGIMES[regime]['strategies']]
+    allowed = [x for x in p['strategies'] if allowed_in(p, x, regime)]
     btc24 = btc.ret_bps(i, n24) if btc else None
+    note = (lambda s, **kw: trace.__setitem__(s, kw)) if trace is not None else (lambda s, **kw: None)
     found = []
     for s in p['symbols']:
         x = series[s]
-        if s in busy or not x.traded[i]:
+        if s in busy:
+            note(s, stage='liquidity', reason='held_or_cooling')
+            continue
+        if not x.traded[i]:
+            note(s, stage='data', reason='too_many_empty_hours_or_last_hour_without_trade')
             continue
         w = x.window(i, p['lookback_bars'])
         if not w or w[5] > p['lookback_bars']*p['max_missing_pct']/100:
+            note(s, stage='data', reason='missing_required_history', missing_hours=w[5] if w else None)
             continue
         f = x.features(i, n24)
         if not f:
+            note(s, stage='data', reason='missing_required_history')
             continue
+        info = {'turnover_m': round(f['daily_turnover_tmn']/1e6, 2), 'r24_bps': round(f['r24_bps'], 1), 'missing_hours': f['missing_hours']}
         q = markets[s].quote
         hits = []
         for name in allowed:
@@ -234,6 +282,7 @@ def scan_bar(p, series, markets, i, n24, btc, cfg, cost_bps, busy=()):
             if plan:
                 hits.append({**plan, 'symbol': s, 'base': markets[s].base, 'quote': q, 'roundtrip_cost_bps': cost_bps[q], 'features': f})
         if not hits:
+            note(s, stage='strategy', reason='no_active_strategy_setup', **info)
             continue
         names = [h['strategy'] for h in hits]
         for h in hits:
@@ -242,8 +291,22 @@ def scan_bar(p, series, markets, i, n24, btc, cfg, cost_bps, busy=()):
         best = max(hits, key=lambda h: (h['quality'], h['score']))
         if best['quality'] >= p['min_quality']:
             found.append(best)
+            note(s, stage='candidate', quality=round(best['quality'], 1), strategy=best['strategy'], strategies=names, **info)
+        else:
+            note(s, stage='quality', reason='below_quality', quality=round(best['quality'], 1), strategy=best['strategy'], strategies=names, **info)
     found.sort(key=lambda h: (-h['quality'], -h['score'], h['symbol']))
     return found, regime
+
+
+def regime_context(p, series, i, n24, btc, regime):
+    """The regime card the dashboard shows: label, breadth, BTC 24h and the strategies it allows."""
+    rets = [r for r in (series[s].ret_bps(i, n24) for s in p['symbols']) if r is not None]
+    key = regime or 'unfiltered'
+    meta = st.REGIMES.get(regime) if regime else None
+    return {'regime': key, 'fa': meta['fa'] if meta else 'بدون فیلتر رژیم',
+            'breadth': sum(r > 0 for r in rets)/len(rets) if rets else 0.0,
+            'btc_r24_bps': (btc.ret_bps(i, n24) if btc else None) or 0.0, 'max_positions': p['max_positions'],
+            'strategies': [x for x in p['strategies'] if allowed_in(p, x, regime)]}
 
 
 def run(p, provider, markets, progress=lambda stage, done, total: None):
@@ -346,7 +409,7 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
                                           'index': i, 'strategy': order['strategy'], 'quality': order['quality'], 'equity': mark,
                                           'floor': entry*(1-stop), 'peak': entry, 'stage': 0, 'low': entry, 'high': entry,
                                           'tp': [entry*(1+d), entry*(1+2*d), entry*(1+3*d)], 'exit_reason': None,
-                                          'max_hold': (p['max_hold_hours'] or st.STRATEGIES[order['strategy']]['max_holding_hours'])*3600}
+                                          'max_hold': (p['max_hold_hours'] or holding_hours(p, order['strategy']))*3600}
         # 2. stops and take-profits on this bar's range (levels known before the bar)
         for s, pos in list(positions.items()):
             x = series[s]
@@ -377,7 +440,7 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
             if s not in exits_due:
                 if times[i]+step-pos['time'] >= pos['max_hold']:
                     pos['exit_reason'] = 'time_exit'
-                elif p['trend_exit'] and pos['strategy'] in TREND_EXIT:
+                elif p['trend_exit'] and trend_exits(p, pos['strategy']):
                     w = x.window(i, 30)
                     if w:
                         e9, e21 = ind.last_ema(w[3], 9), ind.last_ema(w[3], 21)

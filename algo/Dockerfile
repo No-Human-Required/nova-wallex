@@ -14,7 +14,8 @@ COPY --chown=app:app starwallex ./starwallex
 COPY --chown=app:app config ./config
 COPY --chown=app:app prompts ./prompts
 COPY --chown=app:app data ./data
-COPY --chown=app:app static/fonts ./static/fonts
+COPY --chown=app:app static ./static
+COPY --chown=app:app seed ./seed
 USER 10001:10001
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

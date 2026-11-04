@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from algo import VERSION  # noqa: E402
 
-FOLDERS = ('algo', 'app', 'execution', 'starwallex', 'config', 'prompts', 'static/fonts')
-FILES = ('requirements.txt', 'data/portfolio/universe.json')
+FOLDERS = ('algo', 'app', 'execution', 'starwallex', 'config', 'prompts', 'static')
+FILES = ('requirements.txt', 'data/portfolio/universe.json', 'seed/adaptive-report.json')
 SECRET = re.compile(rb'\baa-[A-Za-z0-9]{28,}|\b\d{3,}\|[A-Za-z0-9]{25,}')
 
 
