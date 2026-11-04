@@ -1,0 +1,3652 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "This is the API server for otc services",
+    "title": "Spot",
+    "version": "1.0",
+    "contact": {}
+  },
+  "servers": [
+    {
+      "url": "https://api.wallex.ir"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Use your API key to authenticate requests."
+      }
+    }
+  },
+  "paths": {
+    "/v1/otc/markets": {
+      "get": {
+        "operationId": "getOTCMarkets",
+        "description": "retrieves markets which are enabled in otc",
+        "tags": [
+          "otc"
+        ],
+        "responses": {
+          "200": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "عملیات با موفقیت انجام شد"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "symbol": {
+                            "type": "string",
+                            "example": "BTCUSDT"
+                          },
+                          "baseAsset": {
+                            "type": "string",
+                            "example": "BTC"
+                          },
+                          "baseAsset_png_icon": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "baseAsset_svg_icon": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "baseAssetPrecision": {
+                            "type": "integer",
+                            "example": 8
+                          },
+                          "quoteAsset": {
+                            "type": "string",
+                            "example": "USDT"
+                          },
+                          "quoteAsset_png_icon": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "quoteAsset_svg_icon": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "quotePrecision": {
+                            "type": "integer",
+                            "example": 8
+                          },
+                          "faName": {
+                            "type": "string",
+                            "example": "بیت کوین - تتر"
+                          },
+                          "enName": {
+                            "type": "string",
+                            "example": "Bitcoin - Tether"
+                          },
+                          "faBaseAsset": {
+                            "type": "string",
+                            "example": "بیت کوین"
+                          },
+                          "enBaseAsset": {
+                            "type": "string",
+                            "example": "Bitcoin"
+                          },
+                          "faQuoteAsset": {
+                            "type": "string",
+                            "example": "تتر"
+                          },
+                          "enQuoteAsset": {
+                            "type": "string",
+                            "example": "Tether"
+                          },
+                          "stepSize": {
+                            "type": "integer",
+                            "example": 2
+                          },
+                          "tickSize": {
+                            "type": "integer",
+                            "example": 0
+                          },
+                          "minQty": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 0.01
+                          },
+                          "minNotional": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 90000
+                          },
+                          "maxNotional": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 50000000
+                          },
+                          "stats": {
+                            "type": "object",
+                            "properties": {
+                              "24h_ch": {
+                                "type": "number",
+                                "format": "float",
+                                "example": -0.56
+                              },
+                              "lastPrice": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 116795.22
+                              },
+                              "24h_highPrice": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 118679
+                              },
+                              "24h_lowPrice": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 115000
+                              },
+                              "24h_volume": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 0
+                              }
+                            }
+                          },
+                          "buyStatus": {
+                            "type": "string",
+                            "enum": [
+                              "ENABLE",
+                              "DISABLE"
+                            ],
+                            "example": "ENABLE"
+                          },
+                          "sellStatus": {
+                            "type": "string",
+                            "enum": [
+                              "ENABLE",
+                              "DISABLE"
+                            ],
+                            "example": "ENABLE"
+                          },
+                          "exchangeStatus": {
+                            "type": "string",
+                            "enum": [
+                              "ENABLE",
+                              "DISABLE"
+                            ],
+                            "example": "ENABLE"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "isNew": {
+                            "type": "boolean",
+                            "example": false
+                          },
+                          "isZeroFee": {
+                            "type": "boolean",
+                            "example": false
+                          },
+                          "flags": {
+                            "type": "array",
+                            "items": {}
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": {
+                        "USDTTMN": {
+                          "symbol": "USDTTMN",
+                          "baseAsset": "USDT",
+                          "quoteAsset": "TMN",
+                          "faName": "تتر - تومان",
+                          "enName": "Tether - Toman",
+                          "minQty": 0.01,
+                          "minNotional": 90000,
+                          "maxNotional": 50000000,
+                          "stats": {
+                            "24h_ch": 0.14,
+                            "lastPrice": 85386
+                          },
+                          "buyStatus": "ENABLE",
+                          "sellStatus": "ENABLE",
+                          "exchangeStatus": "ENABLE"
+                        }
+                      },
+                      "message": "عملیات با موفقیت انجام شد",
+                      "success": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/crypto-withdrawal/{withdrawal_id}": {
+      "get": {
+        "operationId": "getCryptoWithdrawal",
+        "description": "جزئیات یک برداشت رمزارز. نیازمند دسترسی GENERAL و سطح کاربری ۲ است. اگر برداشت متعلق به کاربر نباشد، result خالی برمی‌گردد.",
+        "tags": [
+          "basic-services"
+        ],
+        "parameters": [
+          {
+            "name": "withdrawal_id",
+            "in": "path",
+            "required": true,
+            "description": "شناسهٔ برداشت",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "ساختار و کد پاسخ در مجموعهٔ ارسالی مشخص نشده است."
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/orders/{client_id}": {
+      "get": {
+        "operationId": "getOrdersClient",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "description": "Get detailed information about a specific order",
+        "tags": [
+          "spot"
+        ],
+        "parameters": [
+          {
+            "description": "Client Order ID",
+            "name": "client_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "boolean"
+                        },
+                        "clientOrderId": {
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "executedPercent": {
+                          "type": "integer"
+                        },
+                        "executedPrice": {
+                          "type": "string"
+                        },
+                        "executedQty": {
+                          "type": "string"
+                        },
+                        "executedSum": {
+                          "type": "string"
+                        },
+                        "fee": {
+                          "type": "string"
+                        },
+                        "fills": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "fee": {
+                                "type": "string"
+                              },
+                              "feeAsset": {
+                                "type": "string"
+                              },
+                              "feeCoefficient": {
+                                "type": "string"
+                              },
+                              "isBuyer": {
+                                "type": "boolean"
+                              },
+                              "makerFeeCoefficient": {
+                                "type": "string"
+                              },
+                              "price": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "string"
+                              },
+                              "sum": {
+                                "type": "string"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "takerFeeCoefficient": {
+                                "type": "string"
+                              },
+                              "timestamp": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "origQty": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "string"
+                        },
+                        "side": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "stopPrice": {
+                          "type": "string"
+                        },
+                        "stopPriceCondition": {
+                          "type": "string"
+                        },
+                        "sum": {
+                          "type": "string"
+                        },
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "transactTime": {
+                          "type": "integer"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteOrdersClient",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "description": "Cancel a trading order using the client ID in the URL path",
+        "tags": [
+          "spot"
+        ],
+        "parameters": [
+          {
+            "description": "Client Order ID",
+            "name": "client_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order cancelled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "boolean"
+                        },
+                        "clientOrderId": {
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "executedPercent": {
+                          "type": "integer"
+                        },
+                        "executedPrice": {
+                          "type": "string"
+                        },
+                        "executedQty": {
+                          "type": "string"
+                        },
+                        "executedSum": {
+                          "type": "string"
+                        },
+                        "fee": {
+                          "type": "string"
+                        },
+                        "fills": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "fee": {
+                                "type": "string"
+                              },
+                              "feeAsset": {
+                                "type": "string"
+                              },
+                              "feeCoefficient": {
+                                "type": "string"
+                              },
+                              "isBuyer": {
+                                "type": "boolean"
+                              },
+                              "makerFeeCoefficient": {
+                                "type": "string"
+                              },
+                              "price": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "string"
+                              },
+                              "sum": {
+                                "type": "string"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "takerFeeCoefficient": {
+                                "type": "string"
+                              },
+                              "timestamp": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "origQty": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "string"
+                        },
+                        "side": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "stopPrice": {
+                          "type": "string"
+                        },
+                        "stopPriceCondition": {
+                          "type": "string"
+                        },
+                        "sum": {
+                          "type": "string"
+                        },
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "transactTime": {
+                          "type": "integer"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/crypto-withdrawal": {
+      "get": {
+        "operationId": "listCryptoWithdrawals",
+        "description": "فهرست صفحه‌بندی‌شدهٔ برداشت‌های رمزارز کاربر. نیازمند دسترسی GENERAL و سطح کاربری ۱ است. وضعیت‌های نمایش‌داده‌شده در پاسخ فهرست شامل Accomplished، InProgress و Rejected هستند.",
+        "tags": [
+          "basic-services"
+        ],
+        "parameters": [
+          {
+            "name": "asset",
+            "in": "query",
+            "required": false,
+            "description": "نماد رمزارز، مانند USDT",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "in": "query",
+            "required": false,
+            "description": "آدرس کیف‌پول مقصد",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memo",
+            "in": "query",
+            "required": false,
+            "description": "ممو یا تگ مقصد",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "network_id",
+            "in": "query",
+            "required": false,
+            "description": "شناسهٔ شبکه",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "description": "شروع بازه با قالب YYYY-MM-DDTHH:mm:ssZ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "required": false,
+            "description": "پایان بازه با قالب YYYY-MM-DDTHH:mm:ssZ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "description": "تعداد نتیجه در هر صفحه؛ حداکثر ۲۰",
+            "schema": {
+              "type": "integer",
+              "maximum": 20
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "شمارهٔ صفحه",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "ساختار و کد پاسخ در مجموعهٔ ارسالی مشخص نشده است."
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createCryptoWithdrawal",
+        "description": "ثبت درخواست برداشت رمزارز با API Key. نیازمند دسترسی‌های GENERAL و WITHDRAWAL و سطح کاربری ۲ است. برای این درخواست OTP لازم نیست. محدودیت نرخ: ۶ درخواست در دقیقه. درخواست از IP ایران یا IP خصوصی رد می‌شود و در صورت تعریف فهرست IP مجاز برای کلید، فقط همان IPها پذیرفته می‌شوند. تا ۲۴ ساعت پس از تغییر رمز عبور یا تغییر روش ورود دومرحله‌ای، درخواست برداشت حتی با API Key پذیرفته نمی‌شود.",
+        "tags": [
+          "basic-services"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "coin",
+                  "network",
+                  "value",
+                  "wallet_address"
+                ],
+                "properties": {
+                  "coin": {
+                    "type": "string",
+                    "example": "USDT",
+                    "description": "نماد رمزارز"
+                  },
+                  "network": {
+                    "type": "string",
+                    "example": "TRC20",
+                    "description": "نام شبکه؛ از /v1/networks یا /v1/currencies قابل بررسی است"
+                  },
+                  "value": {
+                    "type": "string",
+                    "example": "10",
+                    "description": "مقدار برداشت؛ باید بزرگ‌تر از صفر باشد. در نمونهٔ ارسالی به‌شکل رشته است"
+                  },
+                  "wallet_address": {
+                    "type": "string",
+                    "example": "T...",
+                    "description": "آدرس کیف‌پول مقصد؛ مقدار نمونه باید با آدرس واقعی جایگزین شود"
+                  },
+                  "memo": {
+                    "type": "string",
+                    "description": "ممو یا تگ مقصد برای شبکه‌هایی که به آن نیاز دارند؛ می‌تواند null باشد"
+                  },
+                  "client_unique_id": {
+                    "type": "string",
+                    "example": "my-unique-id-001",
+                    "description": "اختیاری و nullable؛ برای جلوگیری از ثبت برداشت تکراری مقدار مشخصی بفرستید. اگر همان کاربر دوباره همان مقدار را بفرستد، همان برداشت قبلی برمی‌گردد.",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "ساختار و کد پاسخ در مجموعهٔ ارسالی مشخص نشده است."
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/card-numbers": {
+      "get": {
+        "operationId": "getAccountCardNumbers",
+        "description": "این API لیست کارت‌های بانکی کاربر را به همراه وضعیت، مالک و بانک مربوطه بازمی‌گرداند. نیازمند API Key در هدر است.",
+        "tags": [
+          "basic-services"
+        ],
+        "responses": {
+          "200": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 100001
+                          },
+                          "card_number": {
+                            "type": "string",
+                            "example": "62198610********"
+                          },
+                          "owners": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": [
+                              "نام صاحب حساب"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "ACCEPTED"
+                          },
+                          "is_default": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "bank_details": {
+                            "type": "object",
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "example": "SABCIR"
+                              },
+                              "label": {
+                                "type": "string",
+                                "example": "بانک سامان"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "The operation was successful"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "result_info": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "example": 4
+                        },
+                        "count": {
+                          "type": "integer",
+                          "example": 4
+                        },
+                        "total_count": {
+                          "type": "integer",
+                          "example": 4
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": [
+                        {
+                          "id": "شناسه یکتا",
+                          "card_number": "6219861*******32",
+                          "owners": [
+                            "نام صاحب حساب"
+                          ],
+                          "status": "ACCEPTED",
+                          "is_default": 0,
+                          "bank_details": {
+                            "code": "bankCode",
+                            "label": "بانک سامان"
+                          }
+                        }
+                      ],
+                      "message": "The operation was successful",
+                      "success": true,
+                      "result_info": {
+                        "page": 1,
+                        "per_page": 4,
+                        "count": 4,
+                        "total_count": 4
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/wallets/{symbol}": {
+      "get": {
+        "operationId": "getAccountWalletBySymbol",
+        "description": "این API آدرس کیف‌پول مربوط به ارز مورد نظر را بر اساس شبکه انتخاب‌شده (مانند ERC20) بازمی‌گرداند. نیازمند API Key در هدر است.",
+        "tags": [
+          "basic-services"
+        ],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "example": "eth",
+            "description": "نماد ارز دیجیتال مورد نظر (مانند ETH)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "network",
+            "in": "query",
+            "required": false,
+            "example": "erc20",
+            "description": "شبکه مورد نظر برای دریافت آدرس (مثلاً ERC20 یا TRC20)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "coin_type": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "example": "ETH"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "اتریوم"
+                            },
+                            "name_en": {
+                              "type": "string",
+                              "example": "Ethereum"
+                            },
+                            "type": {
+                              "type": "string",
+                              "example": "CRYPTO"
+                            },
+                            "deposit_availability": {
+                              "type": "string",
+                              "example": "ENABLE"
+                            },
+                            "withdrawal_availability": {
+                              "type": "string",
+                              "example": "ENABLE"
+                            },
+                            "deposit_unavailability_reason": {
+                              "example": null,
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "withdrawal_unavailability_reason": {
+                              "example": null,
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "wallets": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "network": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "integer",
+                                    "example": 4
+                                  },
+                                  "name": {
+                                    "type": "string",
+                                    "example": "ERC20"
+                                  },
+                                  "message": {
+                                    "example": null,
+                                    "nullable": true,
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "example": "ADDRESS"
+                                  },
+                                  "deposit_availability": {
+                                    "type": "string",
+                                    "example": "ENABLE"
+                                  },
+                                  "withdrawal_availability": {
+                                    "type": "string",
+                                    "example": "ENABLE"
+                                  },
+                                  "deposit_unavailability_reason": {
+                                    "example": null,
+                                    "nullable": true,
+                                    "type": "string"
+                                  },
+                                  "withdrawal_unavailability_reason": {
+                                    "example": null,
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "address": {
+                                "type": "string",
+                                "example": "0xa1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0"
+                              },
+                              "memo": {
+                                "example": null,
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "expire_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "example": "2026-02-21 08:44:47"
+                              },
+                              "min_confirmation": {
+                                "type": "integer",
+                                "example": 10
+                              },
+                              "transaction_fee": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 0.003
+                              },
+                              "min_withdrawal_value": {
+                                "type": "string",
+                                "example": "0.005"
+                              },
+                              "min_deposit_value": {
+                                "type": "number",
+                                "example": 0.001
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "The operation was successful"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "provider": {
+                      "type": "string",
+                      "example": "trade"
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": {
+                        "coin_type": {
+                          "key": "ETH",
+                          "name": "اتریوم",
+                          "name_en": "Ethereum",
+                          "type": "CRYPTO",
+                          "deposit_availability": "ENABLE",
+                          "withdrawal_availability": "ENABLE",
+                          "deposit_unavailability_reason": null,
+                          "withdrawal_unavailability_reason": null
+                        },
+                        "wallets": {
+                          "ERC20": {
+                            "network": {
+                              "id": 4,
+                              "name": "ERC20",
+                              "message": null,
+                              "type": "ADDRESS",
+                              "deposit_availability": "ENABLE",
+                              "withdrawal_availability": "ENABLE",
+                              "deposit_unavailability_reason": null,
+                              "withdrawal_unavailability_reason": null
+                            },
+                            "address": "0xa1b2c3d4e5f6g7h8i9j0k1l2m3n4o***********",
+                            "memo": null,
+                            "expire_at": "2026-02-21 08:44:47",
+                            "min_confirmation": 10,
+                            "transaction_fee": 0.003,
+                            "min_withdrawal_value": "0.005",
+                            "min_deposit_value": 0.001
+                          }
+                        }
+                      },
+                      "message": "The operation was successful",
+                      "success": true,
+                      "provider": "trade"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/ibans": {
+      "get": {
+        "operationId": "getAccountIbans",
+        "description": "این API لیست شماره شباهای بانکی کاربر را به همراه وضعیت، مالک و بانک مربوطه بازمی‌گرداند. نیازمند API Key در هدر است.",
+        "tags": [
+          "basic-services"
+        ],
+        "parameters": [
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "example": 10,
+            "description": "تعداد آیتم‌ها در هر صفحه",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "example": 1,
+            "description": "شماره صفحه مورد نظر",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 4479113
+                          },
+                          "withdraw_daily_amount": {
+                            "example": 100000000,
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "withdraw_available_amount": {
+                            "example": 100000000,
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "iban": {
+                            "type": "string",
+                            "example": "IR2301700000002302857*****"
+                          },
+                          "owners": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": [
+                              "صاحب حساب"
+                            ]
+                          },
+                          "bank_name": {
+                            "type": "string",
+                            "example": "MELLI"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "ACCEPTED"
+                          },
+                          "is_default": {
+                            "type": "integer",
+                            "example": 0
+                          },
+                          "bank_details": {
+                            "type": "object",
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "example": "MELIIR"
+                              },
+                              "label": {
+                                "type": "string",
+                                "example": "بانک ملی"
+                              },
+                              "is_available": {
+                                "type": "integer",
+                                "example": 1
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "The operation was successful"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "result_info": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "per_page": {
+                          "type": "integer",
+                          "example": 5
+                        },
+                        "count": {
+                          "type": "integer",
+                          "example": 5
+                        },
+                        "total_count": {
+                          "type": "integer",
+                          "example": 5
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": [
+                        {
+                          "id": 4479199,
+                          "withdraw_daily_amount": 100000000,
+                          "withdraw_available_amount": 100000000,
+                          "iban": "IR23017000000023028*******",
+                          "owners": [
+                            "نام صاحب حساب"
+                          ],
+                          "bank_name": "MELLI",
+                          "status": "ACCEPTED",
+                          "is_default": 0,
+                          "bank_details": {
+                            "code": "MELIIR",
+                            "label": "بانک ملی",
+                            "is_available": 1
+                          }
+                        }
+                      ],
+                      "message": "The operation was successful",
+                      "success": true,
+                      "result_info": {
+                        "page": 1,
+                        "per_page": 5,
+                        "count": 5,
+                        "total_count": 5
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "addAccountIban",
+        "description": "این API برای ثبت یک شماره شبا جدید در حساب کاربر استفاده می‌شود. نیازمند API Key در هدر است.",
+        "tags": [
+          "basic-services"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "iban"
+                ],
+                "properties": {
+                  "iban": {
+                    "type": "string",
+                    "example": "230170000000230285711000",
+                    "description": "شماره شبا بدون پیشوند IR"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 4479993
+                        },
+                        "withdraw_daily_amount": {
+                          "example": 10000000000,
+                          "nullable": true,
+                          "type": "number"
+                        },
+                        "withdraw_available_amount": {
+                          "example": 10000000000,
+                          "nullable": true,
+                          "type": "number"
+                        },
+                        "iban": {
+                          "type": "string",
+                          "example": "IR560170000000230285711000"
+                        },
+                        "owners": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "نام صاحب حساب"
+                          ]
+                        },
+                        "bank_name": {
+                          "type": "string",
+                          "example": "بانک ملی ایران"
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "PENDING"
+                        },
+                        "is_default": {
+                          "type": "integer",
+                          "example": 0
+                        },
+                        "bank_details": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string",
+                              "example": "MELIIR"
+                            },
+                            "label": {
+                              "type": "string",
+                              "example": "بانک ملی"
+                            },
+                            "is_available": {
+                              "type": "integer",
+                              "example": 1
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "The operation was successful"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": {
+                        "id": 4479113,
+                        "withdraw_daily_amount": null,
+                        "withdraw_available_amount": null,
+                        "iban": "IR5601700000002302857*****",
+                        "owners": [
+                          "نام صاحب حساب"
+                        ],
+                        "bank_name": "بانک ملی ایران",
+                        "status": "PENDING",
+                        "is_default": 0,
+                        "bank_details": {
+                          "code": "MELIIR",
+                          "label": "بانک ملی",
+                          "is_available": 1
+                        }
+                      },
+                      "message": "The operation was successful",
+                      "success": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/orders": {
+      "post": {
+        "operationId": "postAccountOrders",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "description": "Create a new order for trading with specified parameters",
+        "tags": [
+          "spot"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "side",
+                  "symbol",
+                  "type"
+                ],
+                "properties": {
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "string"
+                  },
+                  "side": {
+                    "type": "string"
+                  },
+                  "stop_Price": {
+                    "type": "string"
+                  },
+                  "symbol": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Order details",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Order created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "boolean"
+                        },
+                        "clientOrderId": {
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "executedPercent": {
+                          "type": "integer"
+                        },
+                        "executedPrice": {
+                          "type": "string"
+                        },
+                        "executedQty": {
+                          "type": "string"
+                        },
+                        "executedSum": {
+                          "type": "string"
+                        },
+                        "fee": {
+                          "type": "string"
+                        },
+                        "fills": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "fee": {
+                                "type": "string"
+                              },
+                              "feeAsset": {
+                                "type": "string"
+                              },
+                              "feeCoefficient": {
+                                "type": "string"
+                              },
+                              "isBuyer": {
+                                "type": "boolean"
+                              },
+                              "makerFeeCoefficient": {
+                                "type": "string"
+                              },
+                              "price": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "string"
+                              },
+                              "sum": {
+                                "type": "string"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "takerFeeCoefficient": {
+                                "type": "string"
+                              },
+                              "timestamp": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "origQty": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "string"
+                        },
+                        "side": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "stopPrice": {
+                          "type": "string"
+                        },
+                        "stopPriceCondition": {
+                          "type": "string"
+                        },
+                        "sum": {
+                          "type": "string"
+                        },
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "transactTime": {
+                          "type": "integer"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAccountOrders",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "description": "Cancel a trading order by its client ID",
+        "tags": [
+          "spot"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "clientOrderId"
+                ],
+                "properties": {
+                  "clientOrderId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Order cancellation details",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Order cancelled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "boolean"
+                        },
+                        "clientOrderId": {
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "executedPercent": {
+                          "type": "integer"
+                        },
+                        "executedPrice": {
+                          "type": "string"
+                        },
+                        "executedQty": {
+                          "type": "string"
+                        },
+                        "executedSum": {
+                          "type": "string"
+                        },
+                        "fee": {
+                          "type": "string"
+                        },
+                        "fills": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "fee": {
+                                "type": "string"
+                              },
+                              "feeAsset": {
+                                "type": "string"
+                              },
+                              "feeCoefficient": {
+                                "type": "string"
+                              },
+                              "isBuyer": {
+                                "type": "boolean"
+                              },
+                              "makerFeeCoefficient": {
+                                "type": "string"
+                              },
+                              "price": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "string"
+                              },
+                              "sum": {
+                                "type": "string"
+                              },
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "takerFeeCoefficient": {
+                                "type": "string"
+                              },
+                              "timestamp": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "origQty": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "string"
+                        },
+                        "side": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "stopPrice": {
+                          "type": "string"
+                        },
+                        "stopPriceCondition": {
+                          "type": "string"
+                        },
+                        "sum": {
+                          "type": "string"
+                        },
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "transactTime": {
+                          "type": "integer"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hector/web/v1/markets": {
+      "get": {
+        "operationId": "getMarkets",
+        "description": "Retrieve  all markets",
+        "tags": [
+          "basic-services"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "The operation was successful"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "markets": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "base_asset": {
+                                "type": "string"
+                              },
+                              "quote_asset": {
+                                "type": "string"
+                              },
+                              "fa_base_asset": {
+                                "type": "string"
+                              },
+                              "fa_quote_asset": {
+                                "type": "string"
+                              },
+                              "en_base_asset": {
+                                "type": "string"
+                              },
+                              "en_quote_asset": {
+                                "type": "string"
+                              },
+                              "categories": {
+                                "type": "array",
+                                "items": {
+                                  "type": "integer"
+                                }
+                              },
+                              "price": {
+                                "type": "string"
+                              },
+                              "change_24h": {
+                                "type": "number",
+                                "format": "float"
+                              },
+                              "volume_24h": {
+                                "type": "number",
+                                "format": "float"
+                              },
+                              "change_7D": {
+                                "type": "number",
+                                "format": "float"
+                              },
+                              "quote_volume_24h": {
+                                "type": "number",
+                                "format": "float"
+                              },
+                              "spot_is_new": {
+                                "type": "boolean"
+                              },
+                              "otc_is_new": {
+                                "type": "boolean"
+                              },
+                              "is_new": {
+                                "type": "boolean"
+                              },
+                              "is_spot": {
+                                "type": "boolean"
+                              },
+                              "is_otc": {
+                                "type": "boolean"
+                              },
+                              "is_margin": {
+                                "type": "boolean"
+                              },
+                              "is_tmn_based": {
+                                "type": "boolean"
+                              },
+                              "is_usdt_based": {
+                                "type": "boolean"
+                              },
+                              "is_zero_fee": {
+                                "type": "boolean"
+                              },
+                              "leverage_step": {
+                                "type": "number",
+                                "format": "float"
+                              },
+                              "max_leverage": {
+                                "type": "number"
+                              },
+                              "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "amount_precision": {
+                                "type": "integer"
+                              },
+                              "price_precision": {
+                                "type": "integer"
+                              },
+                              "flags": {
+                                "type": "array",
+                                "items": {}
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/openOrders": {
+      "get": {
+        "operationId": "getOpenOrder",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "description": "Get a list of currently active orders",
+        "tags": [
+          "spot"
+        ],
+        "parameters": [
+          {
+            "description": "Market symbol",
+            "name": "symbol",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page number (default: 1)",
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Items per page",
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "active": {
+                              "type": "boolean"
+                            },
+                            "clientOrderId": {
+                              "type": "string"
+                            },
+                            "created_at": {
+                              "type": "string"
+                            },
+                            "executedPercent": {
+                              "type": "integer"
+                            },
+                            "executedPrice": {
+                              "type": "string"
+                            },
+                            "executedQty": {
+                              "type": "string"
+                            },
+                            "executedSum": {
+                              "type": "string"
+                            },
+                            "fee": {
+                              "type": "string"
+                            },
+                            "fills": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "fee": {
+                                    "type": "string"
+                                  },
+                                  "feeAsset": {
+                                    "type": "string"
+                                  },
+                                  "feeCoefficient": {
+                                    "type": "string"
+                                  },
+                                  "isBuyer": {
+                                    "type": "boolean"
+                                  },
+                                  "makerFeeCoefficient": {
+                                    "type": "string"
+                                  },
+                                  "price": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": "string"
+                                  },
+                                  "sum": {
+                                    "type": "string"
+                                  },
+                                  "symbol": {
+                                    "type": "string"
+                                  },
+                                  "takerFeeCoefficient": {
+                                    "type": "string"
+                                  },
+                                  "timestamp": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "origQty": {
+                              "type": "string"
+                            },
+                            "price": {
+                              "type": "string"
+                            },
+                            "side": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "stopPrice": {
+                              "type": "string"
+                            },
+                            "stopPriceCondition": {
+                              "type": "string"
+                            },
+                            "sum": {
+                              "type": "string"
+                            },
+                            "symbol": {
+                              "type": "string"
+                            },
+                            "transactTime": {
+                              "type": "integer"
+                            },
+                            "type": {
+                              "type": "string"
+                            },
+                            "updated_at": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "result_info": {},
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/money-withdrawal": {
+      "post": {
+        "operationId": "createMoneyWithdrawal",
+        "description": "این API برای ثبت درخواست برداشت وجه از حساب کاربر استفاده می‌شود. نیازمند API Key در هدر است.",
+        "tags": [
+          "basic-services"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "iban",
+                  "value"
+                ],
+                "properties": {
+                  "iban": {
+                    "type": "integer",
+                    "example": 3799240,
+                    "description": "شناسه IBAN مورد نظر برای برداشت"
+                  },
+                  "value": {
+                    "type": "number",
+                    "example": 20000,
+                    "description": "مقدار برداشت (به ریال)"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "درخواست برداشت با موفقیت ثبت شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "amount": {
+                          "type": "number",
+                          "example": 20000
+                        },
+                        "fee": {
+                          "type": "number",
+                          "example": 200
+                        },
+                        "tracking_code": {
+                          "type": "string",
+                          "example": "abc123x"
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2025-10-27T07:24:21Z"
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "pending"
+                        },
+                        "iban": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "example": 3799240
+                            },
+                            "iban": {
+                              "type": "string",
+                              "example": "IR560560611828005*****8401"
+                            },
+                            "owners": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "example": [
+                                "نام صاحب حساب"
+                              ]
+                            },
+                            "bank_name": {
+                              "type": "string",
+                              "example": "SAMAN"
+                            },
+                            "status": {
+                              "type": "string",
+                              "example": "ACCEPTED"
+                            },
+                            "is_default": {
+                              "type": "integer",
+                              "example": 0
+                            },
+                            "bank_details": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string",
+                                  "example": "SABCIR"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "example": "بانک سامان"
+                                },
+                                "is_available": {
+                                  "type": "integer",
+                                  "example": 1
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "number",
+                                "example": 19800
+                              },
+                              "status": {
+                                "type": "string",
+                                "example": "pending"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "درخواست برداشت ثبت شد"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": {
+                        "amount": 20000,
+                        "fee": 200,
+                        "tracking_code": "abc12Xx",
+                        "created_at": "2025-10-27T07:24:21Z",
+                        "status": "pending",
+                        "iban": {
+                          "id": 3767240,
+                          "withdraw_daily_amount": null,
+                          "withdraw_available_amount": null,
+                          "iban": "IR56056061182800562*******",
+                          "owners": [
+                            "نام صاحب حساب"
+                          ],
+                          "bank_name": "SAMAN",
+                          "status": "ACCEPTED",
+                          "is_default": 0,
+                          "bank_details": {
+                            "code": "SABCIR",
+                            "label": "بانک سامان",
+                            "is_available": 1
+                          }
+                        },
+                        "details": [
+                          {
+                            "value": 19800,
+                            "status": "pending"
+                          }
+                        ]
+                      },
+                      "message": "درخواست برداشت ثبت شد",
+                      "success": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/easy-trade/orders": {
+      "post": {
+        "operationId": "placeEasyTradeOrder",
+        "description": "create otc order",
+        "tags": [
+          "otc"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "symbol",
+                  "side",
+                  "quantity",
+                  "from"
+                ],
+                "properties": {
+                  "symbol": {
+                    "type": "string",
+                    "example": "BTCTMN"
+                  },
+                  "side": {
+                    "type": "string",
+                    "enum": [
+                      "BUY",
+                      "SELL"
+                    ],
+                    "example": "BUY"
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 2.9e-05
+                  },
+                  "from": {
+                    "type": "string",
+                    "example": "otc"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "symbol": {
+                      "type": "string",
+                      "example": "BTCTMN"
+                    },
+                    "sourceMarket": {
+                      "type": "string",
+                      "example": "BTC"
+                    },
+                    "destinationMarket": {
+                      "type": "string",
+                      "example": "TMN"
+                    },
+                    "type": {
+                      "type": "string",
+                      "example": "OTC"
+                    },
+                    "side": {
+                      "type": "string",
+                      "example": "BUY"
+                    },
+                    "clientOrderId": {
+                      "type": "string",
+                      "example": "OTC-9f5fa3c6-b663-4e05-be4c-3c9ad06ee492"
+                    },
+                    "transactTime": {
+                      "type": "integer",
+                      "format": "int64",
+                      "example": 1752331184
+                    },
+                    "price": {
+                      "type": "string",
+                      "example": "10062689383.4710000000000000"
+                    },
+                    "origQty": {
+                      "type": "string",
+                      "example": "0.0000290000000000"
+                    },
+                    "executedSum": {
+                      "type": "string",
+                      "example": "291817.9921206590000000"
+                    },
+                    "executedQty": {
+                      "type": "string",
+                      "example": "0.0000290000000000"
+                    },
+                    "executedPrice": {
+                      "type": "string",
+                      "example": "10062689383.4710000000000000"
+                    },
+                    "sum": {
+                      "type": "string",
+                      "example": "291817.9921206590000000"
+                    },
+                    "executedPercent": {
+                      "type": "number",
+                      "example": 100
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "FILLED"
+                    },
+                    "active": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "fills": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "price": {
+                            "type": "string",
+                            "example": "10062689383.4710000000000000"
+                          },
+                          "quantity": {
+                            "type": "string",
+                            "example": "0.0000290000000000"
+                          },
+                          "fee": {
+                            "type": "string",
+                            "example": "0.000000"
+                          },
+                          "feeCoefficient": {
+                            "type": "string",
+                            "example": "0.0000000000000000"
+                          },
+                          "feeAsset": {
+                            "type": "object"
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2025-07-12T14:39:44Z"
+                          },
+                          "symbol": {
+                            "type": "string",
+                            "example": "BTCTMN"
+                          },
+                          "sum": {
+                            "type": "string",
+                            "example": "291817.9921206590000000"
+                          },
+                          "makerFeeCoefficient": {
+                            "type": "string",
+                            "example": "0"
+                          },
+                          "takerFeeCoefficient": {
+                            "type": "string",
+                            "example": "0"
+                          },
+                          "isBuyer": {
+                            "type": "boolean",
+                            "example": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "symbol": "BTCTMN",
+                      "sourceMarket": "BTC",
+                      "destinationMarket": "TMN",
+                      "type": "OTC",
+                      "side": "BUY",
+                      "clientOrderId": "OTC-9f5fa3c6-b663-4e05-be4c-3c9ad06ee492",
+                      "transactTime": 1752331184,
+                      "price": "10062689383.4710000000000000",
+                      "origQty": "0.0000290000000000",
+                      "executedSum": "291817.9921206590000000",
+                      "executedQty": "0.0000290000000000",
+                      "executedPrice": "10062689383.4710000000000000",
+                      "sum": "291817.9921206590000000",
+                      "executedPercent": 100,
+                      "status": "FILLED",
+                      "active": false,
+                      "fills": [
+                        {
+                          "price": "10062689383.4710000000000000",
+                          "quantity": "0.0000290000000000",
+                          "fee": "0.000000",
+                          "feeCoefficient": "0.0000000000000000",
+                          "feeAsset": {},
+                          "timestamp": "2025-07-12T14:39:44Z",
+                          "symbol": "BTCTMN",
+                          "sum": "291817.9921206590000000",
+                          "makerFeeCoefficient": "0",
+                          "takerFeeCoefficient": "0",
+                          "isBuyer": true
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/trades": {
+      "get": {
+        "operationId": "getLatestTrades",
+        "description": "این API آخرین معاملات انجام‌شده برای نماد مشخص‌شده را برمی‌گرداند.",
+        "tags": [
+          "basic-services"
+        ],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "required": true,
+            "example": "USDCUSDT",
+            "description": "نماد معاملاتی مورد نظر",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "latestTrades": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "symbol": {
+                                "type": "string",
+                                "example": "USDCUSDT"
+                              },
+                              "quantity": {
+                                "type": "string",
+                                "example": "500.0000000000000000"
+                              },
+                              "price": {
+                                "type": "string",
+                                "example": "1.0000000000000000"
+                              },
+                              "sum": {
+                                "type": "string",
+                                "example": "500.0000000000000000"
+                              },
+                              "isBuyOrder": {
+                                "type": "boolean",
+                                "example": false
+                              },
+                              "timestamp": {
+                                "type": "string",
+                                "format": "date-time",
+                                "example": "2025-06-09T13:40:05Z"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "The operation was successful"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": {
+                        "latestTrades": [
+                          {
+                            "symbol": "USDCUSDT",
+                            "quantity": "500.0000000000000000",
+                            "price": "1.0000000000000000",
+                            "sum": "500.0000000000000000",
+                            "isBuyOrder": false,
+                            "timestamp": "2025-06-09T13:40:05Z"
+                          },
+                          {
+                            "symbol": "USDCUSDT",
+                            "quantity": "13.6300000000000000",
+                            "price": "0.9944000000000000",
+                            "sum": "13.5536720000000000",
+                            "isBuyOrder": true,
+                            "timestamp": "2025-06-09T10:22:12Z"
+                          }
+                        ]
+                      },
+                      "message": "The operation was successful",
+                      "success": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/depth/all": {
+      "get": {
+        "operationId": "getDepth",
+        "description": "Retrieve market depth for all markets",
+        "tags": [
+          "spot"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "ask": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "price": {
+                                  "type": "number"
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "sum": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          },
+                          "bid": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "price": {
+                                  "type": "number"
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "sum": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/udf/history": {
+      "get": {
+        "operationId": "candleHistory",
+        "description": "Retrieve historical OHLCV data for a symbol. Useful for charting and analysis.",
+        "tags": [
+          "basic-services"
+        ],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "required": true,
+            "example": "BTCTMN",
+            "description": "The symbol to retrieve historical data for",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resolution",
+            "in": "query",
+            "required": true,
+            "example": "60",
+            "description": "Candle resolution (e.g. 1, 5, 15, 60, D)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "example": 1733425200,
+            "description": "Start of time range (Unix timestamp)",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "example": 1733428800,
+            "description": "End of time range (Unix timestamp)",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "s": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "t": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "format": "int64"
+                      },
+                      "example": [
+                        1733425200,
+                        1733428800
+                      ]
+                    },
+                    "c": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "7209722048.0000000000000000",
+                        "7235725819.0000000000000000"
+                      ]
+                    },
+                    "o": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "7286137604.0000000000000000",
+                        "7200151050.0000000000000000"
+                      ]
+                    },
+                    "h": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "7286137604.0000000000000000",
+                        "7235725819.0000000000000000"
+                      ]
+                    },
+                    "l": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "7209722048.0000000000000000",
+                        "7150000001.0000000000000000"
+                      ]
+                    },
+                    "v": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "0.2544820000000000",
+                        "1.0201680000000000"
+                      ]
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "s": "ok",
+                      "t": [
+                        1733425200,
+                        1733428800
+                      ],
+                      "c": [
+                        "7209722048.0000000000000000",
+                        "7235725819.0000000000000000"
+                      ],
+                      "o": [
+                        "7286137604.0000000000000000",
+                        "7200151050.0000000000000000"
+                      ],
+                      "h": [
+                        "7286137604.0000000000000000",
+                        "7235725819.0000000000000000"
+                      ],
+                      "l": [
+                        "7209722048.0000000000000000",
+                        "7150000001.0000000000000000"
+                      ],
+                      "v": [
+                        "0.2544820000000000",
+                        "1.0201680000000000"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/otc/price": {
+      "get": {
+        "operationId": "getOtcPrice",
+        "description": "retrieves otc prices",
+        "tags": [
+          "otc"
+        ],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "required": true,
+            "example": "BTCTMN",
+            "description": "نماد معاملاتی مورد نظر برای دریافت قیمت OTC",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": true,
+            "example": "BUY",
+            "description": "نوع عملیات؛ خرید یا فروش",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BUY",
+                "SELL"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "عملیات با موفقیت انجام شد"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "price": {
+                          "type": "string",
+                          "example": "10060906814.238"
+                        },
+                        "price_expires_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2025-07-12T14:37:12Z"
+                        },
+                        "ttl": {
+                          "type": "integer",
+                          "example": 17,
+                          "description": "زمان اعتبار قیمت بر حسب ثانیه"
+                        },
+                        "current_time": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2025-07-12T14:36:55Z"
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": {
+                        "price": "10060906814.238",
+                        "price_expires_at": "2025-07-12T14:37:12Z",
+                        "ttl": 17,
+                        "current_time": "2025-07-12T14:36:55Z"
+                      },
+                      "message": "عملیات با موفقیت انجام شد",
+                      "success": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/balances": {
+      "get": {
+        "operationId": "getAccountBalances",
+        "description": "Retrieve the list of all account balances. Requires API key.",
+        "tags": [
+          "basic-services"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "balances": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "asset": {
+                                "type": "string",
+                                "example": "1BBABYDOGE"
+                              },
+                              "asset_png_icon": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "asset_svg_icon": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "faName": {
+                                "type": "string",
+                                "example": "۱میلیارد بیبی دوج"
+                              },
+                              "fiat": {
+                                "type": "boolean"
+                              },
+                              "value": {
+                                "type": "string",
+                                "example": "13.97200000"
+                              },
+                              "locked": {
+                                "type": "string",
+                                "example": "0.00000000"
+                              },
+                              "is_dust": {
+                                "type": "boolean"
+                              },
+                              "is_digital_gold": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "عملیات با موفقیت انجام شد"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/depth": {
+      "get": {
+        "operationId": "getMarketDepth",
+        "description": "این API، لیست سفارشات خرید (bid) و فروش (ask) را برای یک نماد خاص برمی‌گرداند.",
+        "tags": [
+          "basic-services"
+        ],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "required": true,
+            "example": "USDCUSDT",
+            "description": "نماد معاملاتی مورد نظر",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "ask": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "price": {
+                                "type": "number",
+                                "example": 1.0045
+                              },
+                              "quantity": {
+                                "type": "number",
+                                "example": 314.37
+                              },
+                              "sum": {
+                                "type": "string",
+                                "example": "315.784665"
+                              }
+                            }
+                          }
+                        },
+                        "bid": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "price": {
+                                "type": "number",
+                                "example": 1.0045
+                              },
+                              "quantity": {
+                                "type": "number",
+                                "example": 314.37
+                              },
+                              "sum": {
+                                "type": "string",
+                                "example": "315.784665"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "عملیات موفقیت‌آمیز بود."
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": {
+                        "ask": [
+                          {
+                            "price": 1,
+                            "quantity": 24.79,
+                            "sum": "24.79"
+                          },
+                          {
+                            "price": 1.0045,
+                            "quantity": 314.37,
+                            "sum": "315.784665"
+                          }
+                        ],
+                        "bid": [
+                          {
+                            "price": 0.9944,
+                            "quantity": 317.57,
+                            "sum": "315.791608"
+                          },
+                          {
+                            "price": 0.9869,
+                            "quantity": 479.97,
+                            "sum": "473.682393"
+                          }
+                        ]
+                      },
+                      "message": "عملیات موفقیت‌آمیز بود.",
+                      "success": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/account/fee": {
+      "get": {
+        "operationId": "getAccountFees",
+        "description": "این API نرخ‌های کارمزد میکر و تیکر را برای هر بازار به همراه مجموع حجم معاملات چند روز اخیر باز می‌گرداند. نیازمند API Key در هدر است.",
+        "tags": [
+          "basic-services"
+        ],
+        "responses": {
+          "200": {
+            "description": "پاسخ موفق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "عملیات با موفقیت انجام شد"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "makerFeeRate": {
+                            "type": "string",
+                            "example": "0.00200000"
+                          },
+                          "takerFeeRate": {
+                            "type": "string",
+                            "example": "0.00200000"
+                          },
+                          "recent_days_sum": {
+                            "type": "number",
+                            "format": "double",
+                            "example": 250000000
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "response": {
+                    "value": {
+                      "success": true,
+                      "message": "عملیات با موفقیت انجام شد",
+                      "result": {
+                        "BTCTMN": {
+                          "makerFeeRate": "0.00200000",
+                          "takerFeeRate": "0.00200000",
+                          "recent_days_sum": 250000000
+                        },
+                        "BTCUSDT": {
+                          "makerFeeRate": "0.00200000",
+                          "takerFeeRate": "0.00200000",
+                          "recent_days_sum": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    }
+  }
+}

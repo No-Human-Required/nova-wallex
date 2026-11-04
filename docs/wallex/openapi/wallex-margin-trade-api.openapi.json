@@ -1,0 +1,2692 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "This is the documentation for the Margin Trading system.",
+    "title": "Wallex Margin-trade API",
+    "contact": {
+      "name": "Wallex",
+      "url": "https://wallex.ir",
+      "email": "info@wallex.net"
+    },
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.wallex.ir"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Use your API key to authenticate requests."
+      }
+    }
+  },
+  "paths": {
+    "/margin-trade/v1/user/levels": {
+      "get": {
+        "operationId": "?getLevels",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "levels": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "base": {
+                            "type": "string"
+                          },
+                          "level": {
+                            "type": "integer"
+                          },
+                          "max_loan_volume": {
+                            "type": "number"
+                          },
+                          "max_position_volume": {
+                            "type": "number"
+                          },
+                          "max_risk_coefficient": {
+                            "type": "number"
+                          },
+                          "min_trade_volume": {
+                            "type": "number"
+                          },
+                          "quote": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "user_level": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "margin trade user levels"
+      }
+    },
+    "/margin-trade/v1/positions": {
+      "get": {
+        "operationId": "getPositions",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "parameters": [
+          {
+            "description": "List active/inactive positions",
+            "name": "active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Position side (long/short)",
+            "name": "position_side",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "market symbol (e.g. USDTTMN)",
+            "name": "market",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "call_price": {
+                        "type": "string"
+                      },
+                      "close_filled_price": {
+                        "type": "string"
+                      },
+                      "close_price": {
+                        "type": "string"
+                      },
+                      "close_reason": {
+                        "type": "string"
+                      },
+                      "closed_at": {
+                        "type": "string"
+                      },
+                      "collateral": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "expires_at": {
+                        "type": "string"
+                      },
+                      "extend_time": {
+                        "type": "integer"
+                      },
+                      "first_order_filled": {
+                        "type": "boolean"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "interest": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "is_called": {
+                        "type": "boolean"
+                      },
+                      "liquidity_price": {
+                        "type": "string"
+                      },
+                      "loan": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "market": {
+                        "type": "string"
+                      },
+                      "max_age": {
+                        "type": "integer"
+                      },
+                      "open_filled_price": {
+                        "type": "string"
+                      },
+                      "open_price": {
+                        "type": "string"
+                      },
+                      "opened_at": {
+                        "type": "string"
+                      },
+                      "profit": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "profit_percentage": {
+                        "type": "string"
+                      },
+                      "risk_coef": {
+                        "type": "string"
+                      },
+                      "side": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "type": "string"
+                      },
+                      "stop_loss": {
+                        "type": "string"
+                      },
+                      "take_profit": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "List margin positions"
+      },
+      "post": {
+        "operationId": "openPosition",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "collateral": {
+                    "type": "string"
+                  },
+                  "market": {
+                    "type": "string"
+                  },
+                  "open_price": {
+                    "type": "string"
+                  },
+                  "risk_coef": {
+                    "type": "string"
+                  },
+                  "side": {
+                    "type": "string"
+                  },
+                  "stop_loss": {
+                    "type": "string"
+                  },
+                  "take_profit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Request body",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "call_price": {
+                      "type": "string"
+                    },
+                    "close_filled_price": {
+                      "type": "string"
+                    },
+                    "close_price": {
+                      "type": "string"
+                    },
+                    "close_reason": {
+                      "type": "string"
+                    },
+                    "closed_at": {
+                      "type": "string"
+                    },
+                    "collateral": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "expires_at": {
+                      "type": "string"
+                    },
+                    "extend_time": {
+                      "type": "integer"
+                    },
+                    "first_order_filled": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "interest": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "is_called": {
+                      "type": "boolean"
+                    },
+                    "liquidity_price": {
+                      "type": "string"
+                    },
+                    "loan": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "market": {
+                      "type": "string"
+                    },
+                    "max_age": {
+                      "type": "integer"
+                    },
+                    "open_filled_price": {
+                      "type": "string"
+                    },
+                    "open_price": {
+                      "type": "string"
+                    },
+                    "opened_at": {
+                      "type": "string"
+                    },
+                    "profit": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "profit_percentage": {
+                      "type": "string"
+                    },
+                    "risk_coef": {
+                      "type": "string"
+                    },
+                    "side": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "stop_loss": {
+                      "type": "string"
+                    },
+                    "take_profit": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Open a margin position"
+      }
+    },
+    "/margin-trade/v1/public/ratio/{market}": {
+      "get": {
+        "operationId": "publicRatio",
+        "tags": [
+          "margin"
+        ],
+        "parameters": [
+          {
+            "description": "market e.g. USDTTMN",
+            "name": "market",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "long_percents": {
+                      "type": "integer"
+                    },
+                    "short_percents": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Positions Ratio of long and short",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/margin-trade/v1/positions/{id}/close": {
+      "patch": {
+        "operationId": "closePositionId",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "parameters": [
+          {
+            "description": "Position ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "price": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Request body",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "call_price": {
+                      "type": "string"
+                    },
+                    "close_filled_price": {
+                      "type": "string"
+                    },
+                    "close_price": {
+                      "type": "string"
+                    },
+                    "close_reason": {
+                      "type": "string"
+                    },
+                    "closed_at": {
+                      "type": "string"
+                    },
+                    "collateral": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "expires_at": {
+                      "type": "string"
+                    },
+                    "extend_time": {
+                      "type": "integer"
+                    },
+                    "first_order_filled": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "interest": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "is_called": {
+                      "type": "boolean"
+                    },
+                    "liquidity_price": {
+                      "type": "string"
+                    },
+                    "loan": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "market": {
+                      "type": "string"
+                    },
+                    "max_age": {
+                      "type": "integer"
+                    },
+                    "open_filled_price": {
+                      "type": "string"
+                    },
+                    "open_price": {
+                      "type": "string"
+                    },
+                    "opened_at": {
+                      "type": "string"
+                    },
+                    "profit": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "profit_percentage": {
+                      "type": "string"
+                    },
+                    "risk_coef": {
+                      "type": "string"
+                    },
+                    "side": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "stop_loss": {
+                      "type": "string"
+                    },
+                    "take_profit": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Close a margin position"
+      }
+    },
+    "/margin-trade/v1/user/levels/{market}": {
+      "get": {
+        "operationId": "getLevelsMarket",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "parameters": [
+          {
+            "description": "market e.g. USDTTMN",
+            "name": "market",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "levels": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "base": {
+                            "type": "string"
+                          },
+                          "level": {
+                            "type": "integer"
+                          },
+                          "max_loan_volume": {
+                            "type": "number"
+                          },
+                          "max_position_volume": {
+                            "type": "number"
+                          },
+                          "max_risk_coefficient": {
+                            "type": "number"
+                          },
+                          "min_trade_volume": {
+                            "type": "number"
+                          },
+                          "quote": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "user_level": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "margin trade user levels"
+      }
+    },
+    "/margin-trade/v1/positions/{id}/collateral": {
+      "patch": {
+        "operationId": "editColateral",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "parameters": [
+          {
+            "description": "Position ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "change": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Request body",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "call_price": {
+                      "type": "string"
+                    },
+                    "close_filled_price": {
+                      "type": "string"
+                    },
+                    "close_price": {
+                      "type": "string"
+                    },
+                    "close_reason": {
+                      "type": "string"
+                    },
+                    "closed_at": {
+                      "type": "string"
+                    },
+                    "collateral": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "expires_at": {
+                      "type": "string"
+                    },
+                    "extend_time": {
+                      "type": "integer"
+                    },
+                    "first_order_filled": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "interest": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "is_called": {
+                      "type": "boolean"
+                    },
+                    "liquidity_price": {
+                      "type": "string"
+                    },
+                    "loan": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "market": {
+                      "type": "string"
+                    },
+                    "max_age": {
+                      "type": "integer"
+                    },
+                    "open_filled_price": {
+                      "type": "string"
+                    },
+                    "open_price": {
+                      "type": "string"
+                    },
+                    "opened_at": {
+                      "type": "string"
+                    },
+                    "profit": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "profit_percentage": {
+                      "type": "string"
+                    },
+                    "risk_coef": {
+                      "type": "string"
+                    },
+                    "side": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "stop_loss": {
+                      "type": "string"
+                    },
+                    "take_profit": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Update margin positions collateral"
+      }
+    },
+    "/margin-trade/v1/positions/{id}/sltp": {
+      "patch": {
+        "operationId": "editSltp",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "parameters": [
+          {
+            "description": "Position ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stop_loss": {
+                    "type": "string"
+                  },
+                  "take_profit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Request body",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "call_price": {
+                      "type": "string"
+                    },
+                    "close_filled_price": {
+                      "type": "string"
+                    },
+                    "close_price": {
+                      "type": "string"
+                    },
+                    "close_reason": {
+                      "type": "string"
+                    },
+                    "closed_at": {
+                      "type": "string"
+                    },
+                    "collateral": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "expires_at": {
+                      "type": "string"
+                    },
+                    "extend_time": {
+                      "type": "integer"
+                    },
+                    "first_order_filled": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "interest": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "is_called": {
+                      "type": "boolean"
+                    },
+                    "liquidity_price": {
+                      "type": "string"
+                    },
+                    "loan": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "market": {
+                      "type": "string"
+                    },
+                    "max_age": {
+                      "type": "integer"
+                    },
+                    "open_filled_price": {
+                      "type": "string"
+                    },
+                    "open_price": {
+                      "type": "string"
+                    },
+                    "opened_at": {
+                      "type": "string"
+                    },
+                    "profit": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "profit_percentage": {
+                      "type": "string"
+                    },
+                    "risk_coef": {
+                      "type": "string"
+                    },
+                    "side": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "stop_loss": {
+                      "type": "string"
+                    },
+                    "take_profit": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Update stop-loss and take-profit prices"
+      }
+    },
+    "/margin-trade/v1/public/dry-run": {
+      "post": {
+        "operationId": "detailedInformation",
+        "tags": [
+          "margin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "collateral": {
+                    "type": "string"
+                  },
+                  "market": {
+                    "type": "string"
+                  },
+                  "open_price": {
+                    "type": "string"
+                  },
+                  "risk_coef": {
+                    "type": "string"
+                  },
+                  "side": {
+                    "type": "string"
+                  },
+                  "stop_loss": {
+                    "type": "string"
+                  },
+                  "take_profit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Open request body",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "call_price": {
+                      "type": "string"
+                    },
+                    "collateral": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "extend_fee": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "extend_time": {
+                      "type": "integer"
+                    },
+                    "liquidity_price": {
+                      "type": "string"
+                    },
+                    "loan": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "market": {
+                      "type": "string"
+                    },
+                    "max_age": {
+                      "type": "integer"
+                    },
+                    "open_fee": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "open_price": {
+                      "type": "string"
+                    },
+                    "risk_coef": {
+                      "type": "string"
+                    },
+                    "side": {
+                      "type": "string"
+                    },
+                    "stop_loss": {
+                      "type": "string"
+                    },
+                    "take_profit": {
+                      "type": "string"
+                    },
+                    "trade_fee": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "info a margin position before creation",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/margin-trade/v1/public/loan": {
+      "post": {
+        "operationId": "calculateLoan",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "collateral": {
+                    "type": "string"
+                  },
+                  "market": {
+                    "type": "string"
+                  },
+                  "open_price": {
+                    "type": "string"
+                  },
+                  "risk_coef": {
+                    "type": "string"
+                  },
+                  "side": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Request body",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "collateral": {
+                      "type": "object",
+                      "properties": {
+                        "max": {
+                          "type": "string"
+                        },
+                        "min": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "loan": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "calculate min, max Collateral and loan"
+      }
+    },
+    "/margin-trade/v1/user/pnl": {
+      "get": {
+        "operationId": "getPnl",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "collaterals": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    "loans": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    "profits": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    "total": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "User PNL"
+      }
+    },
+    "/margin-trade/v1/positions/{id}": {
+      "get": {
+        "operationId": "getPositionId",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "parameters": [
+          {
+            "description": "Position ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "call_price": {
+                      "type": "string"
+                    },
+                    "close_filled_price": {
+                      "type": "string"
+                    },
+                    "close_price": {
+                      "type": "string"
+                    },
+                    "close_reason": {
+                      "type": "string"
+                    },
+                    "closed_at": {
+                      "type": "string"
+                    },
+                    "collateral": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "expires_at": {
+                      "type": "string"
+                    },
+                    "extend_time": {
+                      "type": "integer"
+                    },
+                    "first_order_filled": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "interest": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "is_called": {
+                      "type": "boolean"
+                    },
+                    "liquidity_price": {
+                      "type": "string"
+                    },
+                    "loan": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "market": {
+                      "type": "string"
+                    },
+                    "max_age": {
+                      "type": "integer"
+                    },
+                    "open_filled_price": {
+                      "type": "string"
+                    },
+                    "open_price": {
+                      "type": "string"
+                    },
+                    "opened_at": {
+                      "type": "string"
+                    },
+                    "profit": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "profit_percentage": {
+                      "type": "string"
+                    },
+                    "risk_coef": {
+                      "type": "string"
+                    },
+                    "side": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "stop_loss": {
+                      "type": "string"
+                    },
+                    "take_profit": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Get a margin position"
+      }
+    },
+    "/margin-trade/v1/orders": {
+      "get": {
+        "operationId": "getOrders",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "parameters": [
+          {
+            "description": "List active/inactive orders",
+            "name": "active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Market symbol",
+            "name": "market",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Position side (long/short)",
+            "name": "position_side",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Position ID",
+            "name": "position_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Position type",
+            "name": "position_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order side",
+            "name": "side",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "fee": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "filled": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "filled_price": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "market": {
+                        "type": "string"
+                      },
+                      "price": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "side": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "trades": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "created_at": {
+                              "type": "string"
+                            },
+                            "fee": {
+                              "type": "object",
+                              "properties": {
+                                "currency": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "price": {
+                              "type": "object",
+                              "properties": {
+                                "currency": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "volume": {
+                              "type": "object",
+                              "properties": {
+                                "currency": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "volume": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "List margin orders"
+      }
+    },
+    "/margin-trade/v1/positions/{id}/profit": {
+      "post": {
+        "operationId": "profitPositionID",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "margin"
+        ],
+        "parameters": [
+          {
+            "description": "Position ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "close_price": {
+                    "type": "string"
+                  },
+                  "strategy": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Request body",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "scheme of `result` field in success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fee": {
+                      "type": "string"
+                    },
+                    "filled_percentage": {
+                      "type": "string"
+                    },
+                    "interest": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "price": {
+                      "type": "string"
+                    },
+                    "profit": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "side": {
+                      "type": "string"
+                    },
+                    "volume": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "408": {
+            "description": "Request time out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Calculate"
+      }
+    }
+  }
+}
