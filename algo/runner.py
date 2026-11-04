@@ -21,6 +21,8 @@ from .ai import AIFilter
 from . import exchanges
 
 CYCLE_SECONDS = 30
+BALANCE_CHECK_SECONDS = 600
+BALANCE_TOLERANCE = 0.995
 ACTIVE = ('running', 'paused', 'closing', 'scheduled')
 
 
@@ -30,10 +32,14 @@ def plan_allows_live(db, user, now):
 
 
 class Runner:
-    def __init__(self, db, settings, secrets, market, ai=None, clock=time.time):
+    def __init__(self, db, settings, secrets, market, ai=None, clock=time.time, notifier=None):
         self.db, self.s, self.secrets, self.market, self.clock = db, settings, secrets, market, clock
-        self.executor = Executor(db, market, ai=ai, clock=clock)
+        self.notifier = notifier
+        self.executor = Executor(db, market, ai=ai, clock=clock, notify=notifier.on_event if notifier else None)
+        if ai is not None and notifier is not None:
+            ai.notify = notifier.on_event
         self.next = {}
+        self.balance_checked = 0
 
     def gateway(self, bot):
         cfg = json.loads(bot['config'])
@@ -146,8 +152,62 @@ class Runner:
         self.db.run('UPDATE bots SET status=?,last_error=?,updated=? WHERE id=?', (status, error, self.clock(), bot['id']))
         self.executor.event(bot, 'bot_'+status, {'reason': error})
 
+    def reconcile_balances(self):
+        """Live spot bots: the exchange must hold at least what the bots' own ledgers say they hold.
+
+        Bots sharing one API key are checked together. A shortfall (manual
+        trading, a transfer, a bot on the same account outside the platform)
+        stops new entries of those bots and alerts the user and the admins;
+        nothing is sold automatically.
+        """
+        now = self.clock()
+        if now-self.balance_checked < BALANCE_CHECK_SECONDS:
+            return []
+        self.balance_checked = now
+        groups = {}
+        for b in self.db.all("SELECT * FROM bots WHERE mode='live' AND status IN ('running','paused','closing') AND key_id IS NOT NULL"):
+            if json.loads(b['config']).get('market_type') != 'margin':
+                groups.setdefault(b['key_id'], []).append(b)
+        markets = exchanges.wallex_markets()
+        flagged = []
+        for key_id, bots in groups.items():
+            expected = {}
+            for b in bots:
+                for sym, p in json.loads(b['state'])['positions'].items():
+                    base = markets[sym].base if sym in markets else sym
+                    expected[base] = expected.get(base, 0)+float(p['qty'])
+            if not expected:
+                continue
+            try:
+                r = self.gateway(bots[0]).main_balances()
+                balances = ((r or {}).get('result') or {}).get('balances') or {}
+            except Exception:
+                continue
+            short = {a: (q, float((balances.get(a) or {}).get('value') or 0)) for a, q in expected.items()
+                     if float((balances.get(a) or {}).get('value') or 0) < q*BALANCE_TOLERANCE}
+            if not short:
+                continue
+            detail = '، '.join(f'{a}: دفتر ربات {q:.8g} / صرافی {have:.8g}' for a, (q, have) in short.items())
+            for b in bots:
+                if b['status'] != 'running':
+                    continue  # already exits-only: alert once, when entries are stopped
+                self.db.run("UPDATE bots SET status='paused',last_error=?,updated=? WHERE id=?",
+                            ('موجودی صرافی کمتر از دفتر ربات است؛ ورود جدید متوقف شد', now, b['id']))
+                self.executor.event(b, 'balance_mismatch', {'detail': detail, 'key_id': key_id})
+                flagged.append(b['id'])
+        return flagged
+
     def tick(self):
         now = self.clock()
+        try:
+            self.reconcile_balances()
+        except Exception:
+            pass
+        if self.notifier:
+            try:
+                self.notifier.tick()
+            except Exception:
+                pass
         marks = ','.join('?'*len(ACTIVE))
         for bot in self.db.all(f'SELECT * FROM bots WHERE status IN ({marks})', ACTIVE):
             if self.next.get(bot['id'], 0) > now:
@@ -169,7 +229,8 @@ def main():
     secrets = Secrets()
     settings = Settings(db, secrets)
     market = MarketData(WallexCandles(cache_root()/'candles'))
-    runner = Runner(db, settings, secrets, market, ai=AIFilter(db, settings, cache_root()/'algo-ai'))
+    from .notify import Notifier
+    runner = Runner(db, settings, secrets, market, ai=AIFilter(db, settings, cache_root()/'algo-ai'), notifier=Notifier(db, settings, secrets))
     stop = threading.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, lambda *_: stop.set())

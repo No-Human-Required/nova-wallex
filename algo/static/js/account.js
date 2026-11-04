@@ -211,6 +211,7 @@ export function pageKeys(root) {
     <label class="lf"><span>صرافی</span><select id="kx">${ex.map(e => `<option value="${e.id}">${esc(e.fa)}</option>`).join('')}</select></label>
     <label class="lf"><span>نام دلخواه</span><input id="kl" maxlength="40" placeholder="مثلاً حساب اصلی"></label><label class="lf"><span>کلید API</span><input id="kk" class="ltr" autocomplete="off" style="width:100%"></label>
     <div class="notice" style="font-size:12.5px">${esc(ex[0] ? ex[0].key_help : '')} کلید رمزنگاری‌شده ذخیره می‌شود، فقط موتور اجرا آن را باز می‌کند و پس از ذخیره دیگر نمایش داده نمی‌شود.</div>
+    <div class="notice red" style="font-size:12.5px">مهم: از حسابی که ربات واقعی روی آن کار می‌کند <b>دستی معامله نکنید</b> و دارایی‌هایی را که ربات خریده جابه‌جا نکنید. هر ۱۰ دقیقه موجودی صرافی با دفتر ربات تطبیق داده می‌شود و اگر کمتر باشد، ورود جدید متوقف و به شما خبر داده می‌شود. بهتر است برای ربات‌ها یک حساب یا زیرحساب جدا داشته باشید.</div>
     <div><button class="primary" id="ka">ذخیره و بررسی فقط‌خواندنی</button></div></div></div>
     <div class="panel"><div class="head"><h2>کلیدهای من</h2></div><div class="body table-wrap" id="kl2"></div></div></section>`;
   const load = async () => { const ks = await api('/api/keys').catch(() => []);
@@ -243,11 +244,38 @@ export async function pageBilling(root, ctx, q) {
 
 export function pageProfile(root, ctx, onLogout) {
   const u = S.user;
-  root.innerHTML = `<section class="panel" style="max-width:520px"><div class="body form"><label class="lf"><span>نام</span><input id="nm" value="${esc(u.name || '')}" maxlength="60"></label>
+  root.innerHTML = `<section class="grid g2" style="align-items:start"><div class="panel"><div class="head"><h2>حساب</h2></div><div class="body form"><label class="lf"><span>نام</span><input id="nm" value="${esc(u.name || '')}" maxlength="60"></label>
     <div class="muted">موبایل: <span class="mono">${esc(u.phone)}</span></div>
-    <div class="row"><button class="primary" id="sv">ذخیره</button><button class="danger" id="out">خروج از حساب</button></div>${S.meta.support ? `<div class="faint">${esc(S.meta.support)}</div>` : ''}</div></section>`;
+    <div class="row"><button class="primary" id="sv">ذخیره</button><button class="danger" id="out">خروج از حساب</button></div>${S.meta.support ? `<div class="faint">${esc(S.meta.support)}</div>` : ''}</div></div>
+    <div class="panel"><div class="head"><h2>اعلان‌ها در بله</h2><span class="sub">ورود و خروج معاملات، هشدارها و وضعیت ربات‌ها</span></div><div class="body form" id="bale"><div class="skeleton" style="height:90px"></div></div></div></section>`;
   $('#sv').onclick = () => act(() => post('/api/me/profile', { name: $('#nm').value }), 'ذخیره شد').then(refreshMe);
   $('#out').onclick = async () => { await post('/api/auth/logout').catch(() => null); onLogout(); };
+  baleBox($('#bale'));
+}
+
+async function baleBox(box) {
+  const b = await api('/api/me/bale').catch(e => ({ error: e.message })); if (!box.isConnected) return;
+  if (b.error) { box.innerHTML = `<div class="notice red">${esc(b.error)}</div>`; return; }
+  const bot = b.bot_username ? `<a href="https://ble.ir/${encodeURIComponent(b.bot_username)}" target="_blank" rel="noopener noreferrer" class="mono">@${esc(b.bot_username)}</a>` : 'ربات بله';
+  if (!b.available) { box.innerHTML = '<div class="muted">اعلان‌های بله هنوز توسط مدیریت فعال نشده است.</div>'; return; }
+  if (b.linked) {
+    box.innerHTML = `<div class="notice green" style="font-size:12.5px">✓ حساب شما به ${bot} وصل است${b.linked_at ? ' (از ' + when(b.linked_at) + ')' : ''}. هشدارهای مهم (مسدود شدن ربات، ناهمخوانی موجودی، لیکویید شدن) همیشه ارسال می‌شوند.</div>
+      <label class="chk"><input type="checkbox" id="bmute" ${b.muted ? '' : 'checked'}> پیام ورود و خروج هر معامله</label>
+      <div class="row"><button id="btest">ارسال پیام آزمایشی</button><button class="danger" id="bunlink">قطع اتصال</button></div>
+      <div class="faint" style="font-size:11.5px">در خود بله هم: /status وضعیت ربات‌ها · /mute و /unmute · /unlink</div>`;
+    $('#bmute', box).onchange = async () => { await act(() => post('/api/me/bale/prefs', { muted: !$('#bmute', box).checked }), 'ذخیره شد'); };
+    $('#btest', box).onclick = () => act(() => post('/api/me/bale/test'), 'پیام آزمایشی در صف ارسال است');
+    $('#bunlink', box).onclick = async () => { if (confirm('اتصال بله قطع شود؟')) { await act(() => post('/api/me/bale/unlink')); baleBox(box); } };
+    return;
+  }
+  box.innerHTML = `<div class="muted" style="font-size:13px">۱. «دریافت کد اتصال» را بزنید. ۲. در پیام‌رسان بله ${bot} را باز کنید و «شروع» را بزنید. ۳. کد ۶ رقمی را برای ربات بفرستید.</div>
+    <div class="row"><button class="primary" id="bcode">دریافت کد اتصال</button><button id="bcheck">بررسی اتصال</button></div><div id="bcodebox"></div>`;
+  $('#bcode', box).onclick = async () => {
+    const r = await act(() => post('/api/me/bale/code')); if (!r) return;
+    $('#bcodebox', box).innerHTML = `<div class="notice" style="text-align:center"><div class="muted" style="font-size:12px">این کد را تا ۱۵ دقیقه برای ${bot} بفرستید</div><div class="code mono" style="font-size:30px;letter-spacing:10px">${esc(r.code)}</div>
+      ${r.bot_username ? `<a href="https://ble.ir/${encodeURIComponent(r.bot_username)}" target="_blank" rel="noopener noreferrer"><button class="primary">باز کردن ربات در بله ↗</button></a>` : ''}</div>`;
+  };
+  $('#bcheck', box).onclick = () => baleBox(box);
 }
 
 export { download };

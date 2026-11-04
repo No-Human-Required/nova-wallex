@@ -196,6 +196,19 @@ class PlatformTests(unittest.TestCase):
         r = user.post(f'/api/bots/{bot["id"]}/update', json={'config': {**cfg, 'risk_pct': 0.3}})
         self.assertEqual(r.json()['live_approved'], 0)
 
+    def test_bale_linking_api_and_secret_kept_on_save(self):
+        admin, _ = self.login(ADMIN)
+        user, _ = self.login(USER)
+        self.assertFalse(user.get('/api/me/bale').json()['available'])
+        self.assertEqual(admin.post('/api/admin/settings', json={'values': {'bale.enabled': True, 'bale.bot_token': 'tok-123456', 'bale.bot_username': 'algobot'}}).status_code, 200)
+        admin.post('/api/admin/settings', json={'values': {'bale.bot_token': '', 'bale.enabled': True}})  # empty secret field = keep
+        self.assertEqual(self.app.state.settings.get('bale.bot_token'), 'tok-123456')
+        st = user.get('/api/me/bale').json()
+        self.assertEqual((st['available'], st['linked'], st['bot_username']), (True, False, 'algobot'))
+        code = user.post('/api/me/bale/code').json()['code']
+        self.assertEqual(len(code), 6)
+        self.assertEqual(user.post('/api/me/bale/test').status_code, 422)  # not linked yet
+
     def test_bot_run_window_api(self):
         user, _ = self.login(USER)
         now = time.time()
@@ -736,3 +749,107 @@ class MarginTests(ExecutorTests):
                 self.assertAlmostEqual(t['qty']*(t['entry_price']-t['exit_price'])-t['fees_tmn'], t['pnl_tmn'], places=4)
         spot = le.validate({'symbols': ['BTCTMN'], 'timeframe': '1h', 'start': now-30*86400, 'end': now, 'leverage': 5, 'sides': 'short'}, wallex_markets(), now)
         self.assertEqual((spot['leverage'], spot['sides']), (1.0, 'long'))  # spot ignores margin fields
+
+
+# ---------------------------------------------------------------- Bale notifications, balance reconciliation
+class FakeBale:
+    def __init__(self):
+        self.sent, self.inbox, self.fail = [], [], 0
+
+    def send(self, chat_id, text):
+        if self.fail:
+            self.fail -= 1
+            from algo.notify import BaleError
+            raise BaleError(0, 'network')
+        self.sent.append((str(chat_id), text))
+
+    def updates(self, offset, timeout=0):
+        out = [u for u in self.inbox if u['update_id'] >= offset]
+        return out
+
+    def say(self, chat, text):
+        self.inbox.append({'update_id': len(self.inbox)+1, 'message': {'chat': {'id': chat}, 'text': text, 'from': {'username': 'u'}}})
+
+
+class NotifyTests(ExecutorTests):
+    def notifier(self):
+        from algo.notify import Notifier
+        from algo.settings import Settings
+        from algo.crypto import Secrets
+        s = Settings(self.db, Secrets(KEY))
+        s.put('bale.enabled', True, 'test')
+        s.put('bale.bot_token', 'token-1234', 'test')
+        self.bale = FakeBale()
+        return Notifier(self.db, s, Secrets(KEY), bale=self.bale, clock=lambda: self.clock[0]), s
+
+    def test_link_with_code_commands_and_retrying_outbox(self):
+        n, _ = self.notifier()
+        self.bale.say(5001, '/start')
+        n.tick()
+        self.assertIn('کد ۶ رقمی', self.bale.sent[-1][1])  # not linked yet: instructions
+        code = n.new_code('u1')
+        self.bale.say(5001, 'کد من: '+code.translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹')))  # Persian digits work
+        n.tick()
+        self.assertEqual(n.link('u1')['chat_id'], '5001')
+        self.bale.say(5001, '/status')
+        n.tick()
+        self.assertIn('x', self.bale.sent[-1][1])  # the bot's name and value
+        self.assertEqual(n.tick(), 0)  # the inbox offset is kept: nothing handled twice
+        # An expired code links nothing.
+        self.clock[0] += 1000
+        self.bale.say(6001, n.new_code('u1'))
+        self.clock[0] += 901
+        n.tick()
+        self.assertIsNone(self.db.one("SELECT 1 AS x FROM bale_links WHERE chat_id='6001'"))
+        # Outbox: a failed send retries later and is sent once.
+        self.bale.fail = 1
+        n.enqueue('u1', 'test', 'سلام')
+        self.assertEqual(n.pump(), 0)
+        self.clock[0] += 61
+        self.assertEqual(n.pump(), 1)
+        self.assertEqual(n.pump(), 0)
+        self.assertEqual(sum(1 for c, t in self.bale.sent if t == 'سلام'), 1)
+
+    def test_bot_events_become_messages_and_mute_keeps_warnings(self):
+        n, _ = self.notifier()
+        self.db.run("INSERT INTO bale_links(user_id,chat_id,username,linked,prefs) VALUES('u1','77',NULL,1,'{}')")
+        bot = self.bot()
+        n.on_event(bot, 'trade_closed', {'symbol': 'BTCTMN', 'pnl_tmn': '-12000', 'reason': 'stop'})
+        n.pump()
+        self.assertIn('حد ضرر', self.bale.sent[-1][1])
+        n.on_event(bot, 'allocation', {'approved': True, 'candidate': 'ETHTMN', 'budget_tmn': 1000000, 'quality': 70})
+        n.pump()
+        self.assertIn('ورود', self.bale.sent[-1][1])
+        self.db.run("UPDATE bale_links SET prefs='{\"muted\": true}' WHERE user_id='u1'")
+        before = len(self.bale.sent)
+        n.on_event(bot, 'trade_closed', {'symbol': 'BTCTMN', 'pnl_tmn': '5000', 'reason': 'tp3'})
+        n.on_event(bot, 'bot_blocked', {'reason': 'سفارش نامعلوم'})
+        n.on_event(bot, 'bot_blocked', {'reason': 'سفارش نامعلوم'})  # deduplicated
+        n.pump()
+        self.assertEqual(len(self.bale.sent)-before, 1)
+        self.assertIn('مسدود', self.bale.sent[-1][1])
+
+    def test_balance_shortfall_stops_entries_and_alerts(self):
+        from algo.runner import Runner
+        n, s = self.notifier()
+        s.put('platform.live_trading_enabled', True, 'test')
+        self.db.run("INSERT INTO bale_links(user_id,chat_id,username,linked,prefs) VALUES('u1','77',NULL,1,'{}')")
+        state = json.loads(self.bot()['state'])
+        state['positions']['BTCTMN'] = {'qty': '0.5', 'cost': '50000000', 'entry': '100000000', 'stop': '0.03', 'tp': ['1', '2', '3'], 'stage': 0,
+                                        'floor': '1', 'peak': '1', 'realized': '0', 'opened_at': self.clock[0], 'max_hold': 3600}
+        self.db.run("UPDATE bots SET state=?, key_id='k1' WHERE id='b1'", (json.dumps(state),))
+        from algo.crypto import Secrets
+        r = Runner(self.db, s, Secrets(KEY), Market('1', '1'), clock=lambda: self.clock[0], notifier=n)
+        g = SimpleNamespace(main_balances=lambda: {'success': True, 'result': {'balances': {'BTC': {'value': '0.2', 'locked': '0'}}}})
+        with patch.object(r, 'gateway', return_value=g):
+            self.assertEqual(r.reconcile_balances(), ['b1'])
+            self.assertEqual(r.reconcile_balances(), [])  # at most every 10 minutes
+        self.assertEqual(self.bot()['status'], 'paused')  # exits only, nothing sold automatically
+        n.pump()
+        self.assertIn('موجودی', self.bale.sent[-1][1])
+        # Enough balance: nothing is flagged.
+        self.db.run("UPDATE bots SET status='running' WHERE id='b1'")
+        self.clock[0] += 601
+        g2 = SimpleNamespace(main_balances=lambda: {'success': True, 'result': {'balances': {'BTC': {'value': '0.5', 'locked': '0.5'}}}})
+        with patch.object(r, 'gateway', return_value=g2):
+            self.assertEqual(r.reconcile_balances(), [])

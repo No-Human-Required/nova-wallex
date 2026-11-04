@@ -123,6 +123,10 @@ class StudioApprove(Body):
     confirmation: str
 
 
+class BalePrefs(Body):
+    muted: bool
+
+
 class PayBody(Body):
     plan_id: str
 
@@ -191,6 +195,9 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
 
     app = FastAPI(title='Algorithmic', docs_url=None, redoc_url=None, openapi_url=None)
     studio = Studio(db, settings, lab_candles, start=start_threads)
+    from .notify import Notifier
+    notifier = Notifier(db, settings, secrets)  # the web app only queues; the runner sends
+    app.state.notifier = notifier
     app.state.db, app.state.settings, app.state.auth, app.state.studio = db, settings, auth, studio
 
     # ------------------------------------------------------------ middleware
@@ -305,6 +312,41 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
         r = JSONResponse({'ok': True})
         r.delete_cookie(COOKIE, path='/')
         return r
+
+    # ------------------------------------------------------------ Bale notifications
+    @app.get('/api/me/bale')
+    def bale_status(request: Request):
+        link = notifier.link(me(request)['id'])
+        return {'available': notifier.configured(), 'bot_username': settings.get('bale.bot_username'), 'linked': bool(link),
+                'linked_at': link['linked'] if link else None, 'muted': bool(link and json.loads(link['prefs'] or '{}').get('muted'))}
+
+    @app.post('/api/me/bale/code')
+    def bale_code(request: Request):
+        if not notifier.configured():
+            raise ValueError('اعلان‌های بله هنوز توسط ادمین فعال نشده است')
+        return {'code': notifier.new_code(me(request)['id']), 'ttl': 900, 'bot_username': settings.get('bale.bot_username')}
+
+    @app.post('/api/me/bale/prefs')
+    def bale_prefs(body: BalePrefs, request: Request):
+        uid = me(request)['id']
+        link = notifier.link(uid)
+        if not link:
+            raise ValueError('اول حساب را به بله وصل کنید')
+        prefs = {**json.loads(link['prefs'] or '{}'), 'muted': body.muted}
+        db.run('UPDATE bale_links SET prefs=? WHERE user_id=?', (json.dumps(prefs), uid))
+        return bale_status(request)
+
+    @app.post('/api/me/bale/unlink')
+    def bale_unlink(request: Request):
+        db.run('DELETE FROM bale_links WHERE user_id=?', (me(request)['id'],))
+        db.audit(me(request)['id'], 'bale_unlinked', {})
+        return bale_status(request)
+
+    @app.post('/api/me/bale/test')
+    def bale_test(request: Request):
+        if not notifier.enqueue(me(request)['id'], 'test', '🔔 پیام آزمایشی '+settings.get('platform.site_name')+': اعلان‌ها درست کار می‌کنند.'):
+            raise ValueError('اول حساب را به بله وصل کنید')
+        return {'ok': True, 'note': 'تا چند ثانیهٔ دیگر در بله می‌رسد'}
 
     @app.post('/api/me/profile')
     def profile(body: NameBody, request: Request):
@@ -479,6 +521,7 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
         db.run("UPDATE bots SET key_id=?,status=CASE WHEN status='stopped' THEN 'pending_approval' ELSE status END,live_approved=0,review_note=NULL,updated=? WHERE id=?",
                (body.key_id, time.time(), ident))
         db.audit(u['id'], 'live_requested', {'bot': ident, 'key': body.key_id})
+        notifier.enqueue_admins('live_requested', f"درخواست اجرای واقعی تازه: «{bot['name']}» از {u['phone']}. در بک‌آفیس ← ربات‌ها و تأیید بررسی کنید.", dedup='live:'+ident)
         return bot_view(db.one('SELECT * FROM bots WHERE id=?', (ident,)))
 
     @app.post('/api/bots/{ident}/{action}')
@@ -895,7 +938,9 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
                 'ai_calls_month': db.one('SELECT COALESCE(SUM(calls),0) AS n FROM ai_usage WHERE month=?', (time.strftime('%Y-%m', time.gmtime(now)),))['n'],
                 'live_capital_tmn': sum(json.loads(b['config'])['capital_tmn'] for b in db.all("SELECT config FROM bots WHERE mode='live' AND status IN ('running','paused','closing')")),
                 'switches': {'live_trading_enabled': settings.get('platform.live_trading_enabled'), 'new_entries_enabled': settings.get('platform.new_entries_enabled')},
-                'sms_configured': sms.configured(), 'ai_configured': bool(settings.get('llm.api_key')), 'payment_sandbox': settings.get('payment.sandbox')}
+                'sms_configured': sms.configured(), 'ai_configured': bool(settings.get('llm.api_key')), 'bale_configured': notifier.configured(),
+                'bale_linked': count('SELECT count(*) AS n FROM bale_links'),
+                'notifications_failed': count('SELECT count(*) AS n FROM notifications WHERE sent IS NULL AND attempts>=6'), 'payment_sandbox': settings.get('payment.sandbox')}
 
     @app.get('/api/admin/users')
     def admin_users(q: str = ''):
@@ -977,9 +1022,11 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
                 raise ValueError('فقط ربات واقعی با کلید API قابل تأیید است')
             db.run("UPDATE bots SET live_approved=1,approved_by=?,approved_at=?,review_note=?,status=CASE WHEN status='pending_approval' THEN 'stopped' ELSE status END,updated=? WHERE id=?",
                    (actor['id'], now, note, now, ident))
+            notifier.enqueue(b['user_id'], 'live_approved', f"✅ اجرای واقعی ربات «{b['name']}» تأیید شد. حالا می‌توانید آن را شروع کنید." + (f"\nیادداشت: {note}" if note else ''))
         elif action == 'reject':
             db.run("UPDATE bots SET live_approved=0,review_note=?,status=CASE WHEN status IN ('pending_approval','running','paused') THEN 'stopped' ELSE status END,updated=? WHERE id=?",
                    (note or 'رد شد', now, ident))
+            notifier.enqueue(b['user_id'], 'live_rejected', f"اجرای واقعی ربات «{b['name']}» تأیید نشد." + (f"\nعلت: {note}" if note else ''))
         elif action == 'pause':
             db.run("UPDATE bots SET status='paused',review_note=?,updated=? WHERE id=? AND status='running'", (note, now, ident))
         elif action == 'stop':
@@ -1021,10 +1068,11 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
         from . import settings as defs
         from execution import llm
         return {'settings': settings.view(), 'llm_providers': {k: {'fa': v['fa'], 'base_url': v['base_url'], 'models': v['models']} for k, v in llm.PROVIDERS.items()},
-                'groups': {'platform': 'عمومی', 'sms': 'پیامک (IPPanel)', 'otp': 'کد ورود', 'payment': 'پرداخت (زرین‌پال)', 'llm': 'هوش مصنوعی', 'exchange': 'صرافی‌ها', 'margin': 'معاملات تعهدی (اهرمی)'}}
+                'groups': {'platform': 'عمومی', 'sms': 'پیامک (IPPanel)', 'otp': 'کد ورود', 'payment': 'پرداخت (زرین‌پال)', 'llm': 'هوش مصنوعی', 'exchange': 'صرافی‌ها', 'margin': 'معاملات تعهدی (اهرمی)', 'bale': 'اعلان‌ها (ربات بله)'}}
 
     @app.post('/api/admin/settings')
     def admin_save_settings(body: SettingsBody, request: Request):
+        from . import settings as defs
         actor = me(request)
         from execution import llm
         values = dict(body.values)
@@ -1033,8 +1081,8 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
         if values.get('llm.base_url'):
             llm.base_url(values.get('llm.provider') or settings.get('llm.provider'), values['llm.base_url'])
         for k, v in values.items():
-            if k.endswith('api_key') and (v is None or v == ''):
-                continue  # empty secret field means "keep the current value"
+            if defs.DEFS.get(k, (None, None, False))[2] and (v is None or v == ''):
+                continue  # an empty secret field means "keep the current value"
             settings.put(k, v, actor['id'])
         return {'ok': True, 'settings': settings.view()}
 

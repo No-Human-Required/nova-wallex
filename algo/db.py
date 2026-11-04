@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS bot_trades(id TEXT PRIMARY KEY, bot_id TEXT NOT NULL,
   reason TEXT NOT NULL, detail TEXT);
 CREATE TABLE IF NOT EXISTS bot_equity(bot_id TEXT NOT NULL, at REAL NOT NULL, equity TEXT NOT NULL, PRIMARY KEY(bot_id, at));
 CREATE TABLE IF NOT EXISTS ai_usage(user_id TEXT NOT NULL, month TEXT NOT NULL, calls BIGINT NOT NULL, PRIMARY KEY(user_id, month));
+CREATE TABLE IF NOT EXISTS bale_links(user_id TEXT PRIMARY KEY, chat_id TEXT NOT NULL, username TEXT, linked REAL NOT NULL, prefs TEXT);
+CREATE TABLE IF NOT EXISTS bale_codes(code_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS notifications(id TEXT PRIMARY KEY, user_id TEXT NOT NULL, chat_id TEXT NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL,
+  dedup TEXT, created REAL NOT NULL, sent REAL, attempts BIGINT NOT NULL, next_try REAL NOT NULL, error TEXT);
 CREATE TABLE IF NOT EXISTS bot_margin(pid TEXT PRIMARY KEY, bot_id TEXT NOT NULL, data TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS bot_scans(bot_id TEXT NOT NULL, time REAL NOT NULL, detail TEXT NOT NULL, PRIMARY KEY(bot_id, time));
 CREATE TABLE IF NOT EXISTS bot_decisions(bot_id TEXT NOT NULL, time REAL NOT NULL, detail TEXT NOT NULL, PRIMARY KEY(bot_id, time));

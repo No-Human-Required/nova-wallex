@@ -29,12 +29,17 @@ def quota(db, user_id, now=None):
 
 
 class AIFilter:
-    def __init__(self, db, settings, cache, transport=None, clock=time.time):
-        self.db, self.s, self.cache, self.transport, self.clock = db, settings, cache, transport, clock
+    def __init__(self, db, settings, cache, transport=None, clock=time.time, notify=None):
+        self.db, self.s, self.cache, self.transport, self.clock, self.notify = db, settings, cache, transport, clock, notify
 
     def event(self, bot, kind, detail):
         self.db.run('INSERT INTO bot_events(id,bot_id,at,kind,detail) VALUES(?,?,?,?,?)',
                     (new_id(), bot['id'], self.clock(), kind, json.dumps(detail, ensure_ascii=False, default=str)))
+        if self.notify:
+            try:
+                self.notify(bot, kind, detail)
+            except Exception:
+                pass
 
     def __call__(self, bot, candidates, regime, cfg):
         return self.decide(bot, candidates, regime, cfg)[0]

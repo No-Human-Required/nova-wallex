@@ -91,8 +91,8 @@ class PaperGateway:
 
 
 class Executor:
-    def __init__(self, db, market, *, ai=None, clock=time.time):
-        self.db, self.market, self.ai, self.clock = db, market, ai, clock
+    def __init__(self, db, market, *, ai=None, clock=time.time, notify=None):
+        self.db, self.market, self.ai, self.clock, self.notify = db, market, ai, clock, notify
         from .margin import MarginBook
         self.margin = MarginBook(self)
 
@@ -100,6 +100,11 @@ class Executor:
     def event(self, bot, kind, detail):
         self.db.run('INSERT INTO bot_events(id,bot_id,at,kind,detail) VALUES(?,?,?,?,?)',
                     (new_id(), bot['id'], self.clock(), kind, json.dumps(detail, ensure_ascii=False, default=str)))
+        if self.notify:
+            try:
+                self.notify(bot, kind, detail)
+            except Exception:  # a notification never breaks trading
+                pass
 
     def save(self, bot, state):
         self.db.run('UPDATE bots SET state=?,updated=? WHERE id=?', (json.dumps(state, default=str), self.clock(), bot['id']))
@@ -477,11 +482,29 @@ class MarketData:
     def markets(self, exchange):
         return self._markets(exchange)
 
+    RATE = 8  # order-book requests per second to Wallex, shared by every bot in this process
+
+    def throttle(self):
+        now = time.monotonic()
+        if now < getattr(self, '_cool_until', 0):
+            raise APIError(429, 'wallex rate limit cool-down')
+        calls = [t for t in getattr(self, '_calls', []) if now-t < 1]
+        if len(calls) >= self.RATE:
+            time.sleep(max(0.0, 1-(now-calls[0])))
+        calls.append(time.monotonic())
+        self._calls = calls
+
     def book(self, symbol):
         hit = self._books.get(symbol)
         if hit and self.clock()-hit['at'] < 5:
             return hit
-        d = self.public.depth(symbol)
+        self.throttle()
+        try:
+            d = self.public.depth(symbol)
+        except APIError as exc:
+            if exc.status == 429:
+                self._cool_until = time.monotonic()+10  # Wallex asked us to slow down: pause all book reads briefly
+            raise
         hit = {'bid': D(str(d['bids'][0][0])), 'ask': D(str(d['asks'][0][0])), 'at': self.clock()}
         self._books[symbol] = hit
         return hit
