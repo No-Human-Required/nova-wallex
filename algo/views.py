@@ -152,7 +152,7 @@ def snapshot(db, bot, state, px):
     equity = cash+sum(h['value_tmn'] or float(D(h['basis'])) for h in hold) if known or not state.get('equity_tmn') else float(D(state['equity_tmn']))
     fees, n = {}, 0
     # Margin positions have no spot fills: each filled open and close counts once.
-    n += db.one("SELECT count(*) AS n FROM bot_orders WHERE bot_id=? AND phase='FILLED' AND intent LIKE '%\"kind\": \"margin_%'", (bot['id'],))['n']
+    n += db.one("SELECT count(*) AS n FROM bot_orders WHERE bot_id=? AND phase='FILLED' AND intent LIKE ?", (bot['id'], '%"kind": "margin_%'))['n']
     for f in fills(db, bot['id']):
         n += 1
         fees[f.get('feeAsset') or 'TMN'] = fees.get(f.get('feeAsset') or 'TMN', 0.0)+float(f.get('fee') or 0)

@@ -85,17 +85,27 @@ class Database:
         finally:
             db.close()
 
+    @staticmethod
+    def check(sql):
+        # PostgreSQL (psycopg) reads '%' in the statement as a placeholder: patterns go in as parameters.
+        if '%' in sql:
+            raise ValueError('Literal % in SQL breaks PostgreSQL; pass LIKE patterns as parameters')
+        return sql
+
     def one(self, sql, params=()):
+        self.check(sql)
         with self.connect() as db:
             row = db.execute(sql, params).fetchone()
         return dict(zip(row.keys(), row)) if row is not None else None
 
     def all(self, sql, params=()):
+        self.check(sql)
         with self.connect() as db:
             rows = db.execute(sql, params).fetchall()
         return [dict(zip(r.keys(), r)) for r in rows]
 
     def run(self, sql, params=()):
+        self.check(sql)
         with self.connect() as db:
             db.execute(sql, params)
 

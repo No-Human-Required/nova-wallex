@@ -331,7 +331,7 @@ class MarginBook:
                     self.set_row(r['client_id'], 'CLOSED')  # unfilled close request: decide again next cycle
         # Positions the exchange closed by itself (stop, take-profit, liquidation, expiry).
         for sym, p in list(state['positions'].items()):
-            if not p.get('margin') or self.ex.db.one("SELECT 1 AS x FROM bot_orders WHERE bot_id=? AND symbol=? AND phase IN ('SUBMITTING','UNKNOWN','OPEN') AND intent LIKE '%margin_close%'", (bot['id'], sym)):
+            if not p.get('margin') or self.ex.db.one("SELECT 1 AS x FROM bot_orders WHERE bot_id=? AND symbol=? AND phase IN ('SUBMITTING','UNKNOWN','OPEN') AND intent LIKE ?", (bot['id'], sym, '%margin_close%')):
                 continue
             try:
                 pos = g.get(p['pid'], markets[sym].base if sym in markets else None)
@@ -391,7 +391,7 @@ class MarginBook:
         for sym, p in list(state['positions'].items()):
             if not p.get('margin'):
                 continue
-            if self.ex.db.one("SELECT 1 AS x FROM bot_orders WHERE bot_id=? AND symbol=? AND phase IN ('SUBMITTING','UNKNOWN','OPEN') AND intent LIKE '%margin_close%'", (bot['id'], sym)):
+            if self.ex.db.one("SELECT 1 AS x FROM bot_orders WHERE bot_id=? AND symbol=? AND phase IN ('SUBMITTING','UNKNOWN','OPEN') AND intent LIKE ?", (bot['id'], sym, '%margin_close%')):
                 continue
             market = markets[sym]
             book = self.ex.market.book(sym)
