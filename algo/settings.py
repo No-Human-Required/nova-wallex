@@ -1,5 +1,12 @@
-"""Back-office settings: typed definitions, defaults, encrypted secrets."""
+"""Back-office settings: typed definitions, defaults, encrypted secrets.
+
+Order of precedence: a value saved in the back office, then an environment
+variable named ALGO_ + the key in capitals with dots as underscores (for
+example ``sms.api_key`` -> ``ALGO_SMS_API_KEY``), then the built-in default.
+The environment lets the first admin sign in before SMS is configured.
+"""
 import json
+import os
 import time
 
 DEFS = {
@@ -38,6 +45,10 @@ DEFS = {
 }
 
 
+def env_name(key):
+    return 'ALGO_'+key.upper().replace('.', '_')
+
+
 class Settings:
     def __init__(self, db, secrets):
         self.db, self.secrets = db, secrets
@@ -53,11 +64,27 @@ class Settings:
         kind, default, secret, _ = DEFS[key]
         raw = self._load().get(key)
         if raw is None:
-            return default
+            env = os.getenv(env_name(key))
+            if env is None or env.strip() == '':
+                return default
+            return self.from_env(key, env.strip())
         value = json.loads(raw)
         if secret:
             return self.secrets.decrypt(bytes.fromhex(value)) if value else ''
         return value
+
+    def from_env(self, key, text):
+        kind = DEFS[key][0]
+        if kind == 'bool':
+            return text.lower() in ('1', 'true', 'yes', 'on')
+        if kind == 'int':
+            return int(text)
+        return self.coerce(key, text)
+
+    def source(self, key):
+        if key in self._load():
+            return 'panel'
+        return 'env' if (os.getenv(env_name(key)) or '').strip() else 'default'
 
     def coerce(self, key, value):
         kind = DEFS[key][0]
@@ -93,6 +120,6 @@ class Settings:
         out = []
         for key, (kind, default, secret, label) in DEFS.items():
             value = self.get(key)
-            out.append({'key': key, 'kind': kind, 'label': label, 'secret': secret,
+            out.append({'key': key, 'kind': kind, 'label': label, 'secret': secret, 'source': self.source(key), 'env': env_name(key),
                         'value': ({'set': bool(value), 'last4': value[-4:] if value else ''} if secret else value)})
         return out

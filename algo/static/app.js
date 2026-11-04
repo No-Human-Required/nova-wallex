@@ -441,7 +441,8 @@ async function pageAdminSettings() {
   const d = await act(() => api('/api/admin/settings')); if (!d) return;
   const groups = {};
   d.settings.forEach(s => (groups[s.key.split('.')[0]] = groups[s.key.split('.')[0]] || []).push(s));
-  const input = s => {
+  const src = s => s.source === 'env' ? ` <span class="chip y" title="${esc(s.env)}">از متغیر محیطی</span>` : '';
+  const input0 = s => {
     if (s.kind === 'bool') return `<label class="chk"><input type="checkbox" data-k="${s.key}" ${s.value ? 'checked' : ''}> ${esc(s.label)}</label>`;
     if (s.secret) return `<label class="f">${esc(s.label)} ${s.value.set ? `<span class="chip ok">تنظیم شده …${esc(s.value.last4)}</span>` : '<span class="chip bad">تنظیم نشده</span>'}<input data-k="${s.key}" data-secret="1" class="ltr" placeholder="برای تغییر وارد کنید" autocomplete="off"></label>`;
     if (s.kind.startsWith('choice:')) return `<label class="f">${esc(s.label)}<select data-k="${s.key}">${s.kind.slice(7).split(',').map(o => `<option ${o === s.value ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`;
@@ -449,6 +450,7 @@ async function pageAdminSettings() {
     const ltr = /url|key|sender|pattern|merchant|model|variable|plan_id/.test(s.key) ? 'ltr' : '';
     return `<label class="f">${esc(s.label)}<input data-k="${s.key}" class="${ltr}" ${s.kind === 'int' ? 'type="number"' : ''} value="${esc(s.value)}"></label>`;
   };
+  const input = s => { const h = input0(s); return src(s) ? h.replace('</label>', src(s) + '</label>') : h; };
   $('#sets').innerHTML = Object.entries(groups).map(([g, list]) => `<div class="panel mb"><div class="head"><h2>${esc(d.groups[g] || g)}</h2>${g === 'sms' ? '<div class="row"><input id="tp" class="ltr" placeholder="09..." style="width:150px"><button id="tsend">ارسال پیامک آزمایشی</button></div>' : ''}</div><div class="body grid g2">${list.map(input).join('')}</div></div>`).join('')
     + '<div class="row"><button class="primary" id="save">ذخیرهٔ همهٔ تنظیمات</button><span class="faint">فیلدهای کلید خالی یعنی «بدون تغییر».</span></div>';
   $('#save').onclick = async () => {

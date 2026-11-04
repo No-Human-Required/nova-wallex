@@ -113,6 +113,22 @@ class PlatformTests(unittest.TestCase):
         self.assertEqual(r.status_code, 403)  # signup closed
         self.assertEqual(admin.post('/api/admin/settings', json={'values': {'platform.signup_open': 'yes'}}).status_code, 422)
 
+    def test_environment_configures_sms_until_the_back_office_overrides_it(self):
+        from algo.sms import IPPanel
+        s = self.app.state.settings
+        sms = IPPanel(s)
+        self.assertFalse(sms.configured())
+        with patch.dict(os.environ, {'ALGO_SMS_API_KEY': 'env-key-9999', 'ALGO_SMS_SENDER': '+983000505', 'ALGO_PLATFORM_SIGNUP_OPEN': 'false'}):
+            self.assertTrue(sms.configured())
+            self.assertEqual(s.get('sms.api_key'), 'env-key-9999')
+            self.assertIs(s.get('platform.signup_open'), False)
+            self.assertEqual(s.source('sms.sender'), 'env')
+            s.put('sms.sender', '+9810001', 'admin')
+            self.assertEqual((s.get('sms.sender'), s.source('sms.sender')), ('+9810001', 'panel'))
+            view = {x['key']: x for x in s.view()}
+            self.assertEqual(view['sms.api_key']['value'], {'set': True, 'last4': '9999'})
+            self.assertEqual(view['sms.api_key']['env'], 'ALGO_SMS_API_KEY')
+
     def test_ippanel_pattern_request_shape(self):
         from algo.sms import IPPanel
         sent = []
