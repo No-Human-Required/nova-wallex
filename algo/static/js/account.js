@@ -1,6 +1,6 @@
 // Landing, sign-in, bots, bot builder, exchange keys, subscription and profile (Nova look).
 import { S, api, n0, n2, toman, pct, signCls, when, esc, h, $, $$, botChip, download } from './core.js';
-import { background, ART } from '/nova/js/fx.js';
+import { background } from '/nova/js/fx.js';
 
 export function toast(msg, err = false) {
   const t = $('#toast') || document.body.appendChild(h('<div id="toast" class="toast hidden"></div>'));
@@ -49,36 +49,7 @@ export function scheduleModal(bot, done) {
 const PRESET_TXT = p => `ریسک ${pct(p.risk_pct, 1).replace('+', '')} هر معامله · حداکثر ${n0(p.max_positions)} موقعیت · کیفیت ≥ ${n0(p.min_quality)}`;
 const famChip = f => `<span class="chip ${f === 'smart_money' ? 'smc' : 'ind'}">${f === 'smart_money' ? 'SMC' : f === 'hybrid' ? 'ترکیبی' : 'اندیکاتور'}</span>`;
 
-// ------------------------------------------------------------------ public
-export function pageLanding() {
-  const m = S.meta;
-  const plans = m.plans.map(p => `<div class="panel plan"><div class="body"><b style="font-size:16px">${esc(p.name)}</b>
-    <div class="big" style="font-size:26px;margin:6px 0">${+p.price_tmn ? toman(p.price_tmn) : 'رایگان'}</div><div class="faint">${+p.price_tmn ? n0(p.days) + ' روز' : 'همیشه'}</div>
-    <div class="muted" style="font-size:13px;margin:8px 0">${esc(p.description || '')}</div>
-    <div style="font-size:12.5px">${n0(p.max_bots)} ربات · ${+p.max_live_bots ? n0(p.max_live_bots) + ' ربات واقعی' : 'فقط اجرای آزمایشی'} · ${n0(p.ai_calls_month)} درخواست AI در ماه</div></div></div>`).join('');
-  const strategies = m.strategies.map(s => `<div class="panel strategy">${ART[s.id] || ''}<div><h3>${esc(s.fa)} ${famChip(s.family)}</h3><div class="muted" style="font-size:12.5px">${esc(s.thesis)}</div></div></div>`).join('');
-  document.body.innerHTML = `<canvas id="fx" aria-hidden="true"></canvas><div class="land">
-    <header class="top"><a class="brand" href="#home"><img src="/assets/mark.svg" alt=""><div><b>${esc(m.site_name)}</b><small>ALGORITHMIC TRADING BOTS</small></div></a><span class="spacer"></span>
-      <a href="#login"><button class="primary">ورود / ثبت‌نام</button></a></header>
-    <section class="panel glow lhero"><div class="body">
-      <h1>ربات معامله‌گر <span>خودت</span> را بساز، بسنج و به کار بینداز</h1>
-      <p class="muted">همان موتوری که در چالش والکس زنده معامله کرد: شش استراتژی Smart Money و اندیکاتوری، تشخیص رژیم بازار، فیلتر هوش مصنوعی با دلیل ثبت‌شده و مدیریت ریسک با سه حد سود و حد ضرر پله‌ای. اول روی گذشته بک‌تست بگیر، بعد آزمایشی اجرا کن و وقتی مطمئن شدی روی حساب صرافی خودت فعالش کن. دارایی همیشه در حساب خودت می‌ماند.</p>
-      <div class="row" style="display:flex;gap:10px;align-items:center;margin-top:16px"><a href="#login"><button class="primary">شروع رایگان</button></a><span class="faint">ورود فقط با شمارهٔ موبایل و کد پیامکی</span></div>
-      <div class="flow-steps" style="margin-top:22px">${[['ساخت', 'نمادها، استراتژی‌ها و پروفایل ریسک'], ['بک‌تست', 'هر تایم‌فریم و بازه، شارپ، افت، مونت‌کارلو'], ['اجرای آزمایشی', 'قیمت زنده بدون پول واقعی'], ['اجرای واقعی', 'روی حساب والکس خودت، پس از تأیید']].map(([a, b], i) => `<div class="fs"><b>${n0(i + 1)}. ${a}</b><span class="muted" style="font-size:12px">${b}</span></div>`).join('')}</div></div></section>
-    <section class="grid g3" style="margin:16px 0">${[['داشبورد زنده', 'منحنی ارزش، اسکنر رادار، نمودار هر موقعیت با ورود، حد ضرر و سه TP، و ژورنال کامل هر سفارش.'],
-      ['جریان تصمیم شفاف', 'ببین هر نماد در کدام مرحله رد یا انتخاب شد: داده، ستاپ، کیفیت، تأیید AI، اندازه‌گذاری و سفارش.'],
-      ['استودیوی استراتژی', 'با هوش مصنوعی گفت‌وگو کن تا استراتژی خودت را بسازد، بک‌تست بگیرد و ضرایبش را بهینه کند.'],
-      ['تست سایه', 'هر نامزدی که ربات دید (تأییدشده یا ردشده) بدون سفارش دنبال می‌شود تا اثر واقعی AI را ببینی.'],
-      ['مدیریت ریسک', 'ریسک ثابت هر معامله، سقف هر دارایی و ناخالص، حد ضرر شناور و حد ضرر پله‌ای پس از هر TP.'],
-      ['امنیت', 'کلید API رمزنگاری‌شده و فقط با دسترسی معامله؛ هر ربات واقعی پیش از اجرا توسط ادمین بررسی می‌شود.']]
-      .map(([a, b]) => `<div class="panel"><div class="body"><b>${a}</b><div class="muted" style="font-size:13px;margin-top:4px">${b}</div></div></div>`).join('')}</section>
-    <h2 style="font-size:16px">استراتژی‌های آماده</h2><section class="grid g2" style="margin-bottom:18px">${strategies}</section>
-    <h2 style="font-size:16px">پلن‌ها</h2><section class="grid g3">${plans}</section>
-    <p class="faint" style="margin:30px 0 10px;font-size:12px">معامله در بازار رمزارز ریسک دارد و بازده گذشته یا بک‌تست سود آینده را تضمین نمی‌کند.${m.support ? ' · ' + esc(m.support) : ''}</p></div>
-    <div id="toast" class="toast hidden"></div>`;
-  background($('#fx'));
-}
-
+// ------------------------------------------------------------------ public (the landing page lives in landing.js)
 export function pageLogin(done) {
   let phone = '', timer = null;
   document.body.innerHTML = `<canvas id="fx" aria-hidden="true"></canvas><div class="land"><header class="top"><a class="brand" href="#home"><img src="/assets/mark.svg" alt=""><div><b>${esc(S.meta.site_name)}</b><small>ALGORITHMIC TRADING BOTS</small></div></a></header>

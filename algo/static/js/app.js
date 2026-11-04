@@ -6,7 +6,8 @@ import { background, Radar, ART } from '/nova/js/fx.js';
 import { pageHow } from './how.js';
 import { labSection } from './lab.js';
 import { pageStudio } from './studio.js';
-import { pageLanding, pageLogin, pageBots, pageBuilder, pageKeys, pageBilling, pageProfile, toast, act, liveRequest, scheduleModal, scheduleText } from './account.js';
+import { pageLanding } from './landing.js';
+import { pageLogin, pageBots, pageBuilder, pageKeys, pageBilling, pageProfile, toast, act, liveRequest, scheduleModal, scheduleText } from './account.js';
 import { ADMIN_PAGES } from './admin.js';
 
 // [key, title, icon, needs a bot]

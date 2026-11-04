@@ -210,7 +210,7 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
                 return JSONResponse({'detail': 'Origin rejected'}, status_code=403)
         user = auth.session(request.cookies.get(COOKIE)) if path.startswith('/api/') else None
         request.state.user = user
-        open_paths = path in {'/api/meta', '/api/auth/request', '/api/auth/verify', '/api/auth/me', '/api/pay/callback'} or not path.startswith('/api/')
+        open_paths = path in {'/api/meta', '/api/landing', '/api/auth/request', '/api/auth/verify', '/api/auth/me', '/api/pay/callback'} or not path.startswith('/api/')
         if not open_paths:
             if not user:
                 return JSONResponse({'detail': 'ابتدا وارد شوید'}, status_code=401)
@@ -268,6 +268,17 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
                 'markets': [{'symbol': s, 'base': m.base, 'quote': m.quote} for s, m in sorted(exchanges.wallex_markets().items()) if s != 'USDTTMN'],
                 'plans': db.all('SELECT id,name,price_tmn,days,max_bots,max_live_bots,max_capital_tmn,ai_calls_month,description FROM plans WHERE active=1 ORDER BY sort'),
                 'development': development}
+
+    @app.get('/api/landing')
+    def landing():
+        """Public market strip for the landing page: the most traded Toman markets (public Wallex data only)."""
+        try:
+            rows = views.ticker()['rows']
+        except Exception:
+            return {'ticker': []}
+        top = sorted((r for r in rows if r['quote'] == 'TMN' and r['last'] and r['symbol'] not in ('USDTTMN', 'USDCTMN')),
+                     key=lambda r: -(r['volume_tmn_24h'] or 0))[:16]
+        return {'ticker': [{k: r[k] for k in ('symbol', 'base', 'last', 'change_24h')} for r in top]}
 
     # ------------------------------------------------------------ auth
     @app.post('/api/auth/request')
