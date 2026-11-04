@@ -66,12 +66,20 @@ class PaperGateway:
 
     def submit(self, intent):
         book = self.market.book(intent['symbol'])
-        px = book['ask'] if intent['side'] == 'BUY' else book['bid']
-        limit = D(intent['price'])
-        if (intent['side'] == 'BUY' and px > limit) or (intent['side'] == 'SELL' and px < limit):
-            qty = D(0)
+        limit, want = D(intent['price']), D(intent['quantity'])
+        levels = book.get('asks' if intent['side'] == 'BUY' else 'bids')
+        if levels:
+            # Walk the visible book up to the limit price: a large order fills partly or at a worse average, as it would live.
+            qty, cost = D(0), D(0)
+            for lp, lq in levels:
+                if (intent['side'] == 'BUY' and lp > limit) or (intent['side'] == 'SELL' and lp < limit) or qty >= want:
+                    break
+                take = min(lq, want-qty)
+                qty, cost = qty+take, cost+take*lp
+            px = cost/qty if qty else (book['ask'] if intent['side'] == 'BUY' else book['bid'])
         else:
-            qty = D(intent['quantity'])
+            px = book['ask'] if intent['side'] == 'BUY' else book['bid']
+            qty = D(0) if (intent['side'] == 'BUY' and px > limit) or (intent['side'] == 'SELL' and px < limit) else want
         base = intent['symbol'][:-len(intent['quote'])]
         fee = qty*self.fee if intent['side'] == 'BUY' else qty*px*self.fee
         fills = [{'symbol': intent['symbol'], 'isBuyer': intent['side'] == 'BUY', 'quantity': str(qty), 'price': str(px),
@@ -478,6 +486,8 @@ class MarketData:
         self.candles, self.public, self.clock = candles, public or WallexPublic(), clock
         self._markets = markets
         self._books = {}
+        import threading
+        self._lock = threading.Lock()  # bots cycle in parallel threads
 
     def markets(self, exchange):
         return self._markets(exchange)
@@ -485,14 +495,16 @@ class MarketData:
     RATE = 8  # order-book requests per second to Wallex, shared by every bot in this process
 
     def throttle(self):
-        now = time.monotonic()
-        if now < getattr(self, '_cool_until', 0):
-            raise APIError(429, 'wallex rate limit cool-down')
-        calls = [t for t in getattr(self, '_calls', []) if now-t < 1]
-        if len(calls) >= self.RATE:
-            time.sleep(max(0.0, 1-(now-calls[0])))
-        calls.append(time.monotonic())
-        self._calls = calls
+        with self._lock:
+            now = time.monotonic()
+            if now < getattr(self, '_cool_until', 0):
+                raise APIError(429, 'wallex rate limit cool-down')
+            calls = [t for t in getattr(self, '_calls', []) if now-t < 1]
+            wait = max(0.0, 1-(now-calls[0])) if len(calls) >= self.RATE else 0.0
+            calls.append(now+wait)
+            self._calls = calls
+        if wait:
+            time.sleep(wait)
 
     def book(self, symbol):
         hit = self._books.get(symbol)
@@ -505,8 +517,10 @@ class MarketData:
             if exc.status == 429:
                 self._cool_until = time.monotonic()+10  # Wallex asked us to slow down: pause all book reads briefly
             raise
-        hit = {'bid': D(str(d['bids'][0][0])), 'ask': D(str(d['asks'][0][0])), 'at': self.clock()}
-        self._books[symbol] = hit
+        hit = {'bid': D(str(d['bids'][0][0])), 'ask': D(str(d['asks'][0][0])), 'at': self.clock(),
+               'bids': [(D(str(p)), D(str(q))) for p, q in d['bids'][:25]], 'asks': [(D(str(p)), D(str(q))) for p, q in d['asks'][:25]]}
+        with self._lock:
+            self._books[symbol] = hit
         return hit
 
     def series(self, cfg, markets, closed, step):

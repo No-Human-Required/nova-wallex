@@ -198,6 +198,17 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
     from .notify import Notifier
     notifier = Notifier(db, settings, secrets)  # the web app only queues; the runner sends
     app.state.notifier = notifier
+
+    def watchdog():
+        state = {}
+        while True:
+            time.sleep(60)
+            try:
+                notifier.watchdog(state)
+            except Exception:
+                pass
+    if start_threads:
+        threading.Thread(target=watchdog, name='runner-watchdog', daemon=True).start()
     app.state.db, app.state.settings, app.state.auth, app.state.studio = db, settings, auth, studio
 
     # ------------------------------------------------------------ middleware
@@ -940,6 +951,7 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
                 'switches': {'live_trading_enabled': settings.get('platform.live_trading_enabled'), 'new_entries_enabled': settings.get('platform.new_entries_enabled')},
                 'sms_configured': sms.configured(), 'ai_configured': bool(settings.get('llm.api_key')), 'bale_configured': notifier.configured(),
                 'bale_linked': count('SELECT count(*) AS n FROM bale_links'),
+                'runner_heartbeat_age': (lambda r: (now-json.loads(r['value'])) if r else None)(db.one("SELECT value FROM settings WHERE key='runner._heartbeat'")),
                 'notifications_failed': count('SELECT count(*) AS n FROM notifications WHERE sent IS NULL AND attempts>=6'), 'payment_sandbox': settings.get('payment.sandbox')}
 
     @app.get('/api/admin/users')

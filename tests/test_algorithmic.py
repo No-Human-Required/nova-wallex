@@ -853,3 +853,84 @@ class NotifyTests(ExecutorTests):
         g2 = SimpleNamespace(main_balances=lambda: {'success': True, 'result': {'balances': {'BTC': {'value': '0.5', 'locked': '0.5'}}}})
         with patch.object(r, 'gateway', return_value=g2):
             self.assertEqual(r.reconcile_balances(), [])
+
+
+class RobustnessTests(NotifyTests):
+    def test_parallel_runner_never_overlaps_a_bot_and_slow_bot_does_not_block_others(self):
+        import threading
+        from algo.runner import Runner
+        from algo.settings import Settings
+        from algo.crypto import Secrets
+        s = Settings(self.db, Secrets(KEY))
+        r = Runner(self.db, s, Secrets(KEY), Market('1', '1'), clock=lambda: self.clock[0], workers=4)
+        self.db.run("INSERT INTO bots SELECT 'b2',user_id,'y',exchange,key_id,mode,status,live_approved,approved_by,approved_at,review_note,config,state,created,updated,started,last_error FROM bots WHERE id='b1'")
+        gate, seen, lock = threading.Event(), [], threading.Lock()
+
+        def run_bot(bot):
+            with lock:
+                seen.append(bot['id'])
+            if bot['id'] == 'b1':
+                gate.wait(5)  # b1 is stuck in a slow call
+        with patch.object(r, 'run_bot', side_effect=run_bot):
+            r.tick()
+            time.sleep(0.2)
+            self.clock[0] += 31
+            r.tick()  # b1 still running: not started again; b2 cycles again
+            time.sleep(0.2)
+            gate.set()
+            r.pool.shutdown(wait=True)
+        self.assertEqual(seen.count('b1'), 1)
+        self.assertEqual(seen.count('b2'), 2)
+        self.assertTrue(self.db.one("SELECT value FROM settings WHERE key='runner._heartbeat'"))
+
+    def test_failing_streak_is_reported_once(self):
+        from algo.runner import Runner
+        n, s = self.notifier()
+        from algo.crypto import Secrets
+        self.db.run("INSERT INTO bale_links(user_id,chat_id,username,linked,prefs) VALUES('u1','77',NULL,1,'{}')")
+        r = Runner(self.db, s, Secrets(KEY), Market('1', '1'), clock=lambda: self.clock[0], notifier=n)
+        with patch.object(r, 'run_bot', side_effect=TimeoutError):
+            for _ in range(40):
+                r.cycle(self.bot())
+                self.clock[0] += 30
+        self.assertEqual(self.db.one("SELECT count(*) AS n FROM bot_events WHERE kind='bot_failing'")['n'], 1)
+        n.pump()
+        self.assertIn('چرخهٔ موفق', self.bale.sent[-1][1])
+
+    def test_bale_pause_resume_daily_report_and_watchdog(self):
+        n, _ = self.notifier()
+        self.db.run("INSERT INTO bale_links(user_id,chat_id,username,linked,prefs) VALUES('u1','77',NULL,1,'{}')")
+        n.handle('77', '/pause', {})
+        self.assertEqual(self.bot()['status'], 'paused')
+        n.handle('77', '/resume', {})
+        self.assertEqual(self.bot()['status'], 'running')
+        # Daily report: once, after 23:30 Tehran (20:00 UTC).
+        self.clock[0] = 86400*20000+19*3600  # 22:30 Tehran
+        self.assertEqual(n.daily(), 0)
+        self.clock[0] += 3600+60
+        self.assertEqual(n.daily(), 1)
+        self.assertEqual(n.daily(), 0)
+        # Watchdog: silent while healthy, one alert when the heartbeat stops, one when it is back.
+        self.db.run("UPDATE users SET role='admin' WHERE id='u1'")
+        state = {}
+        beat = lambda t: self.db.run("INSERT INTO settings(key,value,updated,updated_by) VALUES('runner._heartbeat',?,1,'r') ON CONFLICT(key) DO UPDATE SET value=excluded.value", (json.dumps(t),))
+        beat(self.clock[0])
+        before = len(self.bale.sent)
+        n.watchdog(state)
+        self.clock[0] += 600
+        n.watchdog(state)
+        n.watchdog(state)
+        beat(self.clock[0])
+        n.watchdog(state)
+        msgs = [t for _, t in self.bale.sent[before:]]
+        self.assertEqual(len(msgs), 2)
+        self.assertIn('ضربان ندارد', msgs[0])
+
+    def test_paper_fill_walks_the_order_book(self):
+        from algo.executor import PaperGateway
+        m = Market('100', '101')
+        m.book = lambda s: {'bid': D(100), 'ask': D(101), 'asks': [(D(101), D(2)), (D(102), D(3))], 'bids': [(D(100), D(1))], 'at': 0}
+        g = PaperGateway(m, 0)
+        r = g.submit({'client_id': 'c', 'symbol': 'BTCTMN', 'side': 'BUY', 'quantity': '10', 'price': '102', 'quote': 'TMN'})['result']
+        self.assertEqual(D(r['executedQty']), 5)  # only 5 offered up to the limit
+        self.assertEqual(D(r['fills'][0]['price']), (2*101+3*102)/D(5))

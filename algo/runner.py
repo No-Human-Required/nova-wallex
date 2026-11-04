@@ -22,6 +22,9 @@ from . import exchanges
 
 CYCLE_SECONDS = 30
 BALANCE_CHECK_SECONDS = 600
+FAILING_ALERT_SECONDS = 900   # a bot that errors this long without one good cycle is reported
+HOUSEKEEPING_SECONDS = 6*3600
+HEARTBEAT_FILE = 'runner.heartbeat'
 BALANCE_TOLERANCE = 0.995
 ACTIVE = ('running', 'paused', 'closing', 'scheduled')
 
@@ -32,9 +35,15 @@ def plan_allows_live(db, user, now):
 
 
 class Runner:
-    def __init__(self, db, settings, secrets, market, ai=None, clock=time.time, notifier=None):
+    def __init__(self, db, settings, secrets, market, ai=None, clock=time.time, notifier=None, workers=0, heartbeat=None):
         self.db, self.s, self.secrets, self.market, self.clock = db, settings, secrets, market, clock
         self.notifier = notifier
+        # workers > 0: bots cycle in parallel (one slow AI or exchange call never delays another bot's stops);
+        # a bot never has two cycles at once.
+        from concurrent.futures import ThreadPoolExecutor
+        self.pool = ThreadPoolExecutor(workers, thread_name_prefix='bot') if workers else None
+        self.inflight, self.failing, self.heartbeat = {}, {}, heartbeat
+        self.housekept = 0
         self.executor = Executor(db, market, ai=ai, clock=clock, notify=notifier.on_event if notifier else None)
         if ai is not None and notifier is not None:
             ai.notify = notifier.on_event
@@ -146,7 +155,8 @@ class Runner:
             if not state['positions'] and not self.executor.orders(bot, ('SUBMITTING', 'UNKNOWN', 'OPEN', 'PARTIAL')):
                 self.stop(bot, 'stopped', None)
         elif result.get('status') == 'ok':
-            self.db.run('UPDATE bots SET last_error=NULL WHERE id=? AND last_error IS NOT NULL', (bot['id'],))
+            from .notify import PAUSED_BY_BALE
+            self.db.run('UPDATE bots SET last_error=NULL WHERE id=? AND last_error IS NOT NULL AND last_error!=?', (bot['id'], PAUSED_BY_BALE))
 
     def stop(self, bot, status, error):
         self.db.run('UPDATE bots SET status=?,last_error=?,updated=? WHERE id=?', (status, error, self.clock(), bot['id']))
@@ -197,26 +207,64 @@ class Runner:
                 flagged.append(b['id'])
         return flagged
 
+    def cycle(self, bot):
+        """One bot cycle with error bookkeeping: transient errors retry next cycle; a long streak is reported once."""
+        try:
+            self.run_bot(bot)
+            self.failing.pop(bot['id'], None)
+        except Exception as exc:  # network or data: retry next cycle, keep the bot
+            reason = 'خطای موقت: '+type(exc).__name__
+            self.db.run('UPDATE bots SET last_error=? WHERE id=?', (reason, bot['id']))
+            first, alerted = self.failing.get(bot['id'], (self.clock(), False))
+            if not alerted and self.clock()-first >= FAILING_ALERT_SECONDS:
+                self.executor.event(bot, 'bot_failing', {'reason': reason, 'since': first})
+                alerted = True
+            self.failing[bot['id']] = (first, alerted)
+
+    def housekeeping(self):
+        """Drop rows nobody reads any more (sent messages, old login logs, expired sessions and codes)."""
+        now = self.clock()
+        if now-self.housekept < HOUSEKEEPING_SECONDS:
+            return
+        self.housekept = now
+        for sql, args in (('DELETE FROM notifications WHERE sent IS NOT NULL AND sent<?', (now-30*86400,)),
+                          ('DELETE FROM notifications WHERE sent IS NULL AND attempts>=6 AND created<?', (now-30*86400,)),
+                          ('DELETE FROM otp_log WHERE at<?', (now-30*86400,)), ('DELETE FROM sessions WHERE expires<?', (now,)),
+                          ('DELETE FROM bale_codes WHERE expires<?', (now,)), ('DELETE FROM otp_codes WHERE expires<?', (now-86400,)),
+                          ("DELETE FROM bot_events WHERE at<? AND kind NOT IN ('trade_closed','bot_blocked','balance_mismatch')", (now-180*86400,))):
+            self.db.run(sql, args)
+
+    def beat(self):
+        now = self.clock()
+        self.db.run('INSERT INTO settings(key,value,updated,updated_by) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated=excluded.updated',
+                    ('runner._heartbeat', json.dumps(now), now, 'runner'))
+        if self.heartbeat:
+            self.heartbeat.touch()
+
     def tick(self):
         now = self.clock()
-        try:
-            self.reconcile_balances()
-        except Exception:
-            pass
-        if self.notifier:
-            try:
-                self.notifier.tick()
-            except Exception:
-                pass
+        for step in (self.reconcile_balances, self.housekeeping, self.notifier.tick if self.notifier else None):
+            if step:
+                try:
+                    step()
+                except Exception:
+                    pass
         marks = ','.join('?'*len(ACTIVE))
         for bot in self.db.all(f'SELECT * FROM bots WHERE status IN ({marks})', ACTIVE):
             if self.next.get(bot['id'], 0) > now:
                 continue
+            busy = self.inflight.get(bot['id'])
+            if busy is not None and not busy.done():
+                continue  # its previous cycle is still running (slow AI or exchange): never two at once
             self.next[bot['id']] = now+CYCLE_SECONDS
-            try:
-                self.run_bot(bot)
-            except Exception as exc:  # network or data: retry next cycle, keep the bot
-                self.db.run('UPDATE bots SET last_error=? WHERE id=?', ('خطای موقت: '+type(exc).__name__, bot['id']))
+            if self.pool:
+                self.inflight[bot['id']] = self.pool.submit(self.cycle, bot)
+            else:
+                self.cycle(bot)
+        try:
+            self.beat()
+        except Exception:
+            pass
 
 
 def main():
@@ -230,7 +278,8 @@ def main():
     settings = Settings(db, secrets)
     market = MarketData(WallexCandles(cache_root()/'candles'))
     from .notify import Notifier
-    runner = Runner(db, settings, secrets, market, ai=AIFilter(db, settings, cache_root()/'algo-ai'), notifier=Notifier(db, settings, secrets))
+    runner = Runner(db, settings, secrets, market, ai=AIFilter(db, settings, cache_root()/'algo-ai'), notifier=Notifier(db, settings, secrets),
+                    workers=int(os.getenv('ALGO_RUNNER_WORKERS', '6')), heartbeat=directory/HEARTBEAT_FILE)
     stop = threading.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, lambda *_: stop.set())
