@@ -175,7 +175,13 @@ class Series:
         if r24 is None:
             return None
         lo = max(0, i-n24+1)
-        return {'r1_bps': self.ret_bps(i, 1) or 0.0, 'r24_bps': r24, 'r48_bps': self.ret_bps(i, 2*n24) or r24,
+        closes = [x for x in self.c[lo:i+1] if x]
+        rets = [math.log(b/a) for a, b in zip(closes, closes[1:])]
+        logs = [math.log(x) for x in closes]
+        sd = pstdev(logs) if len(logs) > 1 else 0.0
+        return {'r1_bps': self.ret_bps(i, 1) or 0.0, 'r6_bps': self.ret_bps(i, max(1, n24//4)) or 0.0, 'r24_bps': r24,
+                'r48_bps': self.ret_bps(i, 2*n24) or r24, 'vol24_bps': pstdev(rets)*10000 if len(rets) > 1 else 0.0,
+                'z24_logclose': (logs[-1]-mean(logs))/sd if sd else None,
                 'daily_turnover_tmn': (self.turn[i+1]-self.turn[lo])*(n24/(i+1-lo)),
                 'prior_capacity_tmn': self.v[i]*self.c[i], 'missing_hours': self.miss[i+1]-self.miss[lo]}
 
@@ -195,6 +201,49 @@ def classify(series, i, n24, btc):
     if breadth >= 0.55 and b24 > 0:
         return 'bull'
     return 'range'
+
+
+def tp_distance(entry, stop, target, strategy, cost_bps, p):
+    """TP1 distance as a fraction of entry: the plan target (2.5R for trend strategies), at least 1R and 2x round trip."""
+    floor = max(stop, cost_bps*2/10000)
+    if strategy in LADDER_TREND:
+        return max(p['trend_tp_r']*stop, floor)
+    return max((target/entry-1) if target else 0, floor)
+
+
+def scan_bar(p, series, markets, i, n24, btc, cfg, cost_bps, busy=()):
+    """Best qualifying candidate per symbol on bar i's close, ranked; same code for backtest and live bots."""
+    regime = classify([series[s] for s in p['symbols']], i, n24, btc) if p['regime_filter'] else None
+    allowed = [x for x in p['strategies'] if regime is None or x in st.REGIMES[regime]['strategies']]
+    btc24 = btc.ret_bps(i, n24) if btc else None
+    found = []
+    for s in p['symbols']:
+        x = series[s]
+        if s in busy or not x.traded[i]:
+            continue
+        w = x.window(i, p['lookback_bars'])
+        if not w or w[5] > p['lookback_bars']*p['max_missing_pct']/100:
+            continue
+        f = x.features(i, n24)
+        if not f:
+            continue
+        q = markets[s].quote
+        hits = []
+        for name in allowed:
+            plan = st.evaluate(name, w, f, cost_bps[q], btc24, cfg, regime or 'range')
+            if plan:
+                hits.append({**plan, 'symbol': s, 'base': markets[s].base, 'quote': q, 'roundtrip_cost_bps': cost_bps[q], 'features': f})
+        if not hits:
+            continue
+        names = [h['strategy'] for h in hits]
+        for h in hits:
+            h['quality'] = st.quality(h, regime or 'range', names)
+            h['confluence'] = names
+        best = max(hits, key=lambda h: (h['quality'], h['score']))
+        if best['quality'] >= p['min_quality']:
+            found.append(best)
+    found.sort(key=lambda h: (-h['quality'], -h['score'], h['symbol']))
+    return found, regime
 
 
 def run(p, provider, markets, progress=lambda stage, done, total: None):
@@ -242,7 +291,6 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
     cash, positions, pending, exits_due, cooldown = float(p['capital_tmn']), {}, [], {}, {}
     trades, equity, gross, regimes = [], [], [], {}
     skipped = {'below_min_order': 0, 'no_trade_at_fill': 0, 'no_capacity': 0}
-    universe = [series[s] for s in p['symbols']]
     total = len(times)-warm
 
     def value(i):
@@ -293,7 +341,7 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
             cash -= cost
             entry = px
             target = order['target']
-            d = max((target/entry-1) if target else 0, stop, cost_bps[q]*2/10000) if order['strategy'] not in LADDER_TREND else max(p['trend_tp_r']*stop, cost_bps[q]*2/10000)
+            d = tp_distance(entry, stop, target, order['strategy'], cost_bps[q], p)
             positions[order['symbol']] = {'qty': qty, 'entry': entry, 'cost': cost, 'fee': budget*fee[q], 'stop': stop, 'time': times[i],
                                           'index': i, 'strategy': order['strategy'], 'quality': order['quality'], 'equity': mark,
                                           'floor': entry*(1-stop), 'peak': entry, 'stage': 0, 'low': entry, 'high': entry,
@@ -346,37 +394,10 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
         free = p['max_positions']-len(positions)-len(pending)
         if free <= 0:
             continue
-        regime = classify(universe, i, n24, btc) if p['regime_filter'] else None
+        busy = set(positions) | {o['symbol'] for o in pending} | {s for s, k in cooldown.items() if k > i}
+        found, regime = scan_bar(p, series, markets, i, n24, btc, cfg, cost_bps, busy)
         if regime:
             regimes[regime] = regimes.get(regime, 0)+1
-        allowed = [x for x in p['strategies'] if regime is None or x in st.REGIMES[regime]['strategies']]
-        btc24 = btc.ret_bps(i, n24) if btc else None
-        found = []
-        for s in p['symbols']:
-            x = series[s]
-            if s in positions or any(o['symbol'] == s for o in pending) or cooldown.get(s, -1) > i or not x.traded[i]:
-                continue
-            w = x.window(i, p['lookback_bars'])
-            if not w or w[5] > p['lookback_bars']*p['max_missing_pct']/100:
-                continue
-            f = x.features(i, n24)
-            if not f:
-                continue
-            q = markets[s].quote
-            hits = []
-            for name in allowed:
-                plan = st.evaluate(name, w, f, cost_bps[q], btc24, cfg, regime or 'range')
-                if plan:
-                    hits.append({**plan, 'symbol': s, 'roundtrip_cost_bps': cost_bps[q], 'features': f})
-            if not hits:
-                continue
-            names = [h['strategy'] for h in hits]
-            for h in hits:
-                h['quality'] = st.quality(h, regime or 'range', names)
-            best = max(hits, key=lambda h: (h['quality'], h['score']))
-            if best['quality'] >= p['min_quality']:
-                found.append(best)
-        found.sort(key=lambda h: (-h['quality'], -h['score'], h['symbol']))
         if len(found) > free:
             skipped['no_capacity'] += len(found)-free
         for h in found[:free]:
