@@ -79,6 +79,19 @@ def prices():
 
 
 # ---------------------------------------------------------------- bot pieces
+def margin_meta(sym, pos):
+    """A margin position in real prices (a short's levels live on 1/price inside the executor)."""
+    side = pos['side']
+    real = (lambda x: D(x)) if side > 0 else (lambda x: 1/D(x))
+    stop, peak, floor = D(pos['stop']), D(pos['peak']), D(pos['floor'])
+    active = max(floor, peak*(1-stop))  # on the position's own path: the higher, the tighter
+    return {'symbol': sym, 'strategy': pos.get('strategy'), 'margin': True, 'side': 'long' if side > 0 else 'short', 'leverage': pos.get('leverage'),
+            'liq_price': pos.get('liq_real'), 'collateral': pos.get('collateral'), 'notional': pos.get('notional'), 'position_id': pos.get('pid'),
+            'peak_unit': str(peak) if side > 0 else None, 'stop': pos.get('stop'), 'stop_price': str(real(active)),
+            'tp': [str(real(x)) for x in pos['tp']], 'tp_stage': pos.get('stage', 0), 'sl_floor': str(real(floor)), 'opened_at': pos.get('opened_at'),
+            'exit_reason': pos.get('exit_reason') or pos.get('exit_flag'), 'basis_unit': pos.get('entry_real'), 'quality': pos.get('quality'), 'ai': pos.get('ai')}
+
+
 def holdings(bot, state, px):
     markets = wallex_markets()
     out, meta = [], {}
@@ -88,6 +101,12 @@ def holdings(bot, state, px):
         asset = m.base if m and m.base not in taken else sym
         taken.add(asset)
         qty = D(pos['qty'])
+        if pos.get('margin'):
+            meta[asset] = margin_meta(sym, pos)
+            side = pos['side']
+            value = float(D(pos['collateral'])+side*qty*(D(str(px[sym]))-D(pos['entry_real']))) if sym in px else None
+            out.append({'asset': asset, 'symbol': sym, 'qty': str(qty), 'basis': pos['collateral'], 'value_tmn': value, 'margin': True})
+            continue
         value = float(qty)*px[sym] if sym in px else None
         out.append({'asset': asset, 'symbol': sym, 'qty': str(qty), 'basis': str(pos['cost']), 'value_tmn': value})
         meta[asset] = {'symbol': sym, 'strategy': pos.get('strategy'), 'peak_unit': pos.get('peak'), 'stop': pos.get('stop'),
@@ -132,6 +151,8 @@ def snapshot(db, bot, state, px):
     known = all(h['value_tmn'] is not None for h in hold)
     equity = cash+sum(h['value_tmn'] or float(D(h['basis'])) for h in hold) if known or not state.get('equity_tmn') else float(D(state['equity_tmn']))
     fees, n = {}, 0
+    # Margin positions have no spot fills: each filled open and close counts once.
+    n += db.one("SELECT count(*) AS n FROM bot_orders WHERE bot_id=? AND phase='FILLED' AND intent LIKE '%\"kind\": \"margin_%'", (bot['id'],))['n']
     for f in fills(db, bot['id']):
         n += 1
         fees[f.get('feeAsset') or 'TMN'] = fees.get(f.get('feeAsset') or 'TMN', 0.0)+float(f.get('fee') or 0)
@@ -177,6 +198,7 @@ def live(db, bot, now=None):
     limit, used = quota(db, bot['user_id'], now)
     return {'version': VERSION, 'bot': {'id': bot['id'], 'name': bot['name'], 'mode': bot['mode'], 'status': bot['status'], 'exchange': bot['exchange'],
                                          'timeframe': cfg['timeframe'], 'symbols': cfg['symbols'], 'ai_filter': cfg.get('ai_filter'),
+                                         'market_type': cfg.get('market_type', 'spot'), 'leverage': cfg.get('leverage', 1), 'sides': cfg.get('sides', 'long'),
                                          'schedule': cfg.get('schedule') or {'from': None, 'until': None, 'end_action': 'close'}, 'started': bot['started']},
             'engine': engine(bot, cfg, now),
             'run': {'limits': {'capital_tmn': cfg['capital_tmn'], 'max_drawdown_fraction': None, 'ai_max_calls': limit},
@@ -216,17 +238,20 @@ def trade_rows(db, bot, state, px):
         cost = float(D(r['cost_tmn'] or '0'))
         pnl = float(D(r['pnl_tmn']))
         ai = d.get('ai') or {}
-        out.append({'symbol': r['symbol'], 'strategy': r['strategy'], 'opened_at': r['entry_time'], 'closed_at': r['exit_time'],
+        out.append({'side': d.get('side', 'long'), 'leverage': d.get('leverage'), 'symbol': r['symbol'], 'strategy': r['strategy'], 'opened_at': r['entry_time'], 'closed_at': r['exit_time'],
                     'entry_avg': float(D(r['entry_price'])), 'exit_avg': float(D(r['exit_price'])) if D(r['exit_price']) else None,
                     'pnl_tmn': pnl, 'pnl_percent': pnl/cost*100 if cost else None, 'entry_reason': ai.get('ai_reason') or 'قاعدهٔ استراتژی',
                     'ai_confidence': ai.get('ai_confidence'), 'exit_reason': r['reason'], 'status': 'closed', 'tp_stage': d.get('stage')})
     for sym, pos in state['positions'].items():
         cost = float(D(pos.get('cost_total') or pos['cost']))
-        value = float(D(pos['qty']))*px[sym] if sym in px else None
-        pnl = value+float(D(pos.get('realized', '0')))-float(D(pos['cost'])) if value is not None else None
+        if pos.get('margin'):
+            pnl = float(pos['side']*D(pos['qty'])*(D(str(px[sym]))-D(pos['entry_real']))) if sym in px else None
+        else:
+            value = float(D(pos['qty']))*px[sym] if sym in px else None
+            pnl = value+float(D(pos.get('realized', '0')))-float(D(pos['cost'])) if value is not None else None
         ai = pos.get('ai') or {}
-        out.append({'symbol': sym, 'strategy': pos.get('strategy'), 'opened_at': pos['opened_at'], 'closed_at': None,
-                    'entry_avg': float(D(pos['entry'])), 'exit_avg': None, 'pnl_tmn': pnl, 'pnl_percent': pnl/cost*100 if pnl is not None and cost else None,
+        out.append({'side': ('short' if pos.get('side', 1) < 0 else 'long'), 'leverage': pos.get('leverage'), 'symbol': sym, 'strategy': pos.get('strategy'), 'opened_at': pos['opened_at'], 'closed_at': None,
+                    'entry_avg': float(D(pos.get('entry_real') or pos['entry'])), 'exit_avg': None, 'pnl_tmn': pnl, 'pnl_percent': pnl/cost*100 if pnl is not None and cost else None,
                     'entry_reason': ai.get('ai_reason') or 'قاعدهٔ استراتژی', 'ai_confidence': ai.get('ai_confidence'),
                     'exit_reason': pos.get('exit_reason'), 'status': 'open', 'tp_stage': pos.get('stage')})
     return sorted(out, key=lambda t: t['opened_at'])

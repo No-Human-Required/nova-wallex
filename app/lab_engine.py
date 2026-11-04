@@ -29,7 +29,7 @@ MAX_EVALUATIONS = 6_000_000
 MAX_SYMBOLS = 25
 EXIT_FA = {'stop': 'حد ضرر اولیه', 'trailing_stop': 'حد ضرر شناور', 'breakeven_stop': 'سربه‌سر', 'stepped_stop': 'حد ضرر پله‌ای',
            'tp3': 'TP3', 'take_profit': 'حد سود', 'time_exit': 'پایان زمان نگهداری', 'trend_exit': 'برگشت روند',
-           'end_of_test': 'پایان بازهٔ تست'}
+           'end_of_test': 'پایان بازهٔ تست', 'liquidation': 'لیکویید شدن (تعهدی)'}
 
 
 def default_stops(step):
@@ -47,7 +47,13 @@ DEFAULTS = {
     'slippage_bps': 10.0, 'latency_bars': 1, 'min_stop_pct': None, 'max_stop_pct': None, 'stop_atr_multiple': 2.5,
     'min_reward_risk': 2.0, 'trend_tp_r': 2.5, 'lookback_bars': 72, 'max_missing_pct': 25.0, 'breakeven_buffer_pct': 0.4,
     'custom_strategies': [],
+    # Margin (Wallex «معامله تعهدی»): leverage = risk_coef, both sides, exchange fees and liquidation.
+    'market_type': 'spot', 'leverage': 1.0, 'sides': 'long', 'margin_open_fee_pct': 0.1, 'margin_interest_pct_4h': 0.05,
+    'liquidation_margin_pct': 10.0,
 }
+MARGIN_MAX_AGE = 21*86400
+INVERSE_REGIME = {'bull': 'bear', 'bear': 'bull', 'range': 'range', 'crash': 'bull'}  # Wallex: a margin position lives at most 21 days
+SIDES = ('long', 'short', 'both')
 MAX_CUSTOM = 5
 
 
@@ -151,7 +157,34 @@ def validate(raw, markets, now):
     if bars*len(syms)*len(p['strategies']) > MAX_EVALUATIONS:
         raise ValueError('حجم تست زیاد است (کندل × نماد × استراتژی). تایم‌فریم بزرگ‌تر، بازهٔ کوتاه‌تر یا نماد کمتر انتخاب کنید.')
     p['trend_exit'], p['trailing'], p['regime_filter'] = bool(p['trend_exit']), bool(p['trailing']), bool(p['regime_filter'])
+    if p['market_type'] not in ('spot', 'margin'):
+        raise ValueError('نوع بازار نامعتبر است.')
+    if p['market_type'] == 'spot':
+        p['leverage'], p['sides'] = 1.0, 'long'
+    else:
+        try:
+            p['leverage'] = float(p['leverage'])
+            for k in ('margin_open_fee_pct', 'margin_interest_pct_4h', 'liquidation_margin_pct'):
+                p[k] = float(p[k])
+        except (TypeError, ValueError):
+            raise ValueError('نسبت اعتبار یا کارمزدهای تعهدی نامعتبر است.') from None
+        if not 1 <= p['leverage'] <= 20:
+            raise ValueError('نسبت اعتبار (اهرم) باید بین ۱ و ۲۰ باشد.')
+        if p['sides'] not in SIDES:
+            raise ValueError('سمت معامله باید long، short یا both باشد.')
+        if not (0 <= p['margin_open_fee_pct'] <= 5 and 0 <= p['margin_interest_pct_4h'] <= 2 and 0 <= p['liquidation_margin_pct'] < 100):
+            raise ValueError('کارمزدهای تعهدی یا حاشیهٔ لیکویید نامعتبر است.')
     return p
+
+
+def liquidation_move(p):
+    """Adverse price move (fraction of entry) at which a margin position is liquidated."""
+    return (1-p['liquidation_margin_pct']/100)/p['leverage']
+
+
+def real_stop(stop, side):
+    """A short's stop is set on the inverted price; as a rise of the real price it is s/(1-s)."""
+    return stop if side > 0 else stop/(1-stop)
 
 
 def strategy_cfg(p):
@@ -193,6 +226,20 @@ class Series:
         self.miss = [0]*(n+1)
         for i in range(n):
             self.miss[i+1] = self.miss[i]+(0 if self.traded[i] else 1)
+
+    def inverted(self):
+        """The same bars as 1/price: a short on the real market is a long on this series.
+
+        Highs and lows swap; volume and TMN turnover stay as they are, so the
+        strategies, quality score, stops and TP ladder run unchanged for shorts.
+        """
+        x = Series.__new__(Series)
+        x.symbol, x.quote = self.symbol, self.quote
+        inv = lambda v: 1/v if v else v
+        x.o, x.c = [inv(v) for v in self.o], [inv(v) for v in self.c]
+        x.h, x.l = [inv(v) for v in self.l], [inv(v) for v in self.h]
+        x.v, x.traded, x.turn, x.miss = self.v, self.traded, self.turn, self.miss
+        return x
 
     def window(self, i, size):
         lo = i-size+1
@@ -355,11 +402,57 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
     trades, equity, gross, regimes = [], [], [], {}
     skipped = {'below_min_order': 0, 'no_trade_at_fill': 0, 'no_capacity': 0}
     total = len(times)-warm
+    margin = p['market_type'] == 'margin'
+    lev = p['leverage']
+    inverted = {k: x.inverted() for k, x in series.items()} if margin and p['sides'] != 'long' else {}
+    if margin:
+        skipped['beyond_liquidation'] = 0
+        m_liq = liquidation_move(p)
+
+    def path(s, pos):
+        """The series a position's levels live on: real prices for longs, inverted for shorts."""
+        return inverted[s] if pos.get('side', 1) < 0 else series[s]
+
+    def margin_value(s, pos, px):
+        side = pos['side']
+        return pos['collateral']+side*pos['qty']*(px-pos['entry_real'])
 
     def value(i):
+        if margin:
+            return sum(margin_value(s, pos, series[s].c[i]) for s, pos in positions.items())
         return sum(pos['qty']*series[s].c[i] for s, pos in positions.items())
 
+    def exposure(i):
+        if margin:
+            return sum(pos['qty']*series[s].c[i] for s, pos in positions.items())
+        return value(i)
+
+    def close_margin(s, i, px_path, reason, at_open=False):
+        nonlocal cash
+        pos = positions.pop(s)
+        q = markets[s].quote
+        side = pos['side']
+        real = px_path if side > 0 else 1/px_path
+        exit_px = real*(1-friction) if side > 0 else real*(1+friction)
+        held = (times[i] if at_open else times[i]+step)-pos['time']
+        loan = pos['notional']-pos['collateral']
+        fees = (pos['notional']+pos['qty']*exit_px)*fee[q]+loan*p['margin_open_fee_pct']/100+loan*p['margin_interest_pct_4h']/100*math.ceil(max(held, 1)/14400)
+        pnl = side*pos['qty']*(exit_px-pos['entry_real'])-fees
+        floor_loss = -pos['collateral']*(1-p['liquidation_margin_pct']/100)
+        if reason == 'liquidation' or pnl < floor_loss:
+            reason, pnl = 'liquidation', max(floor_loss, -pos['collateral'])
+        cash += pos['collateral']+pnl
+        trades.append({'symbol': s, 'strategy': pos['strategy'], 'side': 'long' if side > 0 else 'short', 'leverage': lev, 'entry_time': pos['time'],
+                       'exit_time': times[i] if at_open else times[i]+step, 'entry_price': pos['entry_real'], 'exit_price': exit_px, 'qty': pos['qty'],
+                       'cost_tmn': pos['collateral'], 'notional_tmn': pos['notional'], 'pnl_tmn': pnl, 'return_pct': pnl/pos['collateral']*100,
+                       'r_multiple': pnl/(pos['notional']*pos['stop_real']), 'equity_at_entry': pos['equity'], 'fees_tmn': fees,
+                       'mae_pct': (pos['low']/pos['entry']-1)*100, 'mfe_pct': (pos['high']/pos['entry']-1)*100,
+                       'bars': i-pos['index']+1, 'tp_stage': pos['stage'], 'exit_reason': reason, 'quality': pos['quality']})
+        cooldown[s] = i+p['cooldown_bars']
+
     def close(s, i, px, reason, fee_only=False, at_open=False):
+        if margin:
+            return close_margin(s, i, px, reason, at_open)
         nonlocal cash
         pos = positions.pop(s)
         q = markets[s].quote
@@ -382,7 +475,7 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
         # 1. orders decided on an earlier close fill at this open
         for s in list(exits_due):
             if exits_due[s] <= i and s in positions and series[s].traded[i]:
-                close(s, i, series[s].o[i], positions[s]['exit_reason'], at_open=True)
+                close(s, i, path(s, positions[s]).o[i], positions[s]['exit_reason'], at_open=True)
                 exits_due.pop(s)
         for order in [o for o in pending if o['fill'] <= i]:
             pending.remove(order)
@@ -391,8 +484,31 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
                 skipped['no_trade_at_fill'] += 1
                 continue
             q = markets[order['symbol']].quote
-            px = x.o[i]*(1+friction)
             stop = order['stop']
+            if margin:
+                side = order['side']
+                sr = real_stop(stop, side)
+                if sr >= 0.8*m_liq:
+                    skipped['beyond_liquidation'] += 1
+                    continue
+                real = x.o[i]*(1+friction) if side > 0 else x.o[i]*(1-friction)
+                notional = mark*p['risk_pct']/100/sr if p['sizing'] == 'risk' else mark*p['position_pct']/100*lev
+                used = sum(pos['collateral'] for pos in positions.values())
+                coll = min(notional/lev, mark*p['max_asset_pct']/100, mark*p['max_gross_pct']/100-used, cash/(1+2*fee[q]*lev))
+                if coll < max(p['min_order_tmn'], 1.0):
+                    skipped['below_min_order'] += 1
+                    continue
+                cash -= coll
+                entry = real if side > 0 else 1/real
+                d = tp_distance(entry, stop, order['target'], order['strategy'], cost_bps[q], p)
+                positions[order['symbol']] = {'side': side, 'collateral': coll, 'notional': coll*lev, 'qty': coll*lev/real, 'entry_real': real,
+                                              'stop_real': sr, 'entry': entry, 'stop': stop, 'time': times[i], 'index': i, 'strategy': order['strategy'],
+                                              'quality': order['quality'], 'equity': mark, 'floor': entry*(1-stop), 'peak': entry, 'stage': 0,
+                                              'low': entry, 'high': entry, 'tp': [entry*(1+d), entry*(1+2*d), entry*(1+3*d)], 'exit_reason': None,
+                                              'liq': entry*(1-m_liq) if side > 0 else 1/(real*(1+m_liq)),
+                                              'max_hold': min((p['max_hold_hours'] or holding_hours(p, order['strategy']))*3600, MARGIN_MAX_AGE)}
+                continue
+            px = x.o[i]*(1+friction)
             budget = mark*p['risk_pct']/100/stop if p['sizing'] == 'risk' else mark*p['position_pct']/100
             gross_now = sum(pos['qty']*series[s].o[i] for s, pos in positions.items() if series[s].o[i])
             budget = min(budget, mark*p['max_asset_pct']/100, mark*p['max_gross_pct']/100-gross_now, cash/(1+fee[q]))
@@ -412,12 +528,16 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
                                           'max_hold': (p['max_hold_hours'] or holding_hours(p, order['strategy']))*3600}
         # 2. stops and take-profits on this bar's range (levels known before the bar)
         for s, pos in list(positions.items()):
-            x = series[s]
+            x = path(s, pos)
             if not x.traded[i]:
                 continue
             pos['low'], pos['high'] = min(pos['low'], x.l[i]), max(pos['high'], x.h[i])
             trail = pos['peak']*(1-pos['stop']) if p['trailing'] else 0.0
             level = max(pos['floor'], trail)
+            if margin and x.l[i] <= pos['liq'] and pos['liq'] > level:
+                close(s, i, min(x.o[i], pos['liq']), 'liquidation')
+                exits_due.pop(s, None)
+                continue
             if x.l[i] <= level:
                 reason = ('trailing_stop' if trail > pos['floor'] else 'stop' if pos['stage'] == 0 and pos['floor'] < pos['entry']
                           else 'stepped_stop' if pos['stage'] >= 2 else 'breakeven_stop')
@@ -450,7 +570,7 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
                     exits_due[s] = i+1
         eq = cash+value(i)
         equity.append(eq)
-        gross.append(value(i)/eq if eq > 0 else 0.0)
+        gross.append(exposure(i)/eq if eq > 0 else 0.0)
         # 4. signals on this close for the next open
         if i+p['latency_bars'] >= len(times):
             continue
@@ -458,17 +578,27 @@ def run(p, provider, markets, progress=lambda stage, done, total: None):
         if free <= 0:
             continue
         busy = set(positions) | {o['symbol'] for o in pending} | {s for s, k in cooldown.items() if k > i}
-        found, regime = scan_bar(p, series, markets, i, n24, btc, cfg, cost_bps, busy)
+        found, regime = scan_bar(p, series, markets, i, n24, btc, cfg, cost_bps, busy) if p['sides'] != 'short' else ([], None)
+        for h in found:
+            h['side'] = 1
+        if inverted:
+            shorts, inv_regime = scan_bar(p, inverted, markets, i, n24, inverted.get('BTCTMN'), cfg, cost_bps, busy)
+            for h in shorts:
+                h['side'] = -1
+            found = sorted(found+shorts, key=lambda h: (-h['quality'], -h['score'], h['symbol']))
+            seen = set()
+            found = [h for h in found if not (h['symbol'] in seen or seen.add(h['symbol']))]
+            regime = regime or (INVERSE_REGIME.get(inv_regime) if inv_regime else None)
         if regime:
             regimes[regime] = regimes.get(regime, 0)+1
         if len(found) > free:
             skipped['no_capacity'] += len(found)-free
         for h in found[:free]:
-            pending.append({'symbol': h['symbol'], 'strategy': h['strategy'], 'stop': h['plan']['stop_fraction'],
+            pending.append({'symbol': h['symbol'], 'strategy': h['strategy'], 'stop': h['plan']['stop_fraction'], 'side': h.get('side', 1),
                             'target': h['plan']['target_price_tmn'], 'quality': h['quality'], 'fill': i+p['latency_bars']})
     last = len(times)-1
     for s in list(positions):
-        close(s, last, series[s].c[last], 'end_of_test')
+        close(s, last, path(s, positions[s]).c[last], 'end_of_test')
     equity[-1] = cash
     progress('simulate', total, total)
     stamps = times[warm:]

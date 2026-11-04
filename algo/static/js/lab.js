@@ -39,6 +39,12 @@ export function labSection(root, { every, keep, safe }) {
         <div class="row" style="display:flex;gap:6px;flex-wrap:wrap"><input id="lsearch" list="lmk" placeholder="افزودن نماد، مثلاً ETHTMN" class="ltr" style="width:220px"><datalist id="lmk">${meta.markets.map(m => `<option value="${m.symbol}">`).join('')}</datalist>
           <button id="ladd">افزودن</button><button data-pre="btc">فقط BTC</button><button data-pre="major">BTC + ETH</button><button data-pre="top10">۱۰ بازار پرحجم</button><button data-pre="top25">۲۵ بازار پرحجم</button><button data-pre="clear">پاک کردن</button></div></div>
       <div class="lf"><span>استراتژی‌ها</span><div id="lstrats" style="display:flex;gap:10px;flex-wrap:wrap">${meta.strategies.map(s => `<label class="chk"><input type="checkbox" value="${s.id}" ${d.strategies.includes(s.id) ? 'checked' : ''}> <span class="chip ${s.family === 'smart_money' ? 'smc' : 'ind'}">${s.family === 'smart_money' ? 'SMC' : 'اندیکاتور'}</span>${s.custom ? ' <span class="chip y">استودیو</span>' : ''} ${esc(s.fa)}</label>`).join('')}</div></div>
+      <details ${d.market_type === 'margin' ? 'open' : ''}><summary>نوع بازار: اسپات یا تعهدی (اهرمی، لانگ و شورت)</summary><div class="lgrid">
+        <label class="lf"><span>نوع بازار</span><select id="lmt"><option value="spot" ${d.market_type !== 'margin' ? 'selected' : ''}>اسپات</option><option value="margin" ${d.market_type === 'margin' ? 'selected' : ''}>تعهدی (اهرمی)</option></select></label>
+        <label class="lf"><span>سمت</span><select id="lsd">${[['long', 'فقط لانگ'], ['short', 'فقط شورت'], ['both', 'هر دو']].map(([k, t]) => `<option value="${k}" ${(d.sides || 'long') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        ${field('llev', 'نسبت اعتبار (اهرم)', d.leverage ?? 1, 'type="number" min="1" max="20" step="1"')}${field('lliq', 'حاشیهٔ لیکویید ٪ (فرض)', d.liquidation_margin_pct ?? 10, 'type="number" step="1"')}
+        ${field('lmof', 'کارمزد فعال‌سازی ٪ وام (فرض)', d.margin_open_fee_pct ?? 0.1, 'type="number" step="0.01"')}${field('lmint', 'کارمزد تمدید ٪ وام هر ۴ ساعت (فرض)', d.margin_interest_pct_4h ?? 0.05, 'type="number" step="0.01"')}</div>
+        <div class="faint" style="font-size:11.5px">در حالت تعهدی، شورت‌ها با همان استراتژی‌ها روی قیمت معکوس (۱/P) پیدا می‌شوند؛ وثیقه = اندازهٔ موقعیت ÷ اهرم؛ لیکویید وقتی زیان به (۱ − حاشیه) ÷ اهرم برسد؛ ورودی که حد ضررش نزدیک لیکویید باشد رد می‌شود. کارمزدهای تعهدی فرض‌اند؛ مقدار واقعی هر بازار را ربات واقعی از «پیش‌نمایش» والکس می‌گیرد.</div></details>
       <details open><summary>سرمایه و اندازهٔ موقعیت</summary><div class="lgrid">
         ${field('lcap', 'سرمایه (تومان)', d.capital_tmn, 'type="number" min="100000"')}
         <label class="lf"><span>روش اندازه</span><select id="lsize"><option value="risk" ${d.sizing === 'risk' ? 'selected' : ''}>ریسک ثابت (٪ سرمایه ÷ حد ضرر)</option><option value="fixed" ${d.sizing === 'fixed' ? 'selected' : ''}>درصد ثابت سرمایه</option></select></label>
@@ -96,6 +102,7 @@ export function labSection(root, { every, keep, safe }) {
       exit_mode: $('#lexit').value, trailing: $('#ltrail').checked, trend_exit: $('#ltrend').checked, max_hold_hours: num('lhold'),
       min_stop_pct: num('lsmin'), max_stop_pct: num('lsmax'), stop_atr_multiple: num('latr'), min_reward_risk: num('lrr'), trend_tp_r: num('ltpr'),
       breakeven_buffer_pct: num('lbe'), min_quality: num('lq'), regime_filter: $('#lreg').checked, cooldown_bars: num('lcool'), latency_bars: num('llat'),
+      market_type: $('#lmt').value, sides: $('#lsd').value, leverage: num('llev'), liquidation_margin_pct: num('lliq'), margin_open_fee_pct: num('lmof'), margin_interest_pct_4h: num('lmint'),
       lookback_bars: num('llook'), max_missing_pct: num('lmiss'), fee_tmn_bps: num('lfee'), fee_usdt_bps: num('lfeeu'), half_spread_bps: num('lspr'), slippage_bps: num('lslip') };
   }
   async function submit() {
@@ -181,7 +188,7 @@ export function labSection(root, { every, keep, safe }) {
   function tradeTable(ts) {
     if (!ts.length) return '<div class="empty">در این بازه هیچ معامله‌ای انجام نشد؛ شرط ستاپ‌ها برقرار نشد یا فیلترها مانع شدند.</div>';
     return `<table><thead><tr><th>نماد</th><th>استراتژی</th><th>ورود</th><th>خروج</th><th>قیمت ورود → خروج</th><th>بازده</th><th>R</th><th>MAE / MFE</th><th>دلیل خروج</th></tr></thead><tbody>${ts.slice().reverse().map(t => `<tr><td>${sym(t.symbol)}</td><td style="font-size:11.5px">${esc(sName(t.strategy))}</td><td style="font-size:11.5px">${when(t.entry_time)}</td><td style="font-size:11.5px">${when(t.exit_time)}</td>
-      <td class="mono" style="font-size:11.5px">${n2(t.entry_price)} → ${n2(t.exit_price)}</td><td class="${signCls(t.return_pct)}">${pct(t.return_pct)}</td><td>${n2(t.r_multiple)}</td><td style="font-size:11.5px">${pct(t.mae_pct, 1)} / ${pct(t.mfe_pct, 1)}</td><td style="font-size:11.5px">${esc(EXIT(t.exit_reason))}${t.tp_stage ? ' · TP' + t.tp_stage : ''}</td></tr>`).join('')}</tbody></table>`;
+      <td class="mono" style="font-size:11.5px">${t.side === 'short' ? '<span class="chip bad">S</span> ' : ''}${n2(t.entry_price)} → ${n2(t.exit_price)}</td><td class="${signCls(t.return_pct)}">${pct(t.return_pct)}</td><td>${n2(t.r_multiple)}</td><td style="font-size:11.5px">${pct(t.mae_pct, 1)} / ${pct(t.mfe_pct, 1)}</td><td style="font-size:11.5px">${esc(EXIT(t.exit_reason))}${t.tp_stage ? ' · TP' + t.tp_stage : ''}</td></tr>`).join('')}</tbody></table>`;
   }
   function monthly(m) {
     const keys = Object.keys(m || {}); if (!keys.length) return '<div class="faint">—</div>';

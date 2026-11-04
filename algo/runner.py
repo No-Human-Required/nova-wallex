@@ -36,8 +36,12 @@ class Runner:
         self.next = {}
 
     def gateway(self, bot):
+        cfg = json.loads(bot['config'])
+        margin = cfg.get('market_type') == 'margin'
         if bot['mode'] == 'paper':
-            cfg = json.loads(bot['config'])
+            if margin:
+                from .margin import PaperMargin
+                return PaperMargin(self.db, bot['id'], self.market, cfg, clock=self.clock)
             return PaperGateway(self.market, cfg['fee_tmn_bps']/10000)
         key = self.db.one('SELECT * FROM exchange_keys WHERE id=? AND user_id=?', (bot['key_id'], bot['user_id']))
         if not key or key['status'] != 'verified':
@@ -55,6 +59,27 @@ class Runner:
                 return bool(row and row['phase'] in ('OPEN', 'PARTIAL'))
             return False
         g._authorizer = authorize
+        if margin:
+            from .margin import MarginGateway, MarginLive, PREFIX
+            secret = self.secrets.decrypt(key['cipher'])
+
+            def margin_authorize(method, path, body):
+                # Opens only for this bot's own SUBMITTING row; closes and stop moves only for its own positions.
+                if not (self.s.get('platform.live_trading_enabled') and self.s.get('platform.margin_enabled')) and method == 'POST':
+                    return False
+                if method == 'POST' and path == PREFIX+'/positions' and isinstance(body, dict):
+                    rows = self.db.all("SELECT intent FROM bot_orders WHERE bot_id=? AND phase='SUBMITTING' AND symbol=?", (bot_id, body.get('market')))
+                    return any(json.loads(r['intent']).get('kind') == 'margin_open' and not json.loads(r['intent']).get('pid') for r in rows)
+                if method == 'PATCH' and path.startswith(PREFIX+'/positions/') and path.endswith(('/close', '/sltp')):
+                    pid = path[len(PREFIX+'/positions/'):].rsplit('/', 1)[0]
+                    state = json.loads(self.db.one('SELECT state FROM bots WHERE id=?', (bot_id,))['state'])
+                    if any(str(p.get('pid')) == pid for p in state['positions'].values()):
+                        return True
+                    return any(str(json.loads(r['intent']).get('pid')) == pid for r in
+                               self.db.all("SELECT intent FROM bot_orders WHERE bot_id=? AND phase IN ('SUBMITTING','OPEN','UNKNOWN')", (bot_id,)))
+                return False
+            g._authorizer = lambda *a: False  # the spot key is only read (free TMN balance)
+            return MarginLive(MarginGateway(secret, write_authorizer=margin_authorize), g)
         return g
 
     def schedule(self, bot, now):
@@ -102,6 +127,8 @@ class Runner:
                 self.db.run("UPDATE bots SET status='paused',last_error=? WHERE id=?", ('پلن فعال برای اجرای واقعی ندارد؛ فقط مدیریت خروج', bot['id']))
                 bot = self.db.one('SELECT * FROM bots WHERE id=?', (bot['id'],))
         entries = bot['status'] == 'running' and self.s.get('platform.new_entries_enabled')
+        if bot['mode'] == 'live' and json.loads(bot['config']).get('market_type') == 'margin' and not self.s.get('platform.margin_enabled'):
+            entries = False  # margin switch off: live margin bots only manage their exits
         try:
             result = self.executor.cycle(bot, self.gateway(bot), entries_allowed=entries, flatten=bot['status'] == 'closing')
         except BotBlocked as exc:

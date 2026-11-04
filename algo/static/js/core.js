@@ -89,7 +89,12 @@ export const BOT_STATUS = { scheduled: ['زمان‌بندی‌شده؛ منتظ
   pending_approval: ['در انتظار تأیید ادمین', 'smc'], blocked: ['مسدود — نیاز به بررسی', 'bad'], deleted: ['حذف‌شده', 'bad'] };
 export const botChip = st => { const [t, c] = BOT_STATUS[st] || [st, '']; return `<span class="chip ${c}">${esc(t)}</span>`; };
 export const REASON_FA = {
-  trailing_stop: 'حد ضرر شناور', target_reached: 'رسیدن به هدف', tp1: 'TP1 (فروش یک‌سوم، نسخهٔ ۴٫۳)', tp2: 'TP2 (فروش یک‌سوم، نسخهٔ ۴٫۳)', tp3: 'TP3 (خروج کامل)', stepped_stop: 'حد ضرر پله‌ای', breakeven_stop: 'سربه‌سر', fast_trend_break: 'شکست روند ۱۵ دقیقه‌ای', time_exit: 'پایان زمان نگهداری', trend_reversed: 'برگشت روند',
+  take_profit: 'حد سود', stop: 'حد ضرر اولیه', trend_exit: 'برگشت روند (EMA9<EMA21)', manual_close: 'بستن دستی', end_of_test: 'پایان بازه',
+  below_minimum: 'کمتر از حداقل سفارش', entries_paused: 'ورود جدید متوقف بود', ai_unavailable: 'AI در دسترس نبود',
+  platform_ai_not_configured: 'AI پلتفرم تنظیم نشده', rules_only: 'بدون فیلتر AI', stop_below_minimum: 'حد ضرر (ریزه)',
+  trailing_stop_below_minimum: 'حد ضرر شناور (ریزه)', time_exit_below_minimum: 'پایان زمان (ریزه)',
+  liquidation: 'لیکویید شدن', exchange_stop: 'حد ضرر روی صرافی', exchange_take_profit: 'حد سود روی صرافی (TP3)', margin_expired: 'پایان عمر موقعیت تعهدی (۲۱ روز)',
+  trailing_stop: 'حد ضرر شناور', target_reached: 'رسیدن به هدف', tp1: 'TP1', tp2: 'TP2', tp3: 'TP3 (خروج کامل)', stepped_stop: 'حد ضرر پله‌ای', breakeven_stop: 'سربه‌سر', fast_trend_break: 'شکست روند ۱۵ دقیقه‌ای', time_exit: 'پایان زمان نگهداری', trend_reversed: 'برگشت روند',
   portfolio_halt: 'توقف ریسک پرتفوی', reversion_complete: 'بازگشت کامل', funded_usdt_leg: 'پای دوم تتر', fund_usdt_route: 'تأمین تتر',
   confirmed_funding: 'خرید پس از تأمین', residual_fx_to_tmn: 'تبدیل ماندهٔ تتر', sale_proceeds_to_tmn: 'تبدیل فروش به تومان',
   native_stop_protection: 'محافظ حد ضرر صرافی', signal: 'سیگنال', spread_gate: 'اسپرد زیاد', regime_position_capacity_full: 'ظرفیت رژیم پر است',

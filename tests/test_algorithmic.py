@@ -547,3 +547,192 @@ class RunnerTests(ExecutorTests):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+# ---------------------------------------------------------------- margin (معامله تعهدی)
+class MarginMarket(Market):
+    """One symbol with a series object, so the short (inverted) scan runs too."""
+
+    def series(self, cfg, markets, closed, step):
+        self.series_calls += 1
+        x = SimpleNamespace(window=lambda i, n: None, ret_bps=lambda i, k: None)
+        x.inverted = lambda: x
+        return {'BTCTMN': x}, 0, 24, None
+
+
+class FakeMarginLive:
+    """Live margin adapter double: records requests, answers like normalize()."""
+    paper = False
+
+    def __init__(self):
+        self.opened, self.closed, self.moved, self.positions, self.mode = [], [], [], {}, 'ok'
+
+    def dry_run(self, body):
+        return {'liquidity_price': '1'}
+
+    def open(self, body, base=None):
+        self.opened.append(body)
+        pos = {'id': str(100+len(self.opened)), 'market': body['market'], 'side': body['side'], 'state': 'open', 'open_price': body['open_price'],
+               'qty': str(D(body['collateral'])*D(body['risk_coef'])/D(body['open_price'])), 'collateral': body['collateral'], 'loan': '0',
+               'liquidity_price': '1', 'close_price': '0', 'close_reason': None, 'profit': '0', 'interest': '0', 'created_at': time.time(), 'closed_at': None}
+        self.positions[pos['id']] = pos
+        if self.mode == 'timeout':
+            raise APIError(0, 'network')
+        return pos
+
+    def get(self, pid, base=None):
+        return self.positions[pid]
+
+    def find(self, market, side, base=None):
+        return [p for p in self.positions.values() if p['market'] == market and p['side'] == side]
+
+    def close(self, pid, price, base=None):
+        self.closed.append((pid, price))
+        p = self.positions[pid]
+        p.update(state='closed', close_price=price, profit='-12345', closed_at=time.time())
+        return p
+
+    def sltp(self, pid, sl, tp):
+        self.moved.append((pid, sl, tp))
+
+
+class MarginTests(ExecutorTests):
+    def margin_bot(self, **kw):
+        from algo.bots import validate, initial_state
+        cfg = validate({'symbols': ['BTCTMN'], 'timeframe': '1h', 'capital_tmn': 5_000_000, 'preset': 'custom', 'sizing': 'fixed',
+                        'position_pct': 20, 'max_asset_pct': 50, 'ai_filter': False, 'min_order_tmn': 100000, 'market_type': 'margin',
+                        'leverage': 3, 'sides': 'both', **kw}, 'wallex', 'paper')
+        self.db.run("UPDATE bots SET mode='paper', config=?, state=? WHERE id='b1'", (json.dumps(cfg), json.dumps(initial_state(cfg))))
+        return cfg
+
+    def paper(self, m, cfg):
+        from algo.margin import PaperMargin
+        return PaperMargin(self.db, 'b1', m, cfg, clock=lambda: self.clock[0])
+
+    def test_paper_long_with_leverage_and_stop(self):
+        cfg = self.margin_bot(sides='long')
+        m = MarginMarket('100000000', '100100000')
+        ex, g = self.executor(m), self.paper(m, cfg)
+        with patch('app.lab_engine.scan_bar', return_value=([candidate()], None)):
+            r = ex.cycle(self.bot(), g)
+        self.assertEqual(r['entries'][0]['side'], 'long')
+        state = json.loads(self.bot()['state'])
+        pos = state['positions']['BTCTMN']
+        self.assertTrue(pos['margin'])
+        self.assertEqual(D(pos['notional'])/D(pos['collateral']), 3)  # leverage
+        self.assertEqual(D(state['cash_tmn']), D(5_000_000)-D(pos['collateral']))
+        m.b, m.a = D('96000000'), D('96100000')  # 4% down: below the 3% stop
+        self.clock[0] += 30
+        ex.cycle(self.bot(), g)  # the exchange-side stop sent with the open fires first
+        state = json.loads(self.bot()['state'])
+        self.assertEqual(state['positions'], {})
+        trade = self.db.one("SELECT * FROM bot_trades WHERE bot_id='b1'")
+        self.assertEqual(trade['reason'], 'exchange_stop')
+        self.assertLess(D(trade['pnl_tmn']), -D(pos['collateral'])*D('0.1'))  # 3x the move of the price
+        self.assertEqual(json.loads(trade['detail'])['side'], 'long')
+        self.assertAlmostEqual(float(D(state['cash_tmn'])-D(5_000_000)), float(trade['pnl_tmn']), places=2)
+
+    def test_paper_short_profits_when_price_falls(self):
+        cfg = self.margin_bot(sides='short')
+        m = MarginMarket('100000000', '100100000')
+        ex, g = self.executor(m), self.paper(m, cfg)
+        short = candidate(stop=0.03)
+        short['plan']['target_price_tmn'] = None  # a short's target lives on the inverted path; none = the ladder floor (1R)
+        with patch('app.lab_engine.scan_bar', return_value=([short], None)):
+            r = ex.cycle(self.bot(), g)
+        self.assertEqual(r['entries'][0]['side'], 'short')
+        pos = json.loads(self.bot()['state'])['positions']['BTCTMN']
+        self.assertEqual(pos['side'], -1)
+        self.assertEqual(D(pos['entry_real']), D('100000000'))  # a short sells at the bid
+        m.b, m.a = D('90000000'), D('90010000')  # 10% fall: beyond TP3 of a 3% ladder
+        self.clock[0] += 30
+        ex.cycle(self.bot(), g)  # TP3 is the exchange-side take-profit
+        self.assertEqual(self.db.one("SELECT reason FROM bot_trades WHERE bot_id='b1'")['reason'], 'exchange_take_profit')
+        trade = self.db.one("SELECT * FROM bot_trades WHERE bot_id='b1'")
+        self.assertGreater(D(trade['pnl_tmn']), 0)
+        self.assertEqual(json.loads(trade['detail'])['side'], 'short')
+
+    def test_stop_beyond_liquidation_is_never_opened(self):
+        cfg = self.margin_bot(sides='long', leverage=20)
+        m = MarginMarket('100000000', '100100000')
+        ex, g = self.executor(m), self.paper(m, cfg)
+        with patch('app.lab_engine.scan_bar', return_value=([candidate(stop=0.05)], None)):
+            r = ex.cycle(self.bot(), g)
+        self.assertEqual(r['entries'], [])
+        e = self.db.one("SELECT detail FROM bot_events WHERE kind='allocation'")
+        self.assertIn('لیکویید', json.loads(e['detail'])['reason'])
+
+    def test_exchange_closed_position_is_settled_and_ladder_moves_exchange_stop(self):
+        cfg = self.margin_bot(sides='long')
+        m = MarginMarket('1000', '1000')
+        ex, g = self.executor(m), FakeMarginLive()
+        with patch('app.lab_engine.scan_bar', return_value=([candidate('BTCTMN', 0.03, 1.09)], None)):
+            ex.cycle(self.bot(), g)
+        self.assertEqual(g.opened[0]['risk_coef'], '3')
+        self.assertTrue(g.opened[0]['stop_loss'] and g.opened[0]['take_profit'])  # exchange-side protection from the start
+        pos = json.loads(self.bot()['state'])['positions']['BTCTMN']
+        m.b = D(pos['tp'][0])+1  # TP1: the stop moves up at the exchange too
+        self.clock[0] += 30
+        ex.cycle(self.bot(), g)
+        self.assertEqual(len(g.moved), 1)
+        g.positions[pos['pid']].update(state='closed', close_reason='liquidation', profit='-777', closed_at=time.time())
+        self.clock[0] += 30
+        ex.cycle(self.bot(), g)
+        self.assertEqual(json.loads(self.bot()['state'])['positions'], {})
+        trade = self.db.one("SELECT * FROM bot_trades WHERE bot_id='b1'")
+        self.assertEqual((trade['reason'], D(trade['pnl_tmn'])), ('liquidation', D(-777)))
+
+    def test_unknown_open_is_matched_by_reading_positions_never_resent(self):
+        cfg = self.margin_bot(sides='long')
+        m = MarginMarket('1000', '1000')
+        ex, g = self.executor(m), FakeMarginLive()
+        g.mode = 'timeout'
+        with patch('app.lab_engine.scan_bar', return_value=([candidate()], None)):
+            ex.cycle(self.bot(), g)
+            self.assertEqual(self.db.one("SELECT phase FROM bot_orders")['phase'], 'UNKNOWN')
+            self.clock[0] += 3600
+            ex.cycle(self.bot(), g)  # adopts the one new position; does not open again
+        self.assertEqual(len(g.opened), 1)
+        self.assertIn('BTCTMN', json.loads(self.bot()['state'])['positions'])
+        # Two unexplained positions: the bot stops for review instead of guessing.
+        from algo.executor import BotBlocked
+        self.margin_bot(sides='long')
+        self.db.run('DELETE FROM bot_orders')
+        g2 = FakeMarginLive()
+        g2.mode = 'timeout'
+        with patch('app.lab_engine.scan_bar', return_value=([candidate()], None)):
+            self.clock[0] += 3600
+            ex.cycle(self.bot(), g2)
+            g2.open({**g2.opened[0]}) if False else g2.positions.update({'999': {**list(g2.positions.values())[0], 'id': '999'}})
+            with self.assertRaises(BotBlocked):
+                ex.cycle(self.bot(), g2)
+
+    def test_margin_backtest_short_side(self):
+        import math
+        import random
+        from app import lab_engine as le
+        from algo.exchanges import wallex_markets
+
+        class Down:
+            name, requests = 'down', 0
+
+            def requests_needed(self, *a):
+                return 0
+
+            def bars(self, s, step, a, b):
+                r, px, out = random.Random(s), 1000.0, {}
+                for t in range(a//step*step, b, step):
+                    o, c = px, px*math.exp(r.gauss(-0.0008, 0.012))
+                    out[t] = (o, max(o, c)*1.003, min(o, c)*0.997, c, 1e6/px)
+                    px = c
+                return out
+        now = 1793000000
+        p = le.validate({'symbols': ['BTCTMN', 'ETHTMN', 'SOLTMN'], 'timeframe': '1h', 'start': now-30*86400, 'end': now,
+                         'market_type': 'margin', 'leverage': 3, 'sides': 'short'}, wallex_markets(), now)
+        res = le.run(p, Down(), wallex_markets())
+        self.assertTrue(res['trades'] and all(t['side'] == 'short' for t in res['trades']))
+        for t in res['trades']:
+            if t['exit_reason'] != 'liquidation':
+                self.assertAlmostEqual(t['qty']*(t['entry_price']-t['exit_price'])-t['fees_tmn'], t['pnl_tmn'], places=4)
+        spot = le.validate({'symbols': ['BTCTMN'], 'timeframe': '1h', 'start': now-30*86400, 'end': now, 'leverage': 5, 'sides': 'short'}, wallex_markets(), now)
+        self.assertEqual((spot['leverage'], spot['sides']), (1.0, 'long'))  # spot ignores margin fields

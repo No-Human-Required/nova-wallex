@@ -125,7 +125,7 @@ function botCard(b) {
   const pnl = (+b.equity_tmn) - (+b.config.capital_tmn);
   return `<div class="panel botcard" data-open="${b.id}"><div class="body">
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:15px">${esc(b.name)}</b>${botChip(b.status)}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><span class="chip ${b.mode === 'live' ? 'y' : ''}">${b.mode === 'live' ? 'واقعی' : 'آزمایشی'}</span><span class="chip">${b.exchange === 'wallex' ? 'والکس' : esc(b.exchange)}</span><span class="chip">${esc(b.config.timeframe)}</span><span class="chip">${n0(b.config.symbols.length)} نماد</span>${b.config.ai_filter ? '<span class="chip smc">AI</span>' : ''}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><span class="chip ${b.mode === 'live' ? 'y' : ''}">${b.mode === 'live' ? 'واقعی' : 'آزمایشی'}</span><span class="chip">${b.exchange === 'wallex' ? 'والکس' : esc(b.exchange)}</span><span class="chip">${esc(b.config.timeframe)}</span>${b.config.market_type === 'margin' ? `<span class="chip smc">تعهدی ×${n0(b.config.leverage)} · ${({ long: 'لانگ', short: 'شورت', both: 'لانگ و شورت' })[b.config.sides] || ''}</span>` : ''}<span class="chip">${n0(b.config.symbols.length)} نماد</span>${b.config.ai_filter ? '<span class="chip smc">AI</span>' : ''}</div>
     <table><tr><td class="muted">ارزش</td><td><b>${toman(b.equity_tmn)}</b></td></tr><tr><td class="muted">سود/زیان</td><td class="${signCls(pnl)}">${toman(pnl)} (${pct(pnl / b.config.capital_tmn * 100)})</td></tr>
     <tr><td class="muted">موقعیت باز</td><td>${n0(Object.keys(b.positions).length)}</td></tr><tr><td class="muted">زمان اجرا</td><td style="font-size:12px">${esc(scheduleText(b.config.schedule, b.status))}</td></tr></table>
     ${b.last_error ? `<div class="faint neg" style="font-size:12px">${esc(b.last_error)}</div>` : ''}
@@ -150,12 +150,18 @@ export async function pageBuilder(root, ctx, id) {
   const { fa: _fa, ...balanced } = m.presets.balanced;
   const d = bot ? { ...bot.config } : { ...m.defaults, ...balanced, preset: 'balanced', ai_filter: true, ai_min_confidence: 0.65, symbols: ['BTCTMN', 'ETHTMN', 'SOLTMN', 'XRPTMN', 'DOGETMN'], capital_tmn: 10000000 };
   let mode = bot ? bot.mode : 'paper', exchange = bot ? bot.exchange : 'wallex', symbols = [...d.symbols], preset = d.preset || 'balanced';
+  let mtype = d.market_type || 'spot', sides = d.sides && d.market_type === 'margin' ? d.sides : 'both';
   const num = (key, label, v, step) => `<label class="lf"><span>${label}</span><input id="${key}" type="number" step="${step}" value="${v ?? ''}"></label>`;
   root.innerHTML = `
     <section class="panel" style="margin-bottom:14px"><div class="head"><h2>۱. صرافی و حالت اجرا</h2></div><div class="body form">
       <label class="lf" style="max-width:360px"><span>نام ربات</span><input id="bn" value="${esc(bot ? bot.name : 'ربات من')}" maxlength="60"></label>
       <div class="prov" id="exch">${m.exchanges.map(e => `<div class="pcard ${e.enabled ? '' : 'off'}" data-x="${e.id}"><b>${esc(e.fa)}</b><span class="faint">${e.enabled ? 'فعال' : 'به‌زودی'}</span></div>`).join('')}</div>
-      <div class="prov" id="mode"><div class="pcard" data-m="paper"><b>آزمایشی (کاغذی)</b><span class="faint">قیمت‌های زندهٔ بازار، بدون پول واقعی</span></div><div class="pcard" data-m="live"><b>واقعی</b><span class="faint">روی حساب صرافی خودت؛ پس از تأیید ادمین</span></div></div></div></section>
+      <div class="prov" id="mode"><div class="pcard" data-m="paper"><b>آزمایشی (کاغذی)</b><span class="faint">قیمت‌های زندهٔ بازار، بدون پول واقعی</span></div><div class="pcard" data-m="live"><b>واقعی</b><span class="faint">روی حساب صرافی خودت؛ پس از تأیید ادمین</span></div></div>
+      <div class="prov" id="mtype"><div class="pcard" data-t="spot"><b>اسپات</b><span class="faint">خرید و فروش خود دارایی، بدون اهرم</span></div><div class="pcard" data-t="margin"><b>تعهدی (اهرمی)</b><span class="faint">معامله تعهدی والکس: لانگ و شورت با نسبت اعتبار</span></div></div>
+      <div id="marginbox" class="form hidden"><div class="lgrid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <label class="lf"><span>نسبت اعتبار (اهرم) — حداکثر ${n0((m.margin || {}).max_leverage || 5)} برابر</span><input id="lev" type="number" min="1" max="${(m.margin || {}).max_leverage || 5}" step="1" value="${d.market_type === 'margin' ? d.leverage : 2}"></label>
+        <div class="lf"><span>سمت معامله</span><div class="prov" id="sides" style="grid-template-columns:repeat(3,minmax(0,1fr))">${[['long', 'فقط لانگ'], ['short', 'فقط شورت'], ['both', 'هر دو']].map(([k, t]) => `<div class="pcard ${(d.sides || 'both') === k ? 'on' : ''}" data-side="${k}"><b>${t}</b></div>`).join('')}</div></div></div>
+        <div class="notice red" style="font-size:12px">معامله تعهدی پرریسک است: با اهرم k، هر ۱٪ حرکت قیمت k٪ وثیقه را جابه‌جا می‌کند و در حرکت مخالف موقعیت لیکویید می‌شود. ربات هیچ ورودی را که حد ضررش بعد از قیمت لیکویید باشد باز نمی‌کند، حد ضرر و حد سود را از همان لحظهٔ باز شدن روی صرافی ثبت می‌کند و موقعیت حداکثر ۲۱ روز (عمر موقعیت در والکس) باز می‌ماند. شورت‌ها با همان استراتژی‌ها روی قیمت معکوس پیدا می‌شوند. کارمزد فعال‌سازی و تمدید ۴ساعته از وثیقه کسر می‌شود.</div></div></div></section>
     <section class="panel" style="margin-bottom:14px"><div class="head"><h2>۲. بازار و استراتژی</h2></div><div class="body form">
       <div class="lf"><span>نمادها <b id="symc" class="chip y"></b></span><div id="syms" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0"></div>
         <div class="row"><input id="sq" list="mk" class="ltr" placeholder="افزودن نماد، مثلاً ADATMN" style="width:220px"><datalist id="mk">${m.markets.map(x => `<option value="${x.symbol}">`).join('')}</datalist>
@@ -183,6 +189,9 @@ export async function pageBuilder(root, ctx, id) {
   const paint = () => {
     $$('#exch .pcard').forEach(c => c.classList.toggle('on', c.dataset.x === exchange));
     $$('#mode .pcard').forEach(c => c.classList.toggle('on', c.dataset.m === mode));
+    $$('#mtype .pcard').forEach(c => c.classList.toggle('on', c.dataset.t === mtype));
+    $$('#sides .pcard').forEach(c => c.classList.toggle('on', c.dataset.side === sides));
+    $('#marginbox').classList.toggle('hidden', mtype !== 'margin');
     $$('#pre .pcard').forEach(c => c.classList.toggle('on', c.dataset.p === preset));
     $('#syms').innerHTML = symbols.map(s => `<span class="chip">${esc(s)} <a href="javascript:void 0" data-rm="${s}" style="color:var(--faint)">✕</a></span>`).join('') || '<span class="faint" style="font-size:12px">نمادی انتخاب نشده</span>';
     $('#symc').textContent = symbols.length > 1 ? 'پرتفوی ' + n0(symbols.length) + ' نماد' : 'تک‌ارزی';
@@ -190,6 +199,8 @@ export async function pageBuilder(root, ctx, id) {
   };
   $$('#exch .pcard').forEach(c => c.onclick = () => { if (!c.classList.contains('off')) { exchange = c.dataset.x; paint(); } });
   $$('#mode .pcard').forEach(c => c.onclick = () => { mode = c.dataset.m; paint(); });
+  $$('#mtype .pcard').forEach(c => c.onclick = () => { mtype = c.dataset.t; paint(); });
+  $$('#sides .pcard').forEach(c => c.onclick = () => { sides = c.dataset.side; paint(); });
   $$('#pre .pcard').forEach(c => c.onclick = () => { preset = c.dataset.p; const p = m.presets[preset]; if (p) { ['risk_pct', 'max_positions', 'min_quality'].forEach(k => $('#' + k).value = p[k]); $('#regime_filter').checked = p.regime_filter; } if (preset === 'custom') $('#adv').open = true; paint(); });
   $('#sadd').onclick = () => { const s = $('#sq').value.trim().toUpperCase(); if (m.markets.some(x => x.symbol === s) && !symbols.includes(s) && symbols.length < 25) symbols.push(s); $('#sq').value = ''; paint(); };
   $('#sq').onkeydown = e => { if (e.key === 'Enter') $('#sadd').click(); };
@@ -204,7 +215,7 @@ export async function pageBuilder(root, ctx, id) {
   });
   const readSchedule = bindSchedule($('#sched'));
   const val = k => { const v = $('#' + k).value; return v === '' ? null : +v; };
-  const config = () => ({ schedule: readSchedule(), symbols, timeframe: $('#tf').value, strategies: $$('#lstrats input:checked').map(x => x.value), capital_tmn: val('cap'), preset,
+  const config = () => ({ schedule: readSchedule(), market_type: mtype, leverage: mtype === 'margin' ? val('lev') : 1, sides: mtype === 'margin' ? sides : 'long', symbols, timeframe: $('#tf').value, strategies: $$('#lstrats input:checked').map(x => x.value), capital_tmn: val('cap'), preset,
     risk_pct: val('risk_pct'), max_positions: val('max_positions'), min_quality: val('min_quality'), max_asset_pct: val('max_asset_pct'), max_gross_pct: val('max_gross_pct'),
     min_stop_pct: val('min_stop_pct'), max_stop_pct: val('max_stop_pct'), trend_tp_r: val('trend_tp_r'), max_hold_hours: val('max_hold_hours'), cooldown_bars: val('cooldown_bars'),
     breakeven_buffer_pct: val('breakeven_buffer_pct'), exit_mode: $('#exit_mode').value, trailing: $('#trailing').checked, trend_exit: $('#trend_exit').checked,

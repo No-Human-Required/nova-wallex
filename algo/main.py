@@ -262,7 +262,9 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
                 'lab_timeframes': [{'id': k, 'fa': TIMEFRAMES_FA[k]} for k in TIMEFRAMES],
                 'strategies': [{'id': k, 'fa': v['fa'], 'family': v['family'], 'thesis': v['thesis'], 'max_holding_hours': v['max_holding_hours']}
                                for k, v in st.STRATEGIES.items()],
-                'presets': {k: v for k, v in PRESETS.items()}, 'end_actions': END_ACTIONS, 'defaults': {k: v for k, v in le.DEFAULTS.items() if k not in {'start', 'end', 'source'}},
+                'presets': {k: v for k, v in PRESETS.items()}, 'end_actions': END_ACTIONS,
+                'margin': {'max_leverage': settings.get('margin.max_leverage'), 'live_enabled': settings.get('platform.margin_enabled'),
+                           'defaults': {k: le.DEFAULTS[k] for k in ('margin_open_fee_pct', 'margin_interest_pct_4h', 'liquidation_margin_pct')}}, 'defaults': {k: v for k, v in le.DEFAULTS.items() if k not in {'start', 'end', 'source'}},
                 'markets': [{'symbol': s, 'base': m.base, 'quote': m.quote} for s, m in sorted(exchanges.wallex_markets().items()) if s != 'USDTTMN'],
                 'plans': db.all('SELECT id,name,price_tmn,days,max_bots,max_live_bots,max_capital_tmn,ai_calls_month,description FROM plans WHERE active=1 ORDER BY sort'),
                 'development': development}
@@ -350,6 +352,11 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
         return {'ok': True}
 
     # ------------------------------------------------------------ bots
+    def margin_rules(cfg):
+        if cfg.get('market_type') == 'margin' and cfg['leverage'] > settings.get('margin.max_leverage'):
+            raise ValueError(f"حداکثر نسبت اعتبار مجاز {settings.get('margin.max_leverage')} برابر است")
+        return cfg
+
     def bot_of(request, ident):
         bot = db.one('SELECT * FROM bots WHERE id=? AND user_id=?', (ident, me(request)['id']))
         if not bot:
@@ -389,6 +396,7 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
             raise ValueError('حالت ربات نامعتبر است')
         cfg = validate_bot(body.config, body.exchange, body.mode, plan['max_capital_tmn'] if body.mode == 'live' else None,
                            customs=studio.strategies.specs(u['id']))
+        margin_rules(cfg)
         name = body.name.strip()[:60]
         if not name:
             raise ValueError('نام ربات را وارد کنید')
@@ -422,6 +430,9 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
             raw_cfg = {**raw_cfg, 'schedule': stored.get('schedule')}  # the run window is kept unless sent
         cfg = validate_bot(raw_cfg, bot['exchange'], mode,
                            plan['max_capital_tmn'] if mode == 'live' and plan else None, customs=customs)
+        margin_rules(cfg)
+        if cfg.get('market_type') != stored.get('market_type', 'spot') and state['positions']:
+            raise ValueError('ربات موقعیت باز دارد؛ تغییر نوع بازار (اسپات/تعهدی) فقط بدون موقعیت باز ممکن است')
         changes = {'name': (body.name or bot['name']).strip()[:60], 'config': json.dumps(cfg), 'mode': mode}
         if mode != bot['mode'] or cfg['capital_tmn'] != json.loads(bot['config'])['capital_tmn']:
             if state['positions']:
@@ -999,7 +1010,7 @@ def create_app(directory=None, *, development=None, start_threads=True, sms=None
         from . import settings as defs
         from execution import llm
         return {'settings': settings.view(), 'llm_providers': {k: {'fa': v['fa'], 'base_url': v['base_url'], 'models': v['models']} for k, v in llm.PROVIDERS.items()},
-                'groups': {'platform': 'عمومی', 'sms': 'پیامک (IPPanel)', 'otp': 'کد ورود', 'payment': 'پرداخت (زرین‌پال)', 'llm': 'هوش مصنوعی', 'exchange': 'صرافی‌ها'}}
+                'groups': {'platform': 'عمومی', 'sms': 'پیامک (IPPanel)', 'otp': 'کد ورود', 'payment': 'پرداخت (زرین‌پال)', 'llm': 'هوش مصنوعی', 'exchange': 'صرافی‌ها', 'margin': 'معاملات تعهدی (اهرمی)'}}
 
     @app.post('/api/admin/settings')
     def admin_save_settings(body: SettingsBody, request: Request):

@@ -18,6 +18,8 @@ DEFS = {
     'platform.default_plan_id': ('str', 'free', False, 'پلن پیش‌فرض کاربر جدید'),
     'platform.notice': ('str', '', False, 'اعلان بالای پنل کاربران'),
     'platform.support_text': ('str', '', False, 'راه ارتباط با پشتیبانی'),
+    'platform.margin_enabled': ('bool', False, False, 'معاملات تعهدی (اهرمی) واقعی؛ خاموش = ربات‌های تعهدی واقعی فقط خروج را مدیریت می‌کنند'),
+    'margin.max_leverage': ('int', 5, False, 'حداکثر نسبت اعتبار (اهرم) مجاز برای ربات‌ها'),
     # SMS (IPPanel Edge, pattern)
     'sms.provider': ('str', 'ippanel', False, 'سرویس پیامک'),
     'sms.base_url': ('str', 'https://edge.ippanel.com/v1/api', False, 'آدرس API پیامک'),

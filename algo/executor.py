@@ -51,6 +51,7 @@ def compact(c):
     plan = c.get('plan') or {}
     ind_ = c.get('indicators') or {}
     return {'symbol': c['symbol'], 'strategy': c['strategy'], 'strategy_name': c.get('strategy_name'), 'quality': c.get('quality'),
+            'side': 'short' if c.get('side', 1) < 0 else 'long',
             'score': c.get('score'), 'confluence': c.get('confluence') or [c['strategy']],
             'plan': {k: plan.get(k) for k in ('entry_ref_tmn', 'stop_fraction', 'stop_price_tmn', 'target_price_tmn', 'reward_risk', 'max_holding_hours')},
             'indicators': {k: ind_.get(k) for k in ('rsi14', 'atr_pct', 'trend_aligned', 'volume_ratio')}}
@@ -92,6 +93,8 @@ class PaperGateway:
 class Executor:
     def __init__(self, db, market, *, ai=None, clock=time.time):
         self.db, self.market, self.ai, self.clock = db, market, ai, clock
+        from .margin import MarginBook
+        self.margin = MarginBook(self)
 
     # ------------------------------------------------------------- persistence
     def event(self, bot, kind, detail):
@@ -109,12 +112,16 @@ class Executor:
     def cycle(self, bot, gateway, *, entries_allowed=True, flatten=False):
         cfg, state = json.loads(bot['config']), json.loads(bot['state'])
         markets = self.market.markets(bot['exchange'])
-        self.reconcile(bot, state, gateway, markets)
+        margin = cfg.get('market_type') == 'margin'
+        if margin:
+            self.margin.reconcile(bot, state, gateway, markets)
+        else:
+            self.reconcile(bot, state, gateway, markets)
         if self.orders(bot, UNRESOLVED):
             self.save(bot, state)
             return {'status': 'waiting_for_unknown_order'}
         now = self.clock()
-        exits = self.exits(bot, cfg, state, gateway, markets, now, flatten)
+        exits = (self.margin.exits if margin else self.exits)(bot, cfg, state, gateway, markets, now, flatten)
         entered = []
         step = le.TIMEFRAMES[cfg['timeframe']]
         closed = int(now)//step*step-step
@@ -301,9 +308,11 @@ class Executor:
         if series is None:
             self.event(bot, 'data_unavailable', {'bar': closed, 'time': at})
             return []
+        margin = cfg.get('market_type') == 'margin'
+        inverted = {k: x.inverted() for k, x in series.items()} if margin and cfg.get('sides', 'long') != 'long' else {}
         for sym, pos in state['positions'].items():
             if cfg['trend_exit'] and le.trend_exits(cfg, pos.get('strategy')) and sym in series:
-                w = series[sym].window(idx, 30)
+                w = (inverted.get(sym) if pos.get('side', 1) < 0 else series[sym]).window(idx, 30)
                 if w:
                     e9, e21 = ind.last_ema(w[3], 9), ind.last_ema(w[3], 21)
                     if e9 is not None and e21 is not None and e9 < e21:
@@ -316,7 +325,23 @@ class Executor:
         cost_bps = {q: 2*(fee[q]*10000+cfg['half_spread_bps']+cfg['slippage_bps']) for q in fee}
         # The screener runs every bar (also while paused or full) so the dashboard keeps a history.
         trace = {}
-        found, regime = le.scan_bar(cfg, series, markets, idx, n24, btc, le.strategy_cfg(cfg), cost_bps, busy, trace=trace)
+        scfg = le.strategy_cfg(cfg)
+        found, regime = le.scan_bar(cfg, series, markets, idx, n24, btc, scfg, cost_bps, busy, trace=trace) if cfg.get('sides', 'long') != 'short' else ([], None)
+        for h in found:
+            h['side'] = 1
+        if inverted:
+            # Shorts: the same strategies on 1/price (a rally there is a decline of the real price).
+            short_trace = {}
+            shorts, _ = le.scan_bar(cfg, inverted, markets, idx, n24, inverted.get('BTCTMN'), scfg, cost_bps, busy, trace=short_trace)
+            for h in shorts:
+                h['side'] = -1
+                h['strategy_name'] = 'شورت (روی قیمت معکوس ۱/P): '+(le.st.STRATEGIES.get(h['strategy'], {}).get('fa') or h.get('strategy_name') or h['strategy'])
+            for k, v in short_trace.items():
+                if v.get('stage') in ('candidate', 'quality') and (trace.get(k, {}).get('stage') not in ('candidate',) or v.get('quality', 0) > trace[k].get('quality', 0)):
+                    trace[k] = {**v, 'side': 'short'}
+            found = sorted(found+shorts, key=lambda h: (-h['quality'], -h['score'], h['symbol']))
+            seen = set()
+            found = [h for h in found if not (h['symbol'] in seen or seen.add(h['symbol']))]
         context = self.record_scan(bot, cfg, at, step, series, idx, n24, btc, regime, trace, found)
         if not entries_allowed or free <= 0 or not found:
             if found:
@@ -340,6 +365,8 @@ class Executor:
         else:
             self.record_decision(bot, at, step, {'status': 'rules_only', 'regime': context, 'candidates': [compact(c) for c in found[:12]],
                                                  'decisions': [], 'selected': [c['symbol'] for c in chosen[:free]]})
+        if margin:
+            return self.margin.enter(bot, cfg, state, gateway, markets, chosen, fee, cost_bps, at, free)
         out = []
         for c in chosen[:free]:
             market = markets[c['symbol']]
@@ -419,6 +446,8 @@ class Executor:
 
     # ------------------------------------------------------------- valuation
     def equity(self, state, markets):
+        if any(p.get('margin') for p in state['positions'].values()):
+            return self.margin.equity(state, markets)
         value = D(state['cash_tmn'])
         for sym, pos in state['positions'].items():
             value += D(pos['qty'])*self.market.book(sym)['bid']
