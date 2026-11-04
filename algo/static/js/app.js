@@ -33,7 +33,7 @@ const ctx = { every, keep, safe, sName, famChip, STRAT, route: () => route(), re
 // ------------------------------------------------------------------ shell
 function shell() {
   const u = S.user;
-  const link = ([k, t, i]) => `<a href="#${k}" data-p="${k}"><span class="ico">${i}</span>${t}</a>`;
+  const link = ([k, t, i]) => `<a href="#${k}" data-nav="${k}"><span class="ico">${i}</span>${t}</a>`;
   document.body.innerHTML = `<canvas id="fx" aria-hidden="true"></canvas>
   <div class="shell"><aside class="side"><a class="brand" href="#live"><img src="/assets/mark.svg" alt=""><div><b>${esc(S.meta.site_name)}</b><small>ALGORITHMIC TRADING BOTS</small></div></a>
   <nav class="tabs">${PAGES.slice(0, 8).map(link).join('')}<div class="navsec">حساب</div>${PAGES.slice(8).map(link).join('')}
@@ -87,7 +87,7 @@ async function route() {
   const def = PAGES.find(p => p[0] === page) || ADMIN.find(p => p[0] === page);
   if (!def && !EXTRA[page]) { location.hash = '#live'; return; }
   if (page.startsWith('admin') && S.user.role !== 'admin') { location.hash = '#live'; return; }
-  $$('nav.tabs a').forEach(a => a.classList.toggle('active', a.dataset.p === page || (page in EXTRA && a.dataset.p === 'bots')));
+  $$('nav.tabs a').forEach(a => a.classList.toggle('active', a.dataset.nav === page || (page in EXTRA && a.dataset.nav === 'bots')));
   $('#title').textContent = def ? def[1] : EXTRA[page];
   const needsBot = def && def[3];
   $('#botpick').classList.toggle('hidden', !needsBot || !S.bots.length);

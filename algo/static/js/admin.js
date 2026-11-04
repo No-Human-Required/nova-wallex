@@ -95,7 +95,7 @@ async function plans(root, ctx) {
       if (await act(() => post('/api/admin/plans', body), 'ذخیره شد')) { m.remove(); ctx.route(); } };
   };
   $('#np').onclick = () => edit(null);
-  $$('[data-p]').forEach(b => b.onclick = () => edit(list.find(p => p.id === b.dataset.p)));
+  $$('#pl button[data-p]').forEach(b => b.onclick = () => edit(list.find(p => p.id === b.dataset.p)));
 }
 
 async function settings(root) {

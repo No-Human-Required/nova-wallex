@@ -45,7 +45,7 @@
 
 ## استقرار روی رانفلر (اپ جدا از Nova)
 
-1. `python scripts/package_algorithmic.py` فایل `dist/algorithmic-runflare-v1.2.0.zip` را می‌سازد (Dockerfile در ریشه).
+1. `python scripts/package_algorithmic.py` فایل `dist/algorithmic-runflare-v1.2.1.zip` را می‌سازد (Dockerfile در ریشه).
 2. یک اپ جدید در رانفلر با یک PostgreSQL (می‌تواند همان سرور Nova باشد؛ فضای `algorithmic` جداست) و یک دیسک برای `/data`.
 3. متغیرهای محیطی:
 

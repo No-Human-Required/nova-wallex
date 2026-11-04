@@ -254,7 +254,7 @@ export async function pageBilling(root, ctx, q) {
       <div class="muted" style="font-size:13px;margin:6px 0">${esc(p.description || '')}</div><div style="font-size:12.5px">${n0(p.max_bots)} ربات · ${+p.max_live_bots ? n0(p.max_live_bots) + ' واقعی تا ' + toman(p.max_capital_tmn) : 'فقط آزمایشی'} · AI ${n0(p.ai_calls_month)} در ماه</div>
       ${+p.price_tmn ? `<button class="primary" style="margin-top:10px" data-p="${p.id}">${u.plan && u.plan.id === p.id ? 'تمدید' : 'خرید'}</button>` : ''}</div></div>`).join('')}</section>
     <section class="panel"><div class="head"><h2>پرداخت‌ها</h2></div><div class="body table-wrap" id="pays"></div></section>`;
-  $$('[data-p]').forEach(b => b.onclick = async () => { const r = await act(() => post('/api/pay', { plan_id: b.dataset.p })); if (r) location.href = r.url; });
+  $$('button[data-p]', root).forEach(b => b.onclick = async () => { const r = await act(() => post('/api/pay', { plan_id: b.dataset.p })); if (r) location.href = r.url; });
   const ps = await api('/api/payments').catch(() => []);
   $('#pays').innerHTML = ps.length ? `<table><thead><tr><th>زمان</th><th>پلن</th><th>مبلغ</th><th>وضعیت</th><th>کد پیگیری</th></tr></thead><tbody>${ps.map(p => `<tr><td>${when(p.created)}</td><td>${esc(p.plan_id)}</td><td>${toman(p.amount_rial / 10)}</td><td>${{ paid: '<span class="pos">موفق</span>', pending: 'در انتظار', cancelled: 'لغو', failed: '<span class="neg">ناموفق</span>' }[p.status] || esc(p.status)}${p.sandbox ? ' <span class="chip y">آزمایشی</span>' : ''}</td><td class="mono">${esc(p.ref_id || '—')}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">پرداختی ثبت نشده.</div>';
 }
